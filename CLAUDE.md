@@ -42,3 +42,19 @@ If no risks are identified, state it explicitly: "No critical risks identified."
 UI design decisions, design system tokens, and source of truth:
 → [Design decisions & source](docs/architecture/design.md)
 → [Product Requirements Document](docs/requirements/PRD.md)
+→ [Tech Stack Decision](docs/architecture/tech-stack-decision.md)
+
+## SDD Workflow
+
+Spec-Driven Development is required for all structural changes. See full protocol:
+→ [SDD Workflow](docs/protocols/sdd-workflow.md)
+
+**Quick reference — SDD required when:**
+- Adding a new page or route
+- Implementing cookie consent, contact form, or legal pages
+- Introducing FastAPI (Phase 2+)
+- Any AI assistant or lead capture feature (Phase 2+)
+
+**Not required for:** CSS changes, content updates, bug fixes, dependency updates.
+
+**Start a new SDD cycle:** `/sdd-new [change-name]`
