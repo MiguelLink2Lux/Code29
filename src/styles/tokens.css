@@ -1,0 +1,74 @@
+/*
+ * Design Tokens — The Neon Architect
+ * Source of truth: docs/architecture/design.md
+ * Stitch project: code29_web (3663672842421799446)
+ *
+ * DO NOT hardcode these values in components.
+ * Always reference via var(--token-name).
+ */
+
+:root {
+  /* ─── Colors ─── */
+
+  /* Base surfaces */
+  --color-base:        #131314;
+  --color-surface-1:   #1C1B1C;
+  --color-surface-2:   #2A2A2B;
+  --color-surface-3:   #3A393A;
+
+  /* Accent */
+  --color-primary:     #00F0FF;
+  --color-primary-dim: #DBFCFF;
+  --color-secondary:   #9D00FF;
+
+  /* Text */
+  --color-text:        #E5E2E3;
+  --color-text-muted:  #9A9899;
+
+  /* ─── Typography ─── */
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body:    'Manrope', sans-serif;
+
+  /* ─── Spacing ─── */
+
+  --space-1:  0.25rem;   /*  4px */
+  --space-2:  0.5rem;    /*  8px */
+  --space-3:  0.75rem;   /* 12px */
+  --space-4:  1rem;      /* 16px */
+  --space-6:  1.5rem;    /* 24px */
+  --space-8:  2rem;      /* 32px */
+  --space-12: 3rem;      /* 48px */
+  --space-16: 4rem;      /* 64px */
+  --space-24: 6rem;      /* 96px */
+
+  /* ─── Effects ─── */
+
+  /* Non-negotiable: 0px radius everywhere */
+  --radius: 0px;
+
+  /* Glassmorphism */
+  --glass-opacity:     0.6;
+  --glass-blur:        24px;
+  --glass-bg:          rgba(28, 27, 28, 0.6);
+
+  /* Ambient glow shadow */
+  --shadow-ambient:    0px 20px 40px rgba(0, 219, 233, 0.08);
+  --shadow-glow:       0px 0px 4px rgba(0, 240, 255, 0.8);
+
+  /* Borders — NO 1px borders. Use background color shifts only. */
+  /* Exception: input underline */
+  --input-border-bottom: 2px solid var(--color-surface-3);
+  --input-border-focus:  2px solid var(--color-primary);
+
+  /* ─── Buttons ─── */
+
+  --btn-gradient: linear-gradient(135deg, var(--color-primary-dim), var(--color-primary));
+  --btn-glow:     0px 0px 4px var(--color-primary);
+
+  /* ─── Transitions ─── */
+
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow:   400ms ease;
+}

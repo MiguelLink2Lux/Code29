@@ -1,0 +1,39 @@
+# OS files
+.DS_Store
+
+# Editor/IDE
+.idea/
+.vscode/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+temp/
+
+# Dependency directories (common)
+node_modules/
+.venv/
+venv/
+
+# Build artifacts (common)
+dist/
+build/
+coverage/
+
+# Astro
+.astro/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Vitest
+*.lcov
