@@ -9,7 +9,7 @@
 
 1. **Propose a plan** before touching any file — describe the approach, affected files, and risks
 2. **Wait for explicit approval** before writing any code
-3. **Track tasks** with TodoWrite (or Jira if configured)
+3. **Track tasks** with Jira (project C29 — see [Jira integration](docs/protocols/jira-claude-integration.md))
 4. **Execute task by task** — mark each done before moving to the next
 5. **Propose the commit** (message + files) and wait for approval before running it
 
