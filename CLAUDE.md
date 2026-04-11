@@ -36,3 +36,8 @@ If no risks are identified, state it explicitly: "No critical risks identified."
 - Comments in English, on non-obvious logic only
 - Follow existing project conventions (naming, structure, formatting)
 - No speculative abstractions — implement what is actually needed
+
+## Design
+
+UI design decisions, design system tokens, and source of truth:
+→ [Design decisions & source](docs/architecture/design.md)
