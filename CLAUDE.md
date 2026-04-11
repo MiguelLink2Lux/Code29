@@ -41,3 +41,4 @@ If no risks are identified, state it explicitly: "No critical risks identified."
 
 UI design decisions, design system tokens, and source of truth:
 → [Design decisions & source](docs/architecture/design.md)
+→ [Product Requirements Document](docs/requirements/PRD.md)
