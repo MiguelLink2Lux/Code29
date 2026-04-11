@@ -59,22 +59,16 @@ This document defines the AI agents (Claude Code skills) active in the Code29 pr
 
 ### test-engineer — Unit and Integration Test Specialist
 **Skill:** `.claude/skills/test-engineer.md` (project-level)  
-**Status:** ⏳ Pending — blocked on C29-8 (frontend stack decision)
+**Status:** ✅ Active — stack confirmed (C29-8 closed)
 
-**Planned responsibilities:**
-- Write and maintain unit tests for components and utilities
+**Responsibilities:**
+- Write and maintain unit tests for Vue components and utilities
 - Integration tests for the contact form submission flow
 - E2E tests for critical user paths (cookie consent, form submission)
+- Backend tests for FastAPI endpoints (Phase 2+)
 
-**Stack dependency:**
-
-| Framework | Test tools |
-|-----------|-----------|
-| Astro | Vitest + Playwright |
-| Next.js | Jest + Testing Library + Playwright |
-| Nuxt | Vitest + Testing Library + Playwright |
-
-**Activation:** After C29-8 is resolved.
+**Stack:** Astro + Vue 3 (Vitest + @testing-library/vue + Playwright) / FastAPI Phase 2+ (pytest + httpx)
+**Skill file:** `.claude/skills/test-engineer.md`
 
 ---
 

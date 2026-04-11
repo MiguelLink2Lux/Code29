@@ -22,6 +22,38 @@ Invoke this skill when:
 
 ---
 
+## Tech Stack — Approved Decision (C29-8)
+
+The following stack is locked. Flag any proposal that deviates without justification.
+
+| Layer | Technology | Phase |
+|-------|-----------|-------|
+| Frontend | Astro (static generation) | Phase 1 → 3 |
+| Interactivity | Vue 3 (Islands architecture) | Phase 1 → 3 |
+| Styling | CSS custom properties + design tokens | Phase 1 → 3 |
+| Type safety | TypeScript — **mandatory in all layers** | Phase 1 → 3 |
+| Backend API | FastAPI (Python) | Phase 2+ |
+| AI integration | Claude API via Python backend | Phase 2+ |
+| Frontend deploy | Vercel (CDN, static) | Phase 1 → 3 |
+| Backend deploy | Render/Railway → AWS + Docker | Phase 2+ |
+| Form (Phase 1) | Serverless function + Resend (no FastAPI needed) | Phase 1 only |
+
+### Implementation Phases
+
+- **Phase 1:** Static Astro landing + Vue islands for form/cookies + Vercel deploy
+- **Phase 2:** FastAPI introduction + design and analysis of AI system (no production AI yet)
+- **Phase 3:** Full AI analyzer implementation — functional, production-ready
+
+### Stack Review Rules
+
+- **FastAPI in Phase 1** → FLAG. No backend needed until Phase 2. Use Vercel serverless.
+- **React/Svelte components** → BLOCK. Only Vue islands permitted.
+- **TypeScript omitted** → FLAG. Mandatory for design token integrity.
+- **Shared design tokens not in CSS custom properties** → FLAG. Tokens must be centralized.
+- **New Python dependency in Phase 1** → BLOCK. Backend doesn't exist yet.
+
+---
+
 ## Scope — Code29 v1
 
 Focus your review on these risk areas:
