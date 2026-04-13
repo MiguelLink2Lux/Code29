@@ -44,6 +44,22 @@ UI design decisions, design system tokens, and source of truth:
 → [Product Requirements Document](docs/requirements/PRD.md)
 → [Tech Stack Decision](docs/architecture/tech-stack-decision.md)
 
+## SOLID Principles
+
+SOLID compliance is **active and mandatory** across the entire project.
+
+Before approving any plan, a **SOLID Check** section must be included identifying violations and the recommended fix.
+
+| Principle | What to watch in Astro + Vue + TS |
+|-----------|-----------------------------------|
+| **S** — Single Responsibility | Vue components with one reason to change. No business logic mixed with presentation. |
+| **O** — Open/Closed | Components extensible via props/slots, not by direct modification. |
+| **L** — Liskov Substitution | Composables and base types must be substitutable by derived ones. |
+| **I** — Interface Segregation | Small, specific TS interfaces. Minimal component props — no god-props. |
+| **D** — Dependency Inversion | Business logic never depends on concrete implementations. External services (GA4, form backend, future FastAPI) accessed exclusively via abstractions in `src/utils/`. |
+
+When a violation is detected: name the principle, explain the problem, propose the minimal fix.
+
 ## SDD Workflow
 
 Spec-Driven Development is required for all structural changes. See full protocol:

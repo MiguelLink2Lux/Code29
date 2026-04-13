@@ -125,11 +125,11 @@ The following decisions must be made before or during MVP implementation:
 
 | Decision | Options | Status |
 |----------|---------|--------|
-| Frontend stack | Astro / Next.js / Nuxt | ⏳ Pending |
-| Form backend | Formspree / Resend / own | ⏳ Pending |
-| Hosting / deploy | Vercel / Netlify / other | ⏳ Pending |
+| Frontend stack | Astro / Next.js / Nuxt | ✅ Astro — C29-8 closed |
+| Form backend | Formspree / Resend / own | ✅ Vercel Serverless + Resend — C29-9 closed |
+| Hosting / deploy | Vercel / Netlify / other | ✅ Vercel — C29-10 closed |
 | Domain | — | ⏳ Pending |
-| Analytics | GA4 / Plausible / none | ⏳ Pending |
+| Analytics | GA4 / Plausible / none | ✅ Google Analytics 4 (GA4) — C29-11 closed |
 
 ---
 

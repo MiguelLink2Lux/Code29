@@ -66,7 +66,20 @@ AI Services [Phase 3]
 - AI integration (Claude API)
 - Data processing and lead storage
 
-### 3.4 TypeScript — Mandatory
+### 3.4 Analytics: Google Analytics 4
+
+**Decision:** GA4 with Consent Mode v2 — C29-11 closed
+
+**Reasons:**
+- Free tier, sufficient for a personal brand landing
+- Native Google ecosystem integration
+- Consent Mode v2 compliance with GDPR requirements
+
+**Implementation constraint:** GA4 MUST NOT load before explicit user consent (analytics category). Abstracted via `src/utils/analytics.ts` — no component calls `gtag()` directly (SOLID DIP).
+
+**GDPR impact:** Requires a functional cookie consent banner. Analytics and ad storage default to `denied`.
+
+### 3.5 TypeScript — Mandatory
 
 Required across all layers (Astro + Vue) to enforce design token integrity and prevent visual drift.
 
@@ -160,4 +173,5 @@ This architecture allows:
 - PRD: [docs/requirements/PRD.md](../requirements/PRD.md)
 - Design system: [docs/architecture/design.md](design.md)
 - Agent map: [docs/protocols/ai-agents.md](../protocols/ai-agents.md)
-- Jira: C29-8 (closed), C29-10 (closed)
+- Implementation plan: [docs/architecture/sdd-landing-v1.md](sdd-landing-v1.md)
+- Jira: C29-8 (closed), C29-9 (closed), C29-10 (closed), C29-11 (closed)
