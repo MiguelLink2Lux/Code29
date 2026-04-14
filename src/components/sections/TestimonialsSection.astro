@@ -1,0 +1,156 @@
+---
+// Testimonials section: social proof cards
+const testimonials = [
+  {
+    quote:
+      'La integración de IA en nuestro flujo de trabajo duplicó la velocidad de entrega en tres meses. Miguel entiende el negocio y el código en igual medida.',
+    name: 'Javier Domínguez',
+    role: 'CEO',
+    company: 'TechFlow Solutions',
+  },
+  {
+    quote:
+      'Diseñó una infraestructura impecable para nuestro entorno crítico, reduciendo los errores en producción un 50%. Exactamente lo que necesitábamos.',
+    name: 'Elena Martí',
+    role: 'Product Director',
+    company: 'IBEX Corp',
+  },
+  {
+    quote:
+      'Sus capacidades como AI Project Manager son excepcionales. Transformó la cultura de nuestro equipo hacia una eficiencia real y medible.',
+    name: 'Ricardo Costa',
+    role: 'CTO',
+    company: 'Global E-commerce',
+  },
+]
+---
+
+<section class="testimonials" id="testimonios" aria-label="Testimonios">
+  <div class="testimonials__inner">
+    <div class="testimonials__header">
+      <span class="testimonials__tag">SOCIAL_PROOF</span>
+      <h2 class="testimonials__title">Lo que dicen mis clientes</h2>
+    </div>
+
+    <div class="testimonials__grid">
+      {
+        testimonials.map((t) => (
+          <article class="testimonials__card">
+            <blockquote class="testimonials__quote">
+              <p>&ldquo;{t.quote}&rdquo;</p>
+            </blockquote>
+            <footer class="testimonials__author">
+              <div class="testimonials__avatar" aria-hidden="true">
+                {t.name.charAt(0)}
+              </div>
+              <div>
+                <cite class="testimonials__name">{t.name}</cite>
+                <span class="testimonials__meta">
+                  {t.role} — {t.company}
+                </span>
+              </div>
+            </footer>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .testimonials {
+    padding: var(--space-16) var(--space-8);
+    background: var(--color-base);
+  }
+
+  .testimonials__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .testimonials__header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .testimonials__tag {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+    margin-bottom: var(--space-4);
+  }
+
+  .testimonials__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  /* Cards */
+  .testimonials__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-1);
+  }
+
+  .testimonials__card {
+    background: var(--color-surface-1);
+    padding: var(--space-8);
+    box-shadow: var(--shadow-ambient);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    transition: box-shadow var(--transition-normal);
+  }
+
+  .testimonials__card:hover {
+    box-shadow: 0px 0px 24px rgba(0, 240, 255, 0.08);
+  }
+
+  .testimonials__quote p {
+    font-size: 0.9375rem;
+    line-height: 1.8;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  /* Author */
+  .testimonials__author {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .testimonials__avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--color-surface-2);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .testimonials__name {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+    font-style: normal;
+  }
+
+  .testimonials__meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+</style>

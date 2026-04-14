@@ -1,0 +1,98 @@
+---
+// Contact section wrapper — ContactForm.vue will be added in Phase 5
+// Placeholder shown until the Vue component is implemented
+---
+
+<section class="contact" id="contacto" aria-label="Contacto">
+  <div class="contact__inner">
+    <div class="contact__header">
+      <span class="contact__tag">ENLACE_DIRECTO</span>
+      <h2 class="contact__title">Iniciemos la conexión</h2>
+      <p class="contact__subtitle">
+        Sistema en línea. Listo para recibir tu propuesta de proyecto.
+        Tiempo de respuesta estimado: &lt; 24h.
+      </p>
+    </div>
+
+    <!-- ContactForm.vue — implemented in Phase 5 (C29-45) -->
+    <div class="contact__form-placeholder" aria-label="Formulario de contacto — próximamente">
+      <p class="contact__placeholder-text">
+        ESTABLECIENDO_CONEXIÓN... // Formulario disponible en Phase 5
+      </p>
+    </div>
+
+    <div class="contact__status" aria-hidden="true">
+      STATUS: SISTEMA_ONLINE &nbsp;|&nbsp; CIFRADO: EXTREMO_A_EXTREMO &nbsp;|&nbsp; LATENCIA: &lt;12MS
+    </div>
+  </div>
+</section>
+
+<style>
+  .contact {
+    padding: var(--space-16) var(--space-8);
+    background: var(--color-surface-1);
+  }
+
+  .contact__inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-8);
+    text-align: center;
+  }
+
+  .contact__tag {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+  }
+
+  .contact__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .contact__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .contact__subtitle {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+  }
+
+  /* Placeholder */
+  .contact__form-placeholder {
+    width: 100%;
+    padding: var(--space-12);
+    background: var(--color-surface-2);
+    box-shadow: var(--shadow-ambient);
+  }
+
+  .contact__placeholder-text {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--color-text-muted);
+    opacity: 0.5;
+  }
+
+  /* Status bar */
+  .contact__status {
+    font-family: var(--font-display);
+    font-size: 0.625rem;
+    letter-spacing: 0.15em;
+    color: var(--color-text-muted);
+    opacity: 0.4;
+  }
+</style>

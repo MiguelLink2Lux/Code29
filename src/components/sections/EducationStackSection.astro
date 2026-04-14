@@ -1,0 +1,173 @@
+---
+// Education & Stack section: AI Master's degree + tech stack grid
+const stackItems = [
+  { name: 'Python', category: 'backend' },
+  { name: 'FastAPI', category: 'backend' },
+  { name: 'LangChain', category: 'ai' },
+  { name: 'LangGraph', category: 'ai' },
+  { name: 'OpenAI API', category: 'ai' },
+  { name: 'Vector DBs', category: 'ai' },
+  { name: 'Astro', category: 'frontend' },
+  { name: 'Vue 3', category: 'frontend' },
+  { name: 'TypeScript', category: 'frontend' },
+  { name: 'Node.js', category: 'backend' },
+  { name: 'PostgreSQL', category: 'backend' },
+  { name: 'Docker', category: 'infra' },
+  { name: 'Vercel', category: 'infra' },
+  { name: 'GitHub Actions', category: 'infra' },
+  { name: 'Kubernetes', category: 'infra' },
+]
+---
+
+<section class="stack" id="stack" aria-label="Formación y Stack tecnológico">
+  <div class="stack__inner">
+    <!-- Education block -->
+    <div class="stack__education">
+      <span class="stack__section-tag">FORMATION_DATA</span>
+      <h2 class="stack__title">Máster en IA</h2>
+      <p class="stack__description">
+        Especialización en arquitecturas de redes neuronales y computación cognitiva.
+        Investigación principal: Sistemas de Inteligencia Distribuida y orquestación de agentes autónomos.
+      </p>
+      <dl class="stack__meta">
+        <div>
+          <dt>Especialización</dt>
+          <dd>Inteligencia Artificial</dd>
+        </div>
+        <div>
+          <dt>Metodología</dt>
+          <dd>SDLC AI-First</dd>
+        </div>
+        <div>
+          <dt>Experiencia</dt>
+          <dd>15+ proyectos</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Stack grid -->
+    <div class="stack__tech">
+      <span class="stack__section-tag">CORE_STACK</span>
+      <ul class="stack__grid" role="list" aria-label="Tecnologías">
+        {
+          stackItems.map((item) => (
+            <li class="stack__item" data-category={item.category}>
+              {item.name}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .stack {
+    padding: var(--space-16) var(--space-8);
+    background: var(--color-base);
+  }
+
+  .stack__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-16);
+    align-items: start;
+  }
+
+  @media (max-width: 768px) {
+    .stack__inner {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .stack__section-tag {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+    margin-bottom: var(--space-4);
+  }
+
+  .stack__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: var(--space-4);
+  }
+
+  .stack__description {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-8);
+  }
+
+  /* Meta details */
+  .stack__meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .stack__meta div {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+  }
+
+  .stack__meta dt {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    min-width: 130px;
+  }
+
+  .stack__meta dd {
+    font-size: 0.9375rem;
+    color: var(--color-text);
+  }
+
+  /* Stack grid */
+  .stack__grid {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-6);
+  }
+
+  .stack__item {
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    background: var(--color-surface-2);
+    padding: var(--space-2) var(--space-4);
+    box-shadow: var(--shadow-ambient);
+    transition:
+      color var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .stack__item:hover {
+    color: var(--color-primary);
+    box-shadow: 0px 0px 8px rgba(0, 240, 255, 0.15);
+  }
+
+  /* Category accent colors */
+  .stack__item[data-category='ai'] {
+    border-bottom: 2px solid rgba(0, 240, 255, 0.3);
+  }
+
+  .stack__item[data-category='infra'] {
+    border-bottom: 2px solid rgba(157, 0, 255, 0.3);
+  }
+</style>

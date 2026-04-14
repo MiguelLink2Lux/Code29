@@ -1,16 +1,29 @@
 ---
-// Base layout for all pages
-// Imports global styles and sets up font loading
+// Base layout: SEO meta tags, global styles, Nav, Footer, Analytics slot
+import Nav from '@/components/layout/Nav.astro'
+import Footer from '@/components/layout/Footer.astro'
 
 interface Props {
   title: string
   description?: string
+  ogTitle?: string
+  ogDescription?: string
+  ogImage?: string
+  canonical?: string
 }
 
 const {
   title,
   description = 'CTO as a Service & AI Developer — Miguel Navarro Mantas',
+  ogTitle,
+  ogDescription,
+  ogImage = '/og-image.png',
+  canonical,
 } = Astro.props
+
+const resolvedOgTitle = ogTitle ?? title
+const resolvedOgDescription = ogDescription ?? description
+const resolvedCanonical = canonical ?? Astro.url.href
 ---
 
 <!doctype html>
@@ -18,8 +31,29 @@ const {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={description} />
+
+    <!-- Primary meta -->
     <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={resolvedCanonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={resolvedOgTitle} />
+    <meta property="og:description" content={resolvedOgDescription} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={resolvedCanonical} />
+    <meta property="og:site_name" content="CODE29" />
+    <meta property="og:locale" content="es_ES" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={resolvedOgTitle} />
+    <meta name="twitter:description" content={resolvedOgDescription} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Analytics slot: injected by Analytics.astro (Phase 4) -->
+    <slot name="analytics" />
 
     <!-- Google Fonts: Space Grotesk + Manrope -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -30,7 +64,11 @@ const {
     />
   </head>
   <body>
-    <slot />
+    <Nav />
+    <main>
+      <slot />
+    </main>
+    <Footer />
   </body>
 </html>
 
@@ -50,6 +88,7 @@ const {
     background-color: var(--color-base);
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
   }
 
   body {

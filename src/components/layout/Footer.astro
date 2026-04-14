@@ -1,0 +1,109 @@
+---
+// Footer: legal links and cookie preferences button
+// The cookie preferences button emits a custom event consumed by CookieBanner.vue (Phase 3)
+---
+
+<footer class="footer">
+  <div class="footer__status" aria-hidden="true">
+    STATUS: SISTEMA_ONLINE &nbsp;|&nbsp; UPTIME: 99.99% &nbsp;|&nbsp; CIFRADO: AES-256
+  </div>
+
+  <div class="footer__bottom">
+    <p class="footer__copy">© 2026 CODE29 // TODOS LOS DERECHOS RESERVADOS</p>
+
+    <nav class="footer__legal" aria-label="Legal">
+      <a href="/aviso-legal" class="footer__legal-link">Aviso Legal</a>
+      <a href="/privacidad" class="footer__legal-link">Privacidad</a>
+      <a href="/cookies" class="footer__legal-link">Cookies</a>
+      <button
+        id="cookie-preferences-btn"
+        class="footer__cookie-btn"
+        type="button"
+        aria-label="Abrir preferencias de cookies"
+      >
+        Preferencias de cookies
+      </button>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  // Dispatches a custom event so CookieBanner.vue can open the preferences panel
+  const btn = document.getElementById('cookie-preferences-btn')
+  btn?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-cookie-preferences'))
+  })
+</script>
+
+<style>
+  .footer {
+    padding: var(--space-8);
+    background: var(--color-surface-1);
+  }
+
+  /* System status bar */
+  .footer__status {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    text-align: center;
+    padding-bottom: var(--space-6);
+    opacity: 0.6;
+  }
+
+  /* Bottom row */
+  .footer__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+
+  .footer__copy {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+  }
+
+  /* Legal nav */
+  .footer__legal {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+  }
+
+  .footer__legal-link {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .footer__legal-link:hover {
+    color: var(--color-primary);
+  }
+
+  /* Cookie preferences button — ghost style */
+  .footer__cookie-btn {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: color var(--transition-fast);
+  }
+
+  .footer__cookie-btn:hover {
+    color: var(--color-primary);
+  }
+</style>

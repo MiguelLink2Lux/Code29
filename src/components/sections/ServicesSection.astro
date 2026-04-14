@@ -1,0 +1,190 @@
+---
+// Services section: CTO as a Service, AI Project Manager
+const services = [
+  {
+    tag: 'SERVICIO_01',
+    title: 'CTO as a Service',
+    description:
+      'Dirección técnica estratégica, definición de arquitectura y escalado del equipo. Liderazgo ejecutivo sin la estructura de un CTO a tiempo completo.',
+    features: [
+      'Arquitectura de sistemas escalables',
+      'Gestión y crecimiento del equipo técnico',
+      'Definición de roadmap tecnológico',
+      'Due diligence e integración tecnológica',
+    ],
+  },
+  {
+    tag: 'SERVICIO_02',
+    title: 'AI Project Manager',
+    description:
+      'Integración de IA en productos existentes, automatización de procesos y aceleración del time-to-market mediante flujos de trabajo aumentados por inteligencia artificial.',
+    features: [
+      'Integración avanzada de LLMs',
+      'Orquestación de agentes autónomos',
+      'Automatización de flujos de desarrollo',
+      'Hoja de ruta estratégica de IA',
+    ],
+  },
+]
+---
+
+<section class="services" id="servicios" aria-label="Servicios">
+  <div class="services__inner">
+    <div class="services__header">
+      <span class="services__tag">WHAT_I_DO</span>
+      <h2 class="services__title">Servicios</h2>
+      <p class="services__subtitle">
+        Soluciones diseñadas para empresas que quieren moverse más rápido
+        con la inteligencia correcta.
+      </p>
+    </div>
+
+    <div class="services__grid">
+      {
+        services.map((service) => (
+          <article class="services__card">
+            <span class="services__card-tag">{service.tag}</span>
+            <h3 class="services__card-title">{service.title}</h3>
+            <p class="services__card-description">{service.description}</p>
+            <ul class="services__features" role="list">
+              {service.features.map((feature) => (
+                <li class="services__feature">
+                  <span class="services__feature-icon" aria-hidden="true">&rsaquo;</span>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <a href="#contacto" class="services__cta">
+              Solicitar información &rsaquo;
+            </a>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .services {
+    padding: var(--space-16) var(--space-8);
+    background: var(--color-surface-1);
+  }
+
+  .services__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .services__header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .services__tag {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+    margin-bottom: var(--space-4);
+  }
+
+  .services__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: var(--space-4);
+  }
+
+  .services__subtitle {
+    font-size: 0.9375rem;
+    color: var(--color-text-muted);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  /* Cards grid */
+  .services__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: var(--space-1);
+  }
+
+  .services__card {
+    background: var(--color-surface-2);
+    padding: var(--space-8);
+    box-shadow: var(--shadow-ambient);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    transition: box-shadow var(--transition-normal);
+  }
+
+  .services__card:hover {
+    box-shadow: 0px 0px 32px rgba(0, 240, 255, 0.08);
+  }
+
+  .services__card-tag {
+    font-family: var(--font-display);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+  }
+
+  .services__card-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .services__card-description {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+    flex: 1;
+  }
+
+  /* Feature list */
+  .services__features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .services__feature {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+
+  .services__feature-icon {
+    color: var(--color-primary);
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* CTA */
+  .services__cta {
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--color-primary);
+    text-decoration: none;
+    margin-top: var(--space-2);
+    transition: text-shadow var(--transition-fast);
+    align-self: flex-start;
+  }
+
+  .services__cta:hover {
+    text-shadow: var(--shadow-glow);
+  }
+</style>

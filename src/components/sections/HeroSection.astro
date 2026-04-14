@@ -1,0 +1,174 @@
+---
+// Hero section: tagline, headline, subheadline, dual CTA
+---
+
+<section class="hero" id="hero" aria-label="Hero">
+  <div class="hero__bg" aria-hidden="true">
+    <div class="hero__grid"></div>
+    <div class="hero__glow"></div>
+  </div>
+
+  <div class="hero__content">
+    <span class="hero__tag">THE NEON ARCHITECT</span>
+
+    <h1 class="hero__headline">
+      Arquitectando el futuro de la<br />
+      <span class="hero__headline-accent">inteligencia empresarial</span>
+    </h1>
+
+    <p class="hero__subheadline">
+      Uniendo la intuición humana con la inteligencia artificial.<br />
+      CTO as a Service &amp; AI Developer — Miguel Navarro Mantas
+    </p>
+
+    <div class="hero__ctas">
+      <a href="#contacto" class="hero__cta-primary">INICIALIZAR_PROTOCOLO &rsaquo;</a>
+      <a href="#servicios" class="hero__cta-secondary">VER_MANIFIESTO</a>
+    </div>
+
+    <div class="hero__status" aria-hidden="true">
+      ESTADO_DEL_SISTEMA: OPTIMIZADO &nbsp;|&nbsp; MATRIZ_IA: 99.8% &nbsp;|&nbsp; CIFRADO: AES-256
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  /* Background decorative elements */
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .hero__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .hero__glow {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(0, 240, 255, 0.06) 0%,
+      rgba(157, 0, 255, 0.04) 40%,
+      transparent 70%
+    );
+  }
+
+  /* Content */
+  .hero__content {
+    position: relative;
+    max-width: 900px;
+    padding: var(--space-16) var(--space-8);
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  /* Tag */
+  .hero__tag {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+    margin-bottom: var(--space-6);
+  }
+
+  /* Headline */
+  .hero__headline {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--color-text);
+    margin-bottom: var(--space-6);
+  }
+
+  .hero__headline-accent {
+    color: var(--color-primary);
+    text-shadow: var(--shadow-glow);
+  }
+
+  /* Subheadline */
+  .hero__subheadline {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    line-height: 1.7;
+    color: var(--color-text-muted);
+    max-width: 600px;
+    margin: 0 auto var(--space-12);
+  }
+
+  /* CTAs */
+  .hero__ctas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-12);
+  }
+
+  .hero__cta-primary {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--color-base);
+    background: var(--btn-gradient);
+    text-decoration: none;
+    padding: var(--space-4) var(--space-8);
+    box-shadow: var(--btn-glow);
+    transition:
+      box-shadow var(--transition-fast),
+      opacity var(--transition-fast);
+  }
+
+  .hero__cta-primary:hover {
+    box-shadow: 0px 0px 16px var(--color-primary);
+    opacity: 0.9;
+  }
+
+  .hero__cta-secondary {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    padding: var(--space-4) var(--space-8);
+    border-bottom: 1px solid var(--color-surface-3);
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .hero__cta-secondary:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  /* Status bar */
+  .hero__status {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    letter-spacing: 0.15em;
+    color: var(--color-text-muted);
+    opacity: 0.5;
+  }
+</style>

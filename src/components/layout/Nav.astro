@@ -1,0 +1,97 @@
+---
+// Navigation bar: logo, section links, CTA scroll to #contacto
+---
+
+<nav class="nav">
+  <a href="/" class="nav__logo" aria-label="CODE29 — Inicio">
+    CODE<span class="nav__logo-accent">29</span>
+  </a>
+
+  <ul class="nav__links" role="list">
+    <li><a href="#servicios" class="nav__link">Servicios</a></li>
+    <li><a href="#stack" class="nav__link">Stack</a></li>
+    <li><a href="#testimonios" class="nav__link">Testimonios</a></li>
+  </ul>
+
+  <a href="#contacto" class="nav__cta">Iniciar proyecto</a>
+</nav>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-8);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+
+  /* Logo */
+  .nav__logo {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .nav__logo:hover {
+    color: var(--color-primary);
+  }
+
+  .nav__logo-accent {
+    color: var(--color-primary);
+  }
+
+  /* Nav links */
+  .nav__links {
+    display: flex;
+    gap: var(--space-8);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nav__link {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .nav__link:hover {
+    color: var(--color-primary);
+  }
+
+  /* CTA button */
+  .nav__cta {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-base);
+    background: var(--btn-gradient);
+    text-decoration: none;
+    padding: var(--space-2) var(--space-6);
+    box-shadow: var(--btn-glow);
+    transition:
+      box-shadow var(--transition-fast),
+      opacity var(--transition-fast);
+  }
+
+  .nav__cta:hover {
+    box-shadow: 0px 0px 12px var(--color-primary);
+    opacity: 0.9;
+  }
+</style>

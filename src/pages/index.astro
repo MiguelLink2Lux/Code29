@@ -1,10 +1,23 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro'
+import HeroSection from '@/components/sections/HeroSection.astro'
+import StatsSection from '@/components/sections/StatsSection.astro'
+import EducationStackSection from '@/components/sections/EducationStackSection.astro'
+import ServicesSection from '@/components/sections/ServicesSection.astro'
+import TestimonialsSection from '@/components/sections/TestimonialsSection.astro'
+import ContactSection from '@/components/sections/ContactSection.astro'
 ---
 
-<BaseLayout title="Miguel Navarro Mantas — CTO as a Service">
-  <!-- Sections will be implemented via SDD cycles -->
-  <!-- /sdd-new hero-section -->
-  <!-- /sdd-new contact-form-v1 -->
-  <!-- /sdd-new cookie-consent-banner -->
+<BaseLayout
+  title="Miguel Navarro Mantas — CTO as a Service & AI Developer"
+  description="CTO as a Service y AI Developer especializado en integración de LLMs, arquitectura escalable y orquestación de agentes autónomos."
+  ogTitle="Miguel Navarro Mantas — The Neon Architect"
+  ogDescription="CTO as a Service y AI Developer. Arquitectando el futuro de la inteligencia empresarial."
+>
+  <HeroSection />
+  <StatsSection />
+  <EducationStackSection />
+  <ServicesSection />
+  <TestimonialsSection />
+  <ContactSection />
 </BaseLayout>
