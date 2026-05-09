@@ -1,52 +1,36 @@
 ---
 // Testimonials section: social proof cards
-const testimonials = [
-  {
-    quote:
-      'La integración de IA en nuestro flujo de trabajo duplicó la velocidad de entrega en tres meses. Miguel entiende el negocio y el código en igual medida.',
-    name: 'Javier Domínguez',
-    role: 'CEO',
-    company: 'TechFlow Solutions',
-  },
-  {
-    quote:
-      'Diseñó una infraestructura impecable para nuestro entorno crítico, reduciendo los errores en producción un 50%. Exactamente lo que necesitábamos.',
-    name: 'Elena Martí',
-    role: 'Product Director',
-    company: 'IBEX Corp',
-  },
-  {
-    quote:
-      'Sus capacidades como AI Project Manager son excepcionales. Transformó la cultura de nuestro equipo hacia una eficiencia real y medible.',
-    name: 'Ricardo Costa',
-    role: 'CTO',
-    company: 'Global E-commerce',
-  },
-]
+import { translations, type Lang } from '@/i18n/translations'
+import { DEFAULT_LANG } from '@/utils/i18n'
+
+const lang: Lang = DEFAULT_LANG
+const t = translations.testimonials[lang]
 ---
 
 <section class="testimonials" id="testimonios" aria-label="Testimonios">
   <div class="testimonials__inner">
     <div class="testimonials__header">
-      <span class="testimonials__tag">SOCIAL_PROOF</span>
-      <h2 class="testimonials__title">Lo que dicen mis clientes</h2>
+      <span class="testimonials__tag">{t.sectionTag}</span>
+      <h2 class="testimonials__title" data-i18n="testimonials.heading">{t.heading}</h2>
     </div>
 
     <div class="testimonials__grid">
       {
-        testimonials.map((t) => (
+        t.items.map((item, i) => (
           <article class="testimonials__card">
             <blockquote class="testimonials__quote">
-              <p>&ldquo;{t.quote}&rdquo;</p>
+              <p data-i18n={`testimonials.items.${i}.quote`}>&ldquo;{item.quote}&rdquo;</p>
             </blockquote>
             <footer class="testimonials__author">
               <div class="testimonials__avatar" aria-hidden="true">
-                {t.name.charAt(0)}
+                {item.name.charAt(0)}
               </div>
               <div>
-                <cite class="testimonials__name">{t.name}</cite>
+                <cite class="testimonials__name">{item.name}</cite>
                 <span class="testimonials__meta">
-                  {t.role} — {t.company}
+                  <span data-i18n={`testimonials.items.${i}.role`}>{item.role}</span>
+                  {' — '}
+                  {item.company}
                 </span>
               </div>
             </footer>

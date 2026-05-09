@@ -1,5 +1,10 @@
 ---
 // Hero section: tagline, headline, subheadline, dual CTA
+import { translations, type Lang } from '@/i18n/translations'
+import { DEFAULT_LANG } from '@/utils/i18n'
+
+const lang: Lang = DEFAULT_LANG
+const t = translations.hero[lang]
 ---
 
 <section class="hero" id="hero" aria-label="Hero">
@@ -9,25 +14,22 @@
   </div>
 
   <div class="hero__content">
-    <span class="hero__tag">THE NEON ARCHITECT</span>
+    <span class="hero__tag" data-i18n="hero.tag">{t.tag}</span>
 
     <h1 class="hero__headline">
-      Arquitectando el futuro de la<br />
-      <span class="hero__headline-accent">inteligencia empresarial</span>
+      <span data-i18n="hero.headlinePart1">{t.headlinePart1}</span><br />
+      <span class="hero__headline-accent" data-i18n="hero.headlineAccent">{t.headlineAccent}</span>
     </h1>
 
-    <p class="hero__subheadline">
-      Uniendo la intuición humana con la inteligencia artificial.<br />
-      CTO as a Service &amp; AI Developer — Miguel Navarro Mantas
-    </p>
+    <p class="hero__subheadline" data-i18n="hero.subheadline">{t.subheadline}</p>
 
     <div class="hero__ctas">
-      <a href="#contacto" class="hero__cta-primary">INICIALIZAR_PROTOCOLO &rsaquo;</a>
-      <a href="#servicios" class="hero__cta-secondary">VER_MANIFIESTO</a>
+      <a href="#contacto" class="hero__cta-primary" data-i18n="hero.ctaPrimary">{t.ctaPrimary}</a>
+      <a href="#servicios" class="hero__cta-secondary" data-i18n="hero.ctaSecondary">{t.ctaSecondary}</a>
     </div>
 
-    <div class="hero__status" aria-hidden="true">
-      ESTADO_DEL_SISTEMA: OPTIMIZADO &nbsp;|&nbsp; MATRIZ_IA: 99.8% &nbsp;|&nbsp; CIFRADO: AES-256
+    <div class="hero__status" aria-hidden="true" data-i18n="hero.status">
+      {t.status}
     </div>
   </div>
 </section>
@@ -114,6 +116,7 @@
     color: var(--color-text-muted);
     max-width: 600px;
     margin: 0 auto var(--space-12);
+    white-space: pre-line;
   }
 
   /* CTAs */

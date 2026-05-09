@@ -94,9 +94,9 @@ export const translations = {
   educationStack: {
     es: {
       sectionTagEducation: 'FORMATION_DATA',
-      heading: 'Máster en IA',
+      heading: 'Máster en Desarrollo con IA',
       description:
-        'Especialización en arquitecturas de redes neuronales y computación cognitiva. Investigación principal: Sistemas de Inteligencia Distribuida y orquestación de agentes autónomos.',
+        'Especialización en optimización del desarrollo con inteligencia artificial. Investigación principal: Orquestación de agentes autónomos y sistemas de inteligencia distribuida.',
       metaSpecialization: 'Especialización',
       metaSpecializationValue: 'Inteligencia Artificial',
       metaMethodology: 'Metodología',
@@ -126,9 +126,9 @@ export const translations = {
     },
     en: {
       sectionTagEducation: 'FORMATION_DATA',
-      heading: 'AI Master\'s Degree',
+      heading: 'AI Development Master\'s Degree',
       description:
-        'Specialization in neural network architectures and cognitive computing. Main research: Distributed Intelligence Systems and autonomous agent orchestration.',
+        'Specialization in optimizing development with artificial intelligence. Main research: Autonomous agent orchestration and distributed intelligence systems.',
       metaSpecialization: 'Specialization',
       metaSpecializationValue: 'Artificial Intelligence',
       metaMethodology: 'Methodology',
@@ -225,11 +225,11 @@ export const translations = {
           tag: 'SERVICE_02',
           title: 'AI Analysis & Transformation',
           description:
-            'Comprehensive project diagnosis — greenfield or in-flight — improvement roadmap design, and AI-assisted development workflow rollout, including full team training.',
+            'Comprehensive project diagnosis — from scratch or already in progress — design of the improvement plan and implementation of the AI-assisted development workflow, including team training.',
           features: [
-            'Technical audit & project diagnosis',
-            'Improvement roadmap & planning',
-            'AI-First development workflow rollout',
+            'Technical diagnosis and project audit',
+            'Improvement roadmap and planning',
+            'AI-First workflow implementation',
             'Team training in AI-assisted development',
           ],
         },

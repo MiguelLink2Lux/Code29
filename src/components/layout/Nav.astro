@@ -1,5 +1,11 @@
 ---
-// Navigation bar: logo, section links, CTA scroll to #contacto
+// Navigation bar: logo, section links, CTA, language switcher
+import LanguageSwitcher from '@/components/LanguageSwitcher.astro'
+import { translations, type Lang } from '@/i18n/translations'
+import { DEFAULT_LANG } from '@/utils/i18n'
+
+const lang: Lang = DEFAULT_LANG
+const t = translations.nav[lang]
 ---
 
 <nav class="nav">
@@ -8,12 +14,21 @@
   </a>
 
   <ul class="nav__links" role="list">
-    <li><a href="#servicios" class="nav__link">Servicios</a></li>
-    <li><a href="#stack" class="nav__link">Stack</a></li>
-    <li><a href="#testimonios" class="nav__link">Testimonios</a></li>
+    {
+      t.links.map((link, i) => (
+        <li>
+          <a href={link.href} class="nav__link" data-i18n={`nav.links.${i}.label`}>
+            {link.label}
+          </a>
+        </li>
+      ))
+    }
   </ul>
 
-  <a href="#contacto" class="nav__cta">Iniciar proyecto</a>
+  <div class="nav__actions">
+    <LanguageSwitcher />
+    <a href="#contacto" class="nav__cta" data-i18n="nav.cta">{t.cta}</a>
+  </div>
 </nav>
 
 <style>
@@ -71,6 +86,13 @@
 
   .nav__link:hover {
     color: var(--color-primary);
+  }
+
+  /* Actions group: switcher + CTA */
+  .nav__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
   }
 
   /* CTA button */

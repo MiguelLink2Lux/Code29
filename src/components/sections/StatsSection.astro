@@ -1,38 +1,21 @@
 ---
 // Stats section: 4 key performance metrics
-const stats = [
-  {
-    value: '2x–3x',
-    label: 'Velocidad de desarrollo',
-    detail: 'Aceleración vía orquestación de agentes IA en el SDLC',
-  },
-  {
-    value: '-60%',
-    label: 'Errores en producción',
-    detail: 'Auditorías automatizadas continuas sobre el código',
-  },
-  {
-    value: 'M+',
-    label: 'Transacciones diarias',
-    detail: 'Arquitecturas probadas a escala empresarial',
-  },
-  {
-    value: 'Zero',
-    label: 'Trust Architecture',
-    detail: 'Seguridad AES-256 integrada en todas las capas del sistema',
-  },
-]
+import { translations, type Lang } from '@/i18n/translations'
+import { DEFAULT_LANG } from '@/utils/i18n'
+
+const lang: Lang = DEFAULT_LANG
+const stats = translations.stats[lang]
 ---
 
 <section class="stats" id="stats" aria-label="Métricas de rendimiento">
   <div class="stats__inner">
     <div class="stats__grid">
       {
-        stats.map((stat) => (
+        stats.map((stat, i) => (
           <article class="stats__card">
             <span class="stats__value">{stat.value}</span>
-            <h3 class="stats__label">{stat.label}</h3>
-            <p class="stats__detail">{stat.detail}</p>
+            <h3 class="stats__label" data-i18n={`stats.${i}.label`}>{stat.label}</h3>
+            <p class="stats__detail" data-i18n={`stats.${i}.detail`}>{stat.detail}</p>
           </article>
         ))
       }

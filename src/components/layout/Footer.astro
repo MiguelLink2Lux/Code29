@@ -1,27 +1,37 @@
 ---
 // Footer: legal links and cookie preferences button
 // The cookie preferences button emits a custom event consumed by CookieBanner.vue (Phase 3)
+import { translations, type Lang } from '@/i18n/translations'
+import { DEFAULT_LANG } from '@/utils/i18n'
+
+const lang: Lang = DEFAULT_LANG
+const t = translations.footer[lang]
 ---
 
 <footer class="footer">
-  <div class="footer__status" aria-hidden="true">
-    STATUS: SISTEMA_ONLINE &nbsp;|&nbsp; UPTIME: 99.99% &nbsp;|&nbsp; CIFRADO: AES-256
+  <div class="footer__status" aria-hidden="true" data-i18n="footer.status">
+    {t.status}
   </div>
 
   <div class="footer__bottom">
-    <p class="footer__copy">© 2026 CODE29 // TODOS LOS DERECHOS RESERVADOS</p>
+    <p class="footer__copy" data-i18n="footer.copy">{t.copy}</p>
 
     <nav class="footer__legal" aria-label="Legal">
-      <a href="/aviso-legal" class="footer__legal-link">Aviso Legal</a>
-      <a href="/privacidad" class="footer__legal-link">Privacidad</a>
-      <a href="/cookies" class="footer__legal-link">Cookies</a>
+      {
+        t.legalLinks.map((link, i) => (
+          <a href={link.href} class="footer__legal-link" data-i18n={`footer.legalLinks.${i}.label`}>
+            {link.label}
+          </a>
+        ))
+      }
       <button
         id="cookie-preferences-btn"
         class="footer__cookie-btn"
         type="button"
         aria-label="Abrir preferencias de cookies"
+        data-i18n="footer.cookiePreferences"
       >
-        Preferencias de cookies
+        {t.cookiePreferences}
       </button>
     </nav>
   </div>

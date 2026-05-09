@@ -52,6 +52,16 @@ const resolvedCanonical = canonical ?? Astro.url.href
     <meta name="twitter:description" content={resolvedOgDescription} />
     <meta name="twitter:image" content={ogImage} />
 
+    <!-- i18n anti-flash: applies stored language before first paint to avoid FOUC -->
+    <script is:inline>
+      ;(function () {
+        var lang = localStorage.getItem('lang')
+        if (lang === 'en') {
+          document.documentElement.setAttribute('lang', 'en')
+        }
+      })()
+    </script>
+
     <!-- Analytics slot: injected by Analytics.astro (Phase 4) -->
     <slot name="analytics" />
 

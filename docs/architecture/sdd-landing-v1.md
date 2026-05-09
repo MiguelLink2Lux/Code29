@@ -58,9 +58,30 @@
 | `src/components/sections/ContactSection.astro` | Created — wrapper with `id="contacto"`, placeholder for Phase 5 form |
 | `src/pages/index.astro` | Updated — composes all 6 sections in order |
 
+### i18n — Centralized Translations ✅ (2026-05-09)
+
+> Added between Phase 2 and Phase 3. Not a Jira epic — architectural improvement.
+
+| File | Action |
+|------|--------|
+| `src/i18n/translations.ts` | Created — master `as const` object, ES + EN, 7 sections |
+| `src/utils/i18n.ts` | Created — DIP abstraction: `getLang()`, `useTranslations()` |
+| `src/components/LanguageSwitcher.astro` | Created — EN/ES toggle, localStorage persistence, DOM swap |
+| `src/layouts/BaseLayout.astro` | Updated — anti-flash `is:inline` script in `<head>` |
+| `src/components/layout/Nav.astro` | Updated — translations + `data-i18n`, includes `<LanguageSwitcher />` |
+| `src/components/layout/Footer.astro` | Updated — translations + `data-i18n` |
+| `src/components/sections/HeroSection.astro` | Updated — all text via `useTranslations` + `data-i18n` |
+| `src/components/sections/StatsSection.astro` | Updated — array items via translations + indexed `data-i18n` |
+| `src/components/sections/EducationStackSection.astro` | Updated — translations + `data-i18n` |
+| `src/components/sections/ServicesSection.astro` | Updated — translations + `data-i18n` |
+| `src/components/sections/TestimonialsSection.astro` | Updated — translations + `data-i18n` |
+
+See full pattern documentation: [i18n](i18n.md)
+
 ## References
 
 - [Tech Stack Decision](tech-stack-decision.md)
 - [PRD](../requirements/PRD.md)
 - [Design](design.md)
 - [SDD Workflow](../protocols/sdd-workflow.md)
+- [i18n System](i18n.md)

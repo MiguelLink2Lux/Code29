@@ -1,56 +1,41 @@
 ---
 // Education & Stack section: AI Master's degree + tech stack grid
-const stackItems = [
-  { name: 'Python', category: 'backend' },
-  { name: 'FastAPI', category: 'backend' },
-  { name: 'LangChain', category: 'ai' },
-  { name: 'LangGraph', category: 'ai' },
-  { name: 'OpenAI API', category: 'ai' },
-  { name: 'Vector DBs', category: 'ai' },
-  { name: 'Astro', category: 'frontend' },
-  { name: 'Vue 3', category: 'frontend' },
-  { name: 'TypeScript', category: 'frontend' },
-  { name: 'Node.js', category: 'backend' },
-  { name: 'PostgreSQL', category: 'backend' },
-  { name: 'Docker', category: 'infra' },
-  { name: 'Vercel', category: 'infra' },
-  { name: 'GitHub Actions', category: 'infra' },
-  { name: 'Kubernetes', category: 'infra' },
-]
+import { translations, type Lang } from '@/i18n/translations'
+import { DEFAULT_LANG } from '@/utils/i18n'
+
+const lang: Lang = DEFAULT_LANG
+const t = translations.educationStack[lang]
 ---
 
 <section class="stack" id="stack" aria-label="Formación y Stack tecnológico">
   <div class="stack__inner">
     <!-- Education block -->
     <div class="stack__education">
-      <span class="stack__section-tag">FORMATION_DATA</span>
-      <h2 class="stack__title">Máster en IA</h2>
-      <p class="stack__description">
-        Especialización en arquitecturas de redes neuronales y computación cognitiva.
-        Investigación principal: Sistemas de Inteligencia Distribuida y orquestación de agentes autónomos.
-      </p>
+      <span class="stack__section-tag">{t.sectionTagEducation}</span>
+      <h2 class="stack__title" data-i18n="educationStack.heading">{t.heading}</h2>
+      <p class="stack__description" data-i18n="educationStack.description">{t.description}</p>
       <dl class="stack__meta">
         <div>
-          <dt>Especialización</dt>
-          <dd>Inteligencia Artificial</dd>
+          <dt data-i18n="educationStack.metaSpecialization">{t.metaSpecialization}</dt>
+          <dd data-i18n="educationStack.metaSpecializationValue">{t.metaSpecializationValue}</dd>
         </div>
         <div>
-          <dt>Metodología</dt>
-          <dd>SDLC AI-First</dd>
+          <dt data-i18n="educationStack.metaMethodology">{t.metaMethodology}</dt>
+          <dd data-i18n="educationStack.metaMethodologyValue">{t.metaMethodologyValue}</dd>
         </div>
         <div>
-          <dt>Experiencia</dt>
-          <dd>15+ proyectos</dd>
+          <dt data-i18n="educationStack.metaExperience">{t.metaExperience}</dt>
+          <dd data-i18n="educationStack.metaExperienceValue">{t.metaExperienceValue}</dd>
         </div>
       </dl>
     </div>
 
     <!-- Stack grid -->
     <div class="stack__tech">
-      <span class="stack__section-tag">CORE_STACK</span>
-      <ul class="stack__grid" role="list" aria-label="Tecnologías">
+      <span class="stack__section-tag">{t.sectionTagStack}</span>
+      <ul class="stack__grid" role="list" aria-label={t.stackAriaLabel}>
         {
-          stackItems.map((item) => (
+          t.items.map((item) => (
             <li class="stack__item" data-category={item.category}>
               {item.name}
             </li>
