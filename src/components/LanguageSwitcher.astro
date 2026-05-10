@@ -1,0 +1,112 @@
+---
+// Language switcher: toggles ES/EN without URL change
+// Saves preference to localStorage and swaps text nodes via data-i18n attributes
+---
+
+<button
+  id="lang-switcher"
+  class="lang-switcher"
+  type="button"
+  aria-label="Switch language / Cambiar idioma"
+  title="Switch language"
+>
+  <span class="lang-switcher__label" id="lang-switcher-label">EN</span>
+</button>
+
+<script>
+  import { translations } from '../i18n/translations'
+  import type { Lang } from '../i18n/translations'
+
+  // Resolve a dot-notated key like "stats.0.label" from the translations object
+  function resolveKey(lang: Lang, key: string): string | null {
+    const parts = key.split('.')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let cursor: any = translations
+
+    for (const part of parts) {
+      if (cursor === null || cursor === undefined) return null
+      // Try both the lang-aware sub-object and direct key access
+      cursor = cursor[part]
+    }
+
+    if (typeof cursor === 'string') return cursor
+    return null
+  }
+
+  /**
+   * Swap all [data-i18n] elements to the target language.
+   * Key format: "<section>.<lang>.<...path>"
+   * Example: data-i18n="hero.tag"  →  resolved as translations.hero[lang].tag
+   */
+  function applyLang(lang: Lang): void {
+    document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+      const key = el.dataset.i18n
+      if (!key) return
+
+      // Build full dotted path: e.g. "hero.tag" → "hero.<lang>.tag"
+      const parts = key.split('.')
+      const fullKey = [parts[0], lang, ...parts.slice(1)].join('.')
+      const value = resolveKey(lang, fullKey)
+
+      if (value !== null) {
+        el.textContent = value
+      }
+    })
+
+    // Update html[lang] attribute for accessibility
+    document.documentElement.lang = lang
+
+    // Update switcher label to show the OTHER language (the one you'd switch TO)
+    const label = document.getElementById('lang-switcher-label')
+    if (label) label.textContent = lang === 'es' ? 'EN' : 'ES'
+  }
+
+  function initSwitcher(): void {
+    const stored = localStorage.getItem('lang')
+    const currentLang: Lang = stored === 'en' ? 'en' : 'es'
+
+    // Apply stored language on page load (handles reload after switch)
+    if (currentLang !== 'es') {
+      applyLang(currentLang)
+    }
+
+    const btn = document.getElementById('lang-switcher')
+    btn?.addEventListener('click', () => {
+      const next: Lang = localStorage.getItem('lang') === 'en' ? 'es' : 'en'
+      localStorage.setItem('lang', next)
+      applyLang(next)
+    })
+  }
+
+  // Run after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSwitcher)
+  } else {
+    initSwitcher()
+  }
+</script>
+
+<style>
+  .lang-switcher {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: 1px solid var(--color-surface-3);
+    padding: var(--space-1) var(--space-3);
+    cursor: pointer;
+    transition:
+      color var(--transition-fast),
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
+    line-height: 1;
+  }
+
+  .lang-switcher:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: 0px 0px 8px rgba(0, 240, 255, 0.2);
+  }
+</style>

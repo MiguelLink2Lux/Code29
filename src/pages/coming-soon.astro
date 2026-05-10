@@ -1,0 +1,273 @@
+---
+import StatusLayout from '@/layouts/StatusLayout.astro'
+---
+
+<StatusLayout
+  title="Proximo despliegue"
+  description="CODE29 prepara su proxima evolucion. La siguiente fase del ecosistema se desplegara pronto."
+>
+  <section class="coming-soon">
+    <div class="coming-soon__visual status-panel">
+      <span class="status-eyebrow">System uptime: 99.98%</span>
+      <div class="coming-soon__visual-copy">
+        <p class="status-mono">Code29 synapse</p>
+        <h1>PROXIMO_DESPLIEGUE</h1>
+        <p>
+          Arquitectando la proxima evolucion de la inteligencia empresarial con una capa visual
+          mas precisa, automatizacion y operaciones AI-first.
+        </p>
+      </div>
+    </div>
+
+    <div class="coming-soon__content status-panel">
+      <p class="status-mono coming-soon__kicker">Initialize_protocol_29</p>
+      <h2>La red CODE29 se expandira pronto</h2>
+      <p class="coming-soon__lead">
+        Estamos preparando el siguiente despliegue del ecosistema CODE29. Si quieres recibir
+        prioridad cuando activemos el acceso, usa el enlace directo y te contactaremos de forma
+        personalizada.
+      </p>
+
+      <div class="coming-soon__countdown" aria-hidden="true">
+        <div>
+          <strong>14</strong>
+          <span>Days</span>
+        </div>
+        <div>
+          <strong>08</strong>
+          <span>Hours</span>
+        </div>
+        <div>
+          <strong>42</strong>
+          <span>Mins</span>
+        </div>
+        <div>
+          <strong>19</strong>
+          <span>Secs</span>
+        </div>
+      </div>
+
+      <div class="coming-soon__form-block">
+        <label class="status-mono" for="coming-soon-email">Ingresar email para notificacion</label>
+        <div class="status-field">
+          <span>&gt;</span>
+          <input
+            id="coming-soon-email"
+            type="email"
+            placeholder="user@architect.os"
+            aria-describedby="coming-soon-help"
+          />
+        </div>
+        <p id="coming-soon-help">
+          Acceso anticipado disponible por contacto directo mientras se activa el canal de
+          notificaciones.
+        </p>
+      </div>
+
+      <div class="coming-soon__actions">
+        <a class="status-link status-link--primary" href="/#contacto">Solicitar acceso</a>
+        <a class="status-link status-link--secondary" href="/">Volver al inicio</a>
+      </div>
+
+      <dl class="coming-soon__meta">
+        <div>
+          <dt>Core authority</dt>
+          <dd>Lvl 9 network admin encryption</dd>
+        </div>
+        <div>
+          <dt>Current lat</dt>
+          <dd>40.4168 N / 3.7038 W</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+</StatusLayout>
+
+<style>
+  .coming-soon {
+    max-width: 88rem;
+    min-height: calc(100dvh - 11.5rem);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(22rem, 1fr);
+    gap: 0.125rem;
+    align-items: stretch;
+  }
+
+  .coming-soon__visual,
+  .coming-soon__content {
+    min-height: 100%;
+    padding: var(--space-8);
+  }
+
+  .coming-soon__visual {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(19, 19, 20, 0.2), rgba(19, 19, 20, 0.88)),
+      radial-gradient(circle at top right, rgba(0, 240, 255, 0.28), transparent 35%),
+      radial-gradient(circle at bottom left, rgba(157, 0, 255, 0.22), transparent 30%),
+      linear-gradient(135deg, rgba(28, 27, 28, 0.95), rgba(14, 14, 15, 0.95));
+  }
+
+  .coming-soon__visual::before,
+  .coming-soon__visual::after {
+    content: '';
+    position: absolute;
+    inset: auto auto 12% 10%;
+    width: 16rem;
+    height: 16rem;
+    background:
+      radial-gradient(circle, rgba(0, 240, 255, 0.35), transparent 45%),
+      linear-gradient(135deg, rgba(229, 226, 227, 0.08), transparent);
+    transform: skew(-14deg);
+    opacity: 0.7;
+  }
+
+  .coming-soon__visual::after {
+    inset: 10% 8% auto auto;
+    width: 20rem;
+    height: 20rem;
+    background:
+      radial-gradient(circle, rgba(157, 0, 255, 0.25), transparent 48%),
+      linear-gradient(135deg, rgba(0, 240, 255, 0.06), transparent);
+  }
+
+  .coming-soon__visual-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 32rem;
+  }
+
+  .coming-soon__visual-copy p:first-child,
+  .coming-soon__kicker,
+  .coming-soon__countdown span,
+  .coming-soon__form-block label,
+  .coming-soon__meta dt {
+    color: var(--color-text-muted);
+    font-size: 0.6875rem;
+  }
+
+  .coming-soon__visual-copy h1,
+  .coming-soon__content h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.05em;
+  }
+
+  .coming-soon__visual-copy h1 {
+    margin: var(--space-6) 0 var(--space-4);
+    font-size: clamp(3rem, 8vw, 6rem);
+    line-height: 0.94;
+    color: var(--color-primary-dim);
+  }
+
+  .coming-soon__visual-copy p:last-child,
+  .coming-soon__lead,
+  .coming-soon__form-block p,
+  .coming-soon__meta dd {
+    color: var(--color-text-muted);
+    line-height: 1.7;
+  }
+
+  .coming-soon__content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .coming-soon__content h2 {
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    margin: var(--space-3) 0 var(--space-6);
+  }
+
+  .coming-soon__lead {
+    margin-bottom: var(--space-8);
+  }
+
+  .coming-soon__countdown {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+  }
+
+  .coming-soon__countdown div {
+    padding: var(--space-4);
+    background: rgba(19, 19, 20, 0.48);
+  }
+
+  .coming-soon__countdown strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--color-primary-dim);
+    margin-bottom: var(--space-2);
+  }
+
+  .coming-soon__form-block {
+    margin-bottom: var(--space-8);
+  }
+
+  .coming-soon__form-block label {
+    display: block;
+    margin-bottom: var(--space-3);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+
+  .coming-soon__form-block span {
+    font-family: var(--font-display);
+    color: var(--color-primary);
+  }
+
+  .coming-soon__form-block p {
+    margin-top: var(--space-3);
+    font-size: 0.8125rem;
+  }
+
+  .coming-soon__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+
+  .coming-soon__meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    padding-top: var(--space-6);
+  }
+
+  .coming-soon__meta div {
+    padding: var(--space-4);
+    background: rgba(19, 19, 20, 0.42);
+  }
+
+  .coming-soon__meta dt {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: var(--space-2);
+  }
+
+  @media (max-width: 900px) {
+    .coming-soon {
+      grid-template-columns: 1fr;
+    }
+
+    .coming-soon__visual {
+      min-height: 22rem;
+    }
+
+    .coming-soon__countdown,
+    .coming-soon__meta {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>

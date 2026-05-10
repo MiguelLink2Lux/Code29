@@ -1122,6 +1122,9 @@ function isSlotString(str) {
   return !!str[slotString];
 }
 function renderSlot(result, slotted, fallback) {
+  if (!slotted && fallback) {
+    return renderSlot(result, fallback);
+  }
   return {
     async render(destination) {
       await renderChild(destination, typeof slotted === "function" ? slotted(result) : slotted);
@@ -1150,7 +1153,7 @@ async function renderSlotToString(result, slotted, fallback) {
       }
     }
   };
-  const renderInstance = renderSlot(result, slotted);
+  const renderInstance = renderSlot(result, slotted, fallback);
   await renderInstance.render(temporaryDestination);
   return markHTMLString(new SlotString(content, instructions));
 }
@@ -2370,4 +2373,4 @@ function spreadAttributes(values = {}, _name, { class: scopedClassName } = {}) {
   return markHTMLString(output);
 }
 
-export { PrerenderClientAddressNotAvailable as $, AstroError as A, decryptString as B, createSlotValueFromString as C, DEFAULT_404_COMPONENT as D, ExpectedImage as E, FailedToFetchRemoteImageDimensions as F, GetStaticPathsRequired as G, NoMatchingStaticPathFound as H, IncompatibleDescriptorOptions as I, PrerenderDynamicEndpointPathCollide as J, ReservedSlotName as K, LocalImageUsedWrongly as L, MissingImageDimension as M, NOOP_MIDDLEWARE_HEADER as N, renderSlotToString as O, PageNumberParamNotFound as P, renderJSX as Q, ROUTE_TYPE_HEADER as R, chunkToString as S, isRenderInstruction as T, UnsupportedImageFormat as U, originPathnameSymbol as V, RewriteWithBodyUsed as W, ASTRO_VERSION as X, LocalsNotAnObject as Y, clientLocalsSymbol as Z, clientAddressSymbol as _, UnsupportedImageConversion as a, ClientAddressNotAvailable as a0, StaticClientAddressNotAvailable as a1, AstroResponseHeadersReassigned as a2, responseSentSymbol as a3, renderPage as a4, REWRITE_DIRECTIVE_HEADER_KEY as a5, REWRITE_DIRECTIVE_HEADER_VALUE as a6, renderEndpoint as a7, REROUTABLE_STATUS_CODES as a8, MissingSharp as b, createComponent as c, renderTemplate as d, addAttribute as e, renderSlot as f, renderHead as g, createAstro as h, decodeKey as i, NoImageMetadata as j, ExpectedImageOptions as k, ExpectedNotESMImage as l, maybeRenderHead as m, InvalidImageService as n, ImageMissingAlt as o, REROUTE_DIRECTIVE_HEADER as p, i18nNoLocaleFoundInPath as q, renderComponent as r, spreadAttributes as s, ResponseSentError as t, MiddlewareNoDataOrNextCalled as u, MiddlewareNotAResponse as v, InvalidGetStaticPathsReturn as w, InvalidGetStaticPathsEntry as x, GetStaticPathsExpectedParams as y, GetStaticPathsInvalidRouteParam as z };
+export { PrerenderClientAddressNotAvailable as $, AstroError as A, decryptString as B, createSlotValueFromString as C, DEFAULT_404_COMPONENT as D, ExpectedImage as E, FailedToFetchRemoteImageDimensions as F, GetStaticPathsRequired as G, NoMatchingStaticPathFound as H, IncompatibleDescriptorOptions as I, PrerenderDynamicEndpointPathCollide as J, ReservedSlotName as K, LocalImageUsedWrongly as L, MissingImageDimension as M, NOOP_MIDDLEWARE_HEADER as N, renderSlotToString as O, PageNumberParamNotFound as P, renderJSX as Q, ROUTE_TYPE_HEADER as R, chunkToString as S, isRenderInstruction as T, UnsupportedImageFormat as U, originPathnameSymbol as V, RewriteWithBodyUsed as W, ASTRO_VERSION as X, LocalsNotAnObject as Y, clientLocalsSymbol as Z, clientAddressSymbol as _, UnsupportedImageConversion as a, ClientAddressNotAvailable as a0, StaticClientAddressNotAvailable as a1, AstroResponseHeadersReassigned as a2, responseSentSymbol as a3, renderPage as a4, REWRITE_DIRECTIVE_HEADER_KEY as a5, REWRITE_DIRECTIVE_HEADER_VALUE as a6, renderEndpoint as a7, REROUTABLE_STATUS_CODES as a8, MissingSharp as b, createComponent as c, addAttribute as d, renderHead as e, renderSlot as f, createAstro as g, renderComponent as h, decodeKey as i, NoImageMetadata as j, ExpectedImageOptions as k, ExpectedNotESMImage as l, maybeRenderHead as m, InvalidImageService as n, ImageMissingAlt as o, REROUTE_DIRECTIVE_HEADER as p, i18nNoLocaleFoundInPath as q, renderTemplate as r, spreadAttributes as s, ResponseSentError as t, MiddlewareNoDataOrNextCalled as u, MiddlewareNotAResponse as v, InvalidGetStaticPathsReturn as w, InvalidGetStaticPathsEntry as x, GetStaticPathsExpectedParams as y, GetStaticPathsInvalidRouteParam as z };
