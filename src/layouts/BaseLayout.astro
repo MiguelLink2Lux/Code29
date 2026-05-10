@@ -2,6 +2,7 @@
 // Base layout: SEO meta tags, global styles, Nav, Footer, Analytics slot
 import Nav from '@/components/layout/Nav.astro'
 import Footer from '@/components/layout/Footer.astro'
+import CookieBanner from '@/components/cookies/CookieBanner.vue'
 
 interface Props {
   title: string
@@ -79,6 +80,7 @@ const resolvedCanonical = canonical ?? Astro.url.href
       <slot />
     </main>
     <Footer />
+    <CookieBanner client:load />
   </body>
 </html>
 
