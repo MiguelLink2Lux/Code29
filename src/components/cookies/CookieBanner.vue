@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ConsentService } from '@/utils/cookie-consent'
+import { AnalyticsService } from '@/utils/analytics'
 
 const emit = defineEmits<{
   'consent-granted': []
@@ -10,19 +11,24 @@ const emit = defineEmits<{
 const visible = ref(false)
 
 onMounted(() => {
-  if (!ConsentService.hasDecided()) {
+  if (ConsentService.hasDecided()) {
+    // Returning visitor: restore consent without showing banner
+    AnalyticsService.restoreConsent()
+  } else {
     visible.value = true
   }
 })
 
 function accept() {
   ConsentService.acceptAll()
+  AnalyticsService.grantConsent()
   visible.value = false
   emit('consent-granted')
 }
 
 function reject() {
   ConsentService.rejectAll()
+  AnalyticsService.denyConsent()
   visible.value = false
   emit('consent-denied')
 }

@@ -1,8 +1,9 @@
 ---
-// Base layout: SEO meta tags, global styles, Nav, Footer, Analytics slot
+// Base layout: SEO meta tags, global styles, Nav, Footer, Analytics, CookieBanner
 import Nav from '@/components/layout/Nav.astro'
 import Footer from '@/components/layout/Footer.astro'
 import CookieBanner from '@/components/cookies/CookieBanner.vue'
+import Analytics from '@/components/analytics/Analytics.astro'
 
 interface Props {
   title: string
@@ -63,8 +64,7 @@ const resolvedCanonical = canonical ?? Astro.url.href
       })()
     </script>
 
-    <!-- Analytics slot: injected by Analytics.astro (Phase 4) -->
-    <slot name="analytics" />
+    <Analytics />
 
     <!-- Google Fonts: Space Grotesk + Manrope -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

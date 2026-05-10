@@ -1,0 +1,27 @@
+---
+// GA4 script with Consent Mode v2 — default denied.
+// Renders nothing if PUBLIC_GA4_ID is not set (safe in development).
+const GA_ID = import.meta.env.PUBLIC_GA4_ID
+---
+
+{GA_ID && (
+  <>
+    <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+    <script define:vars={{ GA_ID }}>
+      window.dataLayer = window.dataLayer || []
+      function gtag() { window.dataLayer.push(arguments) }
+      window.gtag = gtag
+
+      gtag('js', new Date())
+
+      // Consent Mode v2: block all tracking until user decides
+      gtag('consent', 'default', {
+        analytics_storage: 'denied',
+        ad_storage: 'denied',
+        wait_for_update: 500,
+      })
+
+      gtag('config', GA_ID)
+    </script>
+  </>
+)}
