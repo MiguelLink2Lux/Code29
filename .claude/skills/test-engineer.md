@@ -69,7 +69,7 @@ Critical paths to cover:
 1. **Cookie consent flow**: First visit → banner appears → accept analytics → reload → no banner
 2. **Contact form submission**: Fill form → submit → loading state → success message
 3. **Cookie preferences reset**: Footer link → open selector → change preferences → verify persistence
-4. **Legal pages**: Navigate to `/aviso-legal`, `/privacidad`, `/cookies` → content renders
+4. **Legal pages**: Navigate to `/legal-notice`, `/privacy-policy`, `/cookies` → content renders
 
 ```ts
 // Example: cookie consent test

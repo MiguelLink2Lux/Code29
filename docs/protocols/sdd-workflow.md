@@ -9,7 +9,7 @@ Spec-Driven Development (SDD) is the structured planning methodology for Code29.
 ## When to Use SDD
 
 ### Always required (full cycle)
-- Adding a new page or route (`/aviso-legal`, `/privacidad`, etc.)
+- Adding a new page or route (`/legal-notice`, `/privacy-policy`, etc.)
 - Implementing the cookie consent system
 - Building the contact form end-to-end
 - Introducing FastAPI backend (Phase 2)

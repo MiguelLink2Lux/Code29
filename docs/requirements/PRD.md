@@ -69,8 +69,8 @@ The following pages are legally required and **not present in the current Stitch
 
 | Page | Suggested route | Required by |
 |------|----------------|-------------|
-| Legal Notice / Terms of Use | `/aviso-legal` | LSSI (Spain) |
-| Privacy Policy | `/privacidad` | GDPR |
+| Legal Notice / Terms of Use | `/legal-notice` | LSSI (Spain) |
+| Privacy Policy | `/privacy-policy` | GDPR |
 | Cookie Policy | `/cookies` | GDPR |
 | Contact Form Data Policy | Inline or `/datos-contacto` | Recommended |
 
