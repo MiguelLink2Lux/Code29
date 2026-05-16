@@ -9,10 +9,12 @@ export interface ConsentState {
 
 const STORAGE_KEY = 'cookie-consent'
 
-const defaults: ConsentState = {
-  necessary: true,
-  analytics: false,
-  marketing: false,
+export function createDefaultConsentState(): ConsentState {
+  return {
+    necessary: true,
+    analytics: false,
+    marketing: false,
+  }
 }
 
 function safeRead(): ConsentState | null {
@@ -20,7 +22,8 @@ function safeRead(): ConsentState | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     return JSON.parse(raw) as ConsentState
-  } catch {
+  } catch (error) {
+    console.warn('Cookie consent storage is unavailable for reads.', error)
     return null
   }
 }
@@ -28,8 +31,8 @@ function safeRead(): ConsentState | null {
 function safeWrite(state: ConsentState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    // localStorage unavailable (e.g. private mode with storage blocked) — silently skip
+  } catch (error) {
+    console.warn('Cookie consent storage is unavailable for writes.', error)
   }
 }
 
@@ -48,9 +51,34 @@ export const ConsentService = {
 
   /** Persists minimal consent (necessary only). */
   rejectAll(): ConsentState {
-    const state: ConsentState = { ...defaults }
+    const state = createDefaultConsentState()
     safeWrite(state)
     return state
+  },
+
+  /** Persists a custom set of cookie preferences. */
+  save(state: ConsentState): ConsentState {
+    const normalizedState: ConsentState = {
+      necessary: true,
+      analytics: state.analytics,
+      marketing: state.marketing,
+    }
+    safeWrite(normalizedState)
+    return normalizedState
+  },
+
+  /** Returns the default deny-all optional consent state. */
+  defaults(): ConsentState {
+    return createDefaultConsentState()
+  },
+
+  /** Clears the persisted consent state. Useful in tests only. */
+  clear(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch (error) {
+      console.warn('Cookie consent storage is unavailable for clearing.', error)
+    }
   },
 
   /** Returns true only when the user has already made a decision. */

@@ -48,11 +48,40 @@ const t = translations.educationStack[lang]
 
 <style>
   .stack {
+    position: relative;
     padding: var(--space-16) var(--space-8);
     background: var(--color-base);
+    overflow: hidden;
+  }
+
+  .stack::before,
+  .stack::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .stack::before {
+    background-image:
+      linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    opacity: 0.78;
+  }
+
+  .stack::after {
+    background:
+      linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.16) 48%, transparent 56%) -120% 0 / 180% 100% no-repeat,
+      radial-gradient(circle at 24% 22%, rgba(0, 240, 255, 0.1), transparent 18%),
+      radial-gradient(circle at 74% 68%, rgba(157, 0, 255, 0.08), transparent 22%);
+    opacity: 0.5;
+    animation: stack-grid-scan 10s linear infinite;
   }
 
   .stack__inner {
+    position: relative;
+    z-index: 1;
     max-width: 1200px;
     margin: 0 auto;
     display: grid;
@@ -154,5 +183,56 @@ const t = translations.educationStack[lang]
 
   .stack__item[data-category='infra'] {
     border-bottom: 2px solid rgba(157, 0, 255, 0.3);
+  }
+
+  @keyframes stack-grid-scan {
+    0% {
+      background-position:
+        -120% 0,
+        24% 22%,
+        74% 68%;
+      opacity: 0.28;
+    }
+
+    50% {
+      background-position:
+        20% 0,
+        24% 22%,
+        74% 68%;
+      opacity: 0.5;
+    }
+
+    100% {
+      background-position:
+        120% 0,
+        24% 22%,
+        74% 68%;
+      opacity: 0.28;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .stack {
+      padding: var(--space-12) var(--space-4);
+    }
+
+    .stack__inner {
+      gap: var(--space-8);
+    }
+
+    .stack__meta div {
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+
+    .stack__meta dt {
+      min-width: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stack::after {
+      animation: none;
+    }
   }
 </style>

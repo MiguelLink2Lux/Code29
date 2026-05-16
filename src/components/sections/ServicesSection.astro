@@ -7,7 +7,7 @@ const lang: Lang = DEFAULT_LANG
 const t = translations.services[lang]
 ---
 
-<section class="services" id="servicios" aria-label="Servicios">
+<section class="services" id="services" aria-label="Servicios">
   <div class="services__inner">
     <div class="services__header">
       <span class="services__tag">{t.sectionTag}</span>
@@ -20,7 +20,7 @@ const t = translations.services[lang]
         t.items.map((service, i) => (
           <article class="services__card">
             <span class="services__card-tag" data-i18n={`services.items.${i}.tag`}>{service.tag}</span>
-            <h3 class="services__card-title">{service.title}</h3>
+            <h3 class="services__card-title" data-i18n={`services.items.${i}.title`}>{service.title}</h3>
             <p class="services__card-description" data-i18n={`services.items.${i}.description`}>{service.description}</p>
             <ul class="services__features" role="list">
               {service.features.map((feature, j) => (
@@ -30,7 +30,7 @@ const t = translations.services[lang]
                 </li>
               ))}
             </ul>
-            <a href="#contacto" class="services__cta" data-i18n="services.cta">
+            <a href="#contact" class="services__cta" data-i18n="services.cta">
               {t.cta}
             </a>
           </article>
@@ -85,8 +85,20 @@ const t = translations.services[lang]
   /* Cards grid */
   .services__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--space-1);
+  }
+
+  @media (min-width: 768px) {
+    .services__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .services__grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 
   .services__card {
@@ -162,5 +174,19 @@ const t = translations.services[lang]
 
   .services__cta:hover {
     text-shadow: var(--shadow-glow);
+  }
+
+  @media (max-width: 768px) {
+    .services {
+      padding: var(--space-12) var(--space-4);
+    }
+
+    .services__header {
+      margin-bottom: var(--space-8);
+    }
+
+    .services__card {
+      padding: var(--space-6);
+    }
   }
 </style>

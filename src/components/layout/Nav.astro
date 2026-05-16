@@ -6,30 +6,94 @@ import { DEFAULT_LANG } from '@/utils/i18n'
 
 const lang: Lang = DEFAULT_LANG
 const t = translations.nav[lang]
+const isHomePage = Astro.url.pathname === '/'
+
+function resolveNavHref(href: string): string {
+  if (!href.startsWith('#')) return href
+  return isHomePage ? href : `/${href}`
+}
 ---
 
 <nav class="nav">
-  <a href="/" class="nav__logo" aria-label="CODE29 — Inicio">
-    CODE<span class="nav__logo-accent">29</span>
-  </a>
+  <div class="nav__bar">
+    <a href="/" class="nav__logo" aria-label="CODE29 — Inicio">
+      CODE<span class="nav__logo-accent">29</span>
+    </a>
 
-  <ul class="nav__links" role="list">
-    {
-      t.links.map((link, i) => (
-        <li>
-          <a href={link.href} class="nav__link" data-i18n={`nav.links.${i}.label`}>
-            {link.label}
-          </a>
-        </li>
-      ))
-    }
-  </ul>
+    <button
+      class="nav__toggle"
+      type="button"
+      aria-expanded="false"
+      aria-controls="nav-panel"
+      aria-label="Toggle navigation menu"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
 
-  <div class="nav__actions">
-    <LanguageSwitcher />
-    <a href="#contacto" class="nav__cta" data-i18n="nav.cta">{t.cta}</a>
+  <div class="nav__panel" id="nav-panel">
+    <ul class="nav__links" role="list">
+      {
+        t.links.map((link, i) => (
+          <li>
+            <a href={resolveNavHref(link.href)} class="nav__link" data-i18n={`nav.links.${i}.label`}>
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="nav__actions">
+      <LanguageSwitcher />
+      <a href={resolveNavHref('#contact')} class="nav__cta" data-i18n="nav.cta">{t.cta}</a>
+    </div>
   </div>
 </nav>
+
+<script>
+  const nav = document.querySelector('.nav')
+  const toggle = nav?.querySelector<HTMLButtonElement>('.nav__toggle')
+  const panel = nav?.querySelector<HTMLElement>('.nav__panel')
+  const closers = nav?.querySelectorAll<HTMLAnchorElement>('.nav__link, .nav__cta')
+
+  function closeMobileMenu(): void {
+    if (!nav || !toggle || !panel) return
+    nav.dataset.mobileOpen = 'false'
+    toggle.setAttribute('aria-expanded', 'false')
+    panel.setAttribute('aria-hidden', 'true')
+  }
+
+  function openMobileMenu(): void {
+    if (!nav || !toggle || !panel) return
+    nav.dataset.mobileOpen = 'true'
+    toggle.setAttribute('aria-expanded', 'true')
+    panel.setAttribute('aria-hidden', 'false')
+  }
+
+  closeMobileMenu()
+
+  toggle?.addEventListener('click', () => {
+    if (nav?.dataset.mobileOpen === 'true') {
+      closeMobileMenu()
+      return
+    }
+
+    openMobileMenu()
+  })
+
+  closers?.forEach((link) => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 640) closeMobileMenu()
+    })
+  })
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 640) closeMobileMenu()
+  })
+</script>
 
 <style>
   .nav {
@@ -39,10 +103,26 @@ const t = translations.nav[lang]
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--space-8);
     padding: var(--space-4) var(--space-8);
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+
+  .nav__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .nav__panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
   }
 
   /* Logo */
@@ -62,6 +142,31 @@ const t = translations.nav[lang]
 
   .nav__logo-accent {
     color: var(--color-primary);
+  }
+
+  .nav__toggle {
+    display: none;
+    width: 3rem;
+    height: 3rem;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.3125rem;
+    background: rgba(42, 42, 43, 0.88);
+    border: none;
+    color: var(--color-text);
+    cursor: pointer;
+    box-shadow: var(--shadow-ambient);
+  }
+
+  .nav__toggle span {
+    display: block;
+    width: 1.125rem;
+    height: 2px;
+    background: currentColor;
+    transition:
+      transform var(--transition-fast),
+      opacity var(--transition-fast);
   }
 
   /* Nav links */
@@ -115,5 +220,74 @@ const t = translations.nav[lang]
   .nav__cta:hover {
     box-shadow: 0px 0px 12px var(--color-primary);
     opacity: 0.9;
+  }
+
+  @media (max-width: 900px) {
+    .nav {
+      padding: var(--space-4);
+    }
+
+    .nav__links {
+      justify-content: flex-start;
+      gap: var(--space-4);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .nav {
+      display: block;
+    }
+
+    .nav__toggle {
+      display: inline-flex;
+    }
+
+    .nav__panel {
+      display: none;
+      width: 100%;
+      padding-top: var(--space-4);
+    }
+
+    .nav[data-mobile-open='true'] .nav__panel {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-6);
+    }
+
+    .nav__links {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-3);
+      width: 100%;
+    }
+
+    .nav__actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .nav__cta,
+    .nav__actions :global(.lang-switcher) {
+      width: fit-content;
+    }
+
+    .nav[data-mobile-open='true'] .nav__toggle span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .nav[data-mobile-open='true'] .nav__toggle span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .nav[data-mobile-open='true'] .nav__toggle span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav__toggle span {
+      transition: none;
+    }
   }
 </style>

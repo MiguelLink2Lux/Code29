@@ -55,6 +55,7 @@
 
     // Update html[lang] attribute for accessibility
     document.documentElement.lang = lang
+    window.dispatchEvent(new CustomEvent('language-changed', { detail: { lang } }))
 
     // Update switcher label to show the OTHER language (the one you'd switch TO)
     const label = document.getElementById('lang-switcher-label')

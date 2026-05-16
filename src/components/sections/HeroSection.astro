@@ -9,7 +9,9 @@ const t = translations.hero[lang]
 
 <section class="hero" id="hero" aria-label="Hero">
   <div class="hero__bg" aria-hidden="true">
-    <div class="hero__grid"></div>
+    <div class="hero__grid hero__grid--base"></div>
+    <div class="hero__grid hero__grid--pulse"></div>
+    <div class="hero__grid hero__grid--scan"></div>
     <div class="hero__glow"></div>
   </div>
 
@@ -24,8 +26,8 @@ const t = translations.hero[lang]
     <p class="hero__subheadline" data-i18n="hero.subheadline">{t.subheadline}</p>
 
     <div class="hero__ctas">
-      <a href="#contacto" class="hero__cta-primary" data-i18n="hero.ctaPrimary">{t.ctaPrimary}</a>
-      <a href="#servicios" class="hero__cta-secondary" data-i18n="hero.ctaSecondary">{t.ctaSecondary}</a>
+      <a href="#contact" class="hero__cta-primary" data-i18n="hero.ctaPrimary">{t.ctaPrimary}</a>
+      <a href="#services" class="hero__cta-secondary" data-i18n="hero.ctaSecondary">{t.ctaSecondary}</a>
     </div>
 
     <div class="hero__status" aria-hidden="true" data-i18n="hero.status">
@@ -53,10 +55,65 @@ const t = translations.hero[lang]
   .hero__grid {
     position: absolute;
     inset: 0;
+  }
+
+  .hero__grid--base {
     background-image:
       linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
     background-size: 60px 60px;
+  }
+
+  .hero__grid--pulse {
+    opacity: 0.4;
+    mix-blend-mode: screen;
+  }
+
+  .hero__grid--pulse::before,
+  .hero__grid--pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(0, 240, 255, 0.18), rgba(0, 240, 255, 0.18)) 12% 16% / 60px 60px no-repeat,
+      linear-gradient(rgba(0, 240, 255, 0.14), rgba(0, 240, 255, 0.14)) 28% 62% / 60px 60px no-repeat,
+      linear-gradient(rgba(157, 0, 255, 0.14), rgba(157, 0, 255, 0.14)) 52% 34% / 60px 60px no-repeat,
+      linear-gradient(rgba(0, 240, 255, 0.16), rgba(0, 240, 255, 0.16)) 76% 58% / 60px 60px no-repeat,
+      linear-gradient(rgba(219, 252, 255, 0.16), rgba(219, 252, 255, 0.16)) 88% 24% / 60px 60px no-repeat;
+    filter: blur(4px);
+  }
+
+  .hero__grid--pulse::before {
+    animation: hero-cells-a 8s steps(1, end) infinite;
+  }
+
+  .hero__grid--pulse::after {
+    background:
+      linear-gradient(rgba(219, 252, 255, 0.14), rgba(219, 252, 255, 0.14)) 18% 42% / 60px 60px no-repeat,
+      linear-gradient(rgba(0, 240, 255, 0.16), rgba(0, 240, 255, 0.16)) 38% 78% / 60px 60px no-repeat,
+      linear-gradient(rgba(157, 0, 255, 0.14), rgba(157, 0, 255, 0.14)) 62% 14% / 60px 60px no-repeat,
+      linear-gradient(rgba(0, 240, 255, 0.14), rgba(0, 240, 255, 0.14)) 82% 68% / 60px 60px no-repeat;
+    animation: hero-cells-b 11s steps(1, end) infinite;
+  }
+
+  .hero__grid--scan::before,
+  .hero__grid--scan::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.26;
+  }
+
+  .hero__grid--scan::before {
+    background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.35) 48%, transparent 56%);
+    transform: translateX(-120%);
+    animation: hero-scan-x 10s linear infinite;
+  }
+
+  .hero__grid--scan::after {
+    background: linear-gradient(180deg, transparent 0%, rgba(157, 0, 255, 0.22) 48%, transparent 56%);
+    transform: translateY(-120%);
+    animation: hero-scan-y 12s linear infinite 2s;
   }
 
   .hero__glow {
@@ -173,5 +230,67 @@ const t = translations.hero[lang]
     letter-spacing: 0.15em;
     color: var(--color-text-muted);
     opacity: 0.5;
+  }
+
+  @keyframes hero-cells-a {
+    0%, 16%, 100% { opacity: 0.05; }
+    20%, 28% { opacity: 0.55; }
+    32%, 52% { opacity: 0.12; }
+    56%, 68% { opacity: 0.42; }
+    72%, 88% { opacity: 0.08; }
+  }
+
+  @keyframes hero-cells-b {
+    0%, 14%, 100% { opacity: 0.08; }
+    18%, 26% { opacity: 0.4; }
+    30%, 48% { opacity: 0.1; }
+    52%, 60% { opacity: 0.48; }
+    64%, 84% { opacity: 0.12; }
+  }
+
+  @keyframes hero-scan-x {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(120%); }
+  }
+
+  @keyframes hero-scan-y {
+    0% { transform: translateY(-120%); }
+    100% { transform: translateY(120%); }
+  }
+
+  @media (max-width: 768px) {
+    .hero__content {
+      padding: var(--space-12) var(--space-4);
+    }
+
+    .hero__glow {
+      width: 360px;
+      height: 360px;
+    }
+
+    .hero__ctas {
+      gap: var(--space-4);
+    }
+
+    .hero__cta-primary,
+    .hero__cta-secondary {
+      width: 100%;
+      max-width: 20rem;
+    }
+
+    .hero__status {
+      font-size: 0.625rem;
+      line-height: 1.6;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__grid--pulse::before,
+    .hero__grid--pulse::after,
+    .hero__grid--scan::before,
+    .hero__grid--scan::after {
+      animation: none;
+      opacity: 0.12;
+    }
   }
 </style>

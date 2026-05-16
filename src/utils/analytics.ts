@@ -2,6 +2,7 @@
 // All callers depend on this interface, never on window.gtag directly (DIP).
 
 import { ConsentService } from '@/utils/cookie-consent'
+import type { ConsentState } from '@/utils/cookie-consent'
 
 declare global {
   interface Window {
@@ -19,12 +20,27 @@ export const AnalyticsService = {
   grantConsent(): void {
     gtag('consent', 'update', {
       analytics_storage: 'granted',
+      ad_storage: 'granted',
+      ad_user_data: 'granted',
+      ad_personalization: 'granted',
     })
   },
 
   denyConsent(): void {
     gtag('consent', 'update', {
       analytics_storage: 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+    })
+  },
+
+  applyConsent(state: ConsentState): void {
+    gtag('consent', 'update', {
+      analytics_storage: state.analytics ? 'granted' : 'denied',
+      ad_storage: state.marketing ? 'granted' : 'denied',
+      ad_user_data: state.marketing ? 'granted' : 'denied',
+      ad_personalization: state.marketing ? 'granted' : 'denied',
     })
   },
 
@@ -32,6 +48,6 @@ export const AnalyticsService = {
   restoreConsent(): void {
     const state = ConsentService.get()
     if (!state) return
-    state.analytics ? this.grantConsent() : this.denyConsent()
+    this.applyConsent(state)
   },
 }

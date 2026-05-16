@@ -1,7 +1,64 @@
 ---
-import BaseLayout from '@/layouts/BaseLayout.astro'
+import LegalLayout from '@/layouts/LegalLayout.astro'
 ---
 
-<BaseLayout title="Política de Cookies — Miguel Navarro Mantas">
-  <!-- Cookie policy pending copywriting -->
-</BaseLayout>
+<LegalLayout
+  title="Política de cookies"
+  description="Política de cookies provisional de CODE29 con preferencias granulares para necesarias, analítica y marketing."
+>
+  <h1>Política de cookies</h1>
+
+  <div class="legal-note">
+    <p>
+      <strong>Versión provisional:</strong> esta política describe el comportamiento actual del banner y del
+      consentimiento en la web. Debe revisarse de nuevo cuando se publique el dominio final o se incorporen
+      nuevas herramientas de terceros.
+    </p>
+  </div>
+
+  <h2>¿Qué son las cookies?</h2>
+  <p>
+    Las cookies son pequeños archivos o tecnologías similares que permiten recordar información sobre tu
+    visita, como tus preferencias o ciertas métricas de uso del sitio.
+  </p>
+
+  <h2>Cookies utilizadas en este sitio</h2>
+  <ul>
+    <li>
+      <strong>Necesarias:</strong> imprescindibles para el funcionamiento técnico básico del sitio. Siempre
+      están activas.
+    </li>
+    <li>
+      <strong>Analítica:</strong> permiten medir uso y rendimiento de la web. Solo se activan si las aceptas.
+    </li>
+    <li>
+      <strong>Marketing:</strong> reservadas para futuras funcionalidades publicitarias o de personalización.
+      Solo se activan si las aceptas expresamente.
+    </li>
+  </ul>
+
+  <h2>Herramientas asociadas</h2>
+  <p>
+    La configuración actual prevé el uso de Google Analytics 4 con Consent Mode v2. Esta integración no se
+    activa antes de tu consentimiento para la categoría de analítica. Las categorías publicitarias también
+    permanecen desactivadas por defecto.
+  </p>
+
+  <h2>Cómo se guarda tu elección</h2>
+  <p>
+    Tu preferencia se guarda localmente en el navegador mediante la clave técnica
+    <strong> `cookie-consent` </strong>, para que la web recuerde tu decisión en visitas posteriores.
+  </p>
+
+  <h2>Cómo cambiar o retirar el consentimiento</h2>
+  <p>
+    Puedes revisar o modificar tu decisión en cualquier momento desde el botón de
+    <strong>Preferencias de cookies</strong> disponible en el pie de página.
+  </p>
+
+  <h2>Más información</h2>
+  <p>
+    Si tienes dudas sobre esta política o sobre el uso de tecnologías de seguimiento en la web, puedes escribir a
+    <a href="mailto:miguel@code29.com">miguel@code29.com</a>.
+  </p>
+</LegalLayout>

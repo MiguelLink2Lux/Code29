@@ -7,7 +7,7 @@ const lang: Lang = DEFAULT_LANG
 const t = translations.testimonials[lang]
 ---
 
-<section class="testimonials" id="testimonios" aria-label="Testimonios">
+<section class="testimonials" id="testimonials" aria-label="Testimonios">
   <div class="testimonials__inner">
     <div class="testimonials__header">
       <span class="testimonials__tag">{t.sectionTag}</span>
@@ -43,11 +43,39 @@ const t = translations.testimonials[lang]
 
 <style>
   .testimonials {
+    position: relative;
     padding: var(--space-16) var(--space-8);
     background: var(--color-base);
+    overflow: hidden;
+  }
+
+  .testimonials::before,
+  .testimonials::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .testimonials::before {
+    background-image:
+      linear-gradient(rgba(0, 240, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.72;
+  }
+
+  .testimonials::after {
+    background:
+      linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.12) 48%, transparent 56%) -120% 0 / 180% 100% no-repeat,
+      radial-gradient(circle at 18% 28%, rgba(0, 240, 255, 0.08), transparent 18%);
+    opacity: 0.36;
+    animation: testimonials-grid-scan 12s linear infinite;
   }
 
   .testimonials__inner {
+    position: relative;
+    z-index: 1;
     max-width: 1200px;
     margin: 0 auto;
   }
@@ -136,5 +164,52 @@ const t = translations.testimonials[lang]
   .testimonials__meta {
     font-size: 0.75rem;
     color: var(--color-text-muted);
+  }
+
+  @keyframes testimonials-grid-scan {
+    0% {
+      background-position:
+        -120% 0,
+        18% 28%;
+      opacity: 0.22;
+    }
+
+    50% {
+      background-position:
+        16% 0,
+        18% 28%;
+      opacity: 0.38;
+    }
+
+    100% {
+      background-position:
+        120% 0,
+        18% 28%;
+      opacity: 0.22;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .testimonials {
+      padding: var(--space-12) var(--space-4);
+    }
+
+    .testimonials__header {
+      margin-bottom: var(--space-8);
+    }
+
+    .testimonials__grid {
+      grid-template-columns: 1fr;
+    }
+
+    .testimonials__card {
+      padding: var(--space-6);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .testimonials::after {
+      animation: none;
+    }
   }
 </style>

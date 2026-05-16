@@ -26,6 +26,7 @@ const {
 const resolvedOgTitle = ogTitle ?? title
 const resolvedOgDescription = ogDescription ?? description
 const resolvedCanonical = canonical ?? Astro.url.href
+const isHomePage = Astro.url.pathname === '/'
 ---
 
 <!doctype html>
@@ -56,7 +57,7 @@ const resolvedCanonical = canonical ?? Astro.url.href
 
     <!-- i18n anti-flash: applies stored language before first paint to avoid FOUC -->
     <script is:inline>
-      ;(function () {
+      (function () {
         var lang = localStorage.getItem('lang')
         if (lang === 'en') {
           document.documentElement.setAttribute('lang', 'en')
@@ -79,7 +80,7 @@ const resolvedCanonical = canonical ?? Astro.url.href
     <main>
       <slot />
     </main>
-    <Footer />
+    <Footer transparent={isHomePage} />
     <CookieBanner client:load />
   </body>
 </html>

@@ -4,11 +4,16 @@
 import { translations, type Lang } from '@/i18n/translations'
 import { DEFAULT_LANG } from '@/utils/i18n'
 
+interface Props {
+  transparent?: boolean
+}
+
+const { transparent = false } = Astro.props
 const lang: Lang = DEFAULT_LANG
 const t = translations.footer[lang]
 ---
 
-<footer class="footer">
+<footer class:list={['footer', transparent && 'footer--transparent']}>
   <div class="footer__status" aria-hidden="true" data-i18n="footer.status">
     {t.status}
   </div>
@@ -47,8 +52,46 @@ const t = translations.footer[lang]
 
 <style>
   .footer {
+    position: relative;
+    z-index: 1;
     padding: var(--space-8);
     background: var(--color-surface-1);
+    overflow: hidden;
+  }
+
+  .footer--transparent {
+    background: transparent;
+  }
+
+  .footer--transparent::before,
+  .footer--transparent::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .footer--transparent::before {
+    background:
+      radial-gradient(rgba(0, 240, 255, 0.22) 1px, transparent 1px) 0 0 / 22px 22px,
+      linear-gradient(115deg, transparent 42%, rgba(0, 240, 255, 0.07) 50%, transparent 58%) 140% 50% / 220% 220%;
+    mix-blend-mode: screen;
+    opacity: 0.22;
+    animation: footer-grid-band 8s ease-in-out infinite;
+  }
+
+  .footer--transparent::after {
+    background:
+      radial-gradient(circle at 20% 22%, rgba(0, 240, 255, 0.12), transparent 18%),
+      radial-gradient(circle at 78% 62%, rgba(157, 0, 255, 0.1), transparent 22%);
+    opacity: 0.48;
+    animation: footer-grid-glow 9s ease-in-out infinite;
+  }
+
+  .footer__status,
+  .footer__bottom {
+    position: relative;
+    z-index: 1;
   }
 
   /* System status bar */
@@ -115,5 +158,69 @@ const t = translations.footer[lang]
 
   .footer__cookie-btn:hover {
     color: var(--color-primary);
+  }
+
+  @keyframes footer-grid-band {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0.18;
+      background-position:
+        0 0,
+        140% 50%;
+    }
+
+    35% {
+      transform: translate3d(10px, -6px, 0);
+      opacity: 0.28;
+      background-position:
+        10px -6px,
+        58% 46%;
+    }
+
+    65% {
+      transform: translate3d(-6px, 4px, 0);
+      opacity: 0.22;
+      background-position:
+        -6px 4px,
+        -8% 54%;
+    }
+  }
+
+  @keyframes footer-grid-glow {
+    0%,
+    100% {
+      transform: scale(0.98);
+      opacity: 0.34;
+    }
+
+    50% {
+      transform: scale(1.04) translate3d(-6px, -4px, 0);
+      opacity: 0.62;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .footer {
+      padding: var(--space-6) var(--space-4);
+    }
+
+    .footer__bottom,
+    .footer__legal {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .footer__status,
+    .footer__copy {
+      line-height: 1.6;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .footer--transparent::before,
+    .footer--transparent::after {
+      animation: none;
+    }
   }
 </style>

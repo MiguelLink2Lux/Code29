@@ -5,17 +5,17 @@ export const translations = {
   nav: {
     es: {
       links: [
-        { label: 'Servicios', href: '#servicios' },
+        { label: 'Servicios', href: '#services' },
         { label: 'Stack', href: '#stack' },
-        { label: 'Testimonios', href: '#testimonios' },
+        { label: 'Testimonios', href: '#testimonials' },
       ],
       cta: 'Iniciar proyecto',
     },
     en: {
       links: [
-        { label: 'Services', href: '#servicios' },
+        { label: 'Services', href: '#services' },
         { label: 'Stack', href: '#stack' },
-        { label: 'Testimonials', href: '#testimonios' },
+        { label: 'Testimonials', href: '#testimonials' },
       ],
       cta: 'Start project',
     },
@@ -201,6 +201,18 @@ export const translations = {
             'Hoja de ruta estratégica de IA',
           ],
         },
+        {
+          tag: 'SERVICIO_04',
+          title: 'Automatización de despliegue DevOps con IA',
+          description:
+            'Diseño e implantación de pipelines inteligentes de CI/CD, observabilidad y automatización operativa para desplegar más rápido, con menos fricción y más control.',
+          features: [
+            'Pipelines CI/CD asistidos por IA',
+            'Automatización de despliegues y rollback',
+            'Observabilidad y alertado operativo',
+            'Optimización de entornos y costes de infraestructura',
+          ],
+        },
       ],
     },
     en: {
@@ -245,6 +257,59 @@ export const translations = {
             'Strategic AI roadmap',
           ],
         },
+        {
+          tag: 'SERVICE_04',
+          title: 'AI-Powered DevOps Deployment Automation',
+          description:
+            'Design and implementation of intelligent CI/CD pipelines, observability, and operational automation so you can deploy faster with less friction and more control.',
+          features: [
+            'AI-assisted CI/CD pipelines',
+            'Deployment and rollback automation',
+            'Observability and operational alerting',
+            'Infrastructure environment and cost optimization',
+          ],
+        },
+      ],
+    },
+  },
+
+  toolbelt: {
+    es: {
+      title: 'ACTIVE_TOOLCHAIN',
+      ariaLabel: 'Herramientas y plataformas con las que trabajo',
+      items: [
+        { label: 'GitHub', icon: 'github' },
+        { label: 'Jira', icon: 'jira' },
+        { label: 'AWS', icon: 'aws' },
+        { label: 'Linear', icon: 'linear' },
+        { label: 'VS Code', icon: 'vscode' },
+        { label: 'Android', icon: 'android' },
+        { label: 'VPN', icon: 'vpn' },
+        { label: 'AI', icon: 'ai' },
+        { label: 'Copilot', icon: 'copilot' },
+        { label: 'Claude', icon: 'claude' },
+        { label: 'Gemini', icon: 'gemini' },
+        { label: 'Codex', icon: 'codex' },
+        { label: 'Docker', icon: 'docker' },
+      ],
+    },
+    en: {
+      title: 'ACTIVE_TOOLCHAIN',
+      ariaLabel: 'Tools and platforms I work with',
+      items: [
+        { label: 'GitHub', icon: 'github' },
+        { label: 'Jira', icon: 'jira' },
+        { label: 'AWS', icon: 'aws' },
+        { label: 'Linear', icon: 'linear' },
+        { label: 'VS Code', icon: 'vscode' },
+        { label: 'Android', icon: 'android' },
+        { label: 'VPN', icon: 'vpn' },
+        { label: 'AI', icon: 'ai' },
+        { label: 'Copilot', icon: 'copilot' },
+        { label: 'Claude', icon: 'claude' },
+        { label: 'Gemini', icon: 'gemini' },
+        { label: 'Codex', icon: 'codex' },
+        { label: 'Docker', icon: 'docker' },
       ],
     },
   },
@@ -306,13 +371,82 @@ export const translations = {
     },
   },
 
+  contact: {
+    es: {
+      tag: 'ENLACE_DIRECTO',
+      title: 'Iniciemos la conexión',
+      subtitle:
+        'Sistema en línea. Listo para recibir tu propuesta de proyecto. Tiempo de respuesta estimado: < 24h.',
+      status: 'STATUS: SISTEMA_ONLINE | CIFRADO: EXTREMO_A_EXTREMO | LATENCIA: <12MS',
+      form: {
+        fullNameLabel: 'Nombre completo',
+        fullNamePlaceholder: 'Tu nombre',
+        companyLabel: 'Empresa / organización',
+        companyPlaceholder: 'Nombre de la empresa',
+        emailLabel: 'Email',
+        emailPlaceholder: 'nombre@empresa.com',
+        messageLabel: 'Mensaje',
+        messagePlaceholder: 'Describe tu proyecto, reto técnico o necesidad de negocio.',
+        submitIdle: 'ENVIAR_MENSAJE ›',
+        submitLoading: 'TRANSMITIENDO...',
+        successTitle: 'Canal abierto.',
+        successMessage: 'Tu mensaje ha sido enviado correctamente. Te responderé lo antes posible.',
+        errorTitle: 'Transmisión interrumpida.',
+        errorFallback:
+          'No he podido enviar tu mensaje ahora mismo. Inténtalo de nuevo en unos minutos.',
+        validationSummary: 'Revisa los campos marcados antes de enviar el mensaje.',
+        privacyPrefix: 'Al enviar este formulario aceptas la',
+        privacyLinkLabel: 'Política de Privacidad',
+        validation: {
+          required: 'Este campo es obligatorio.',
+          invalidEmail: 'Introduce un email válido.',
+          tooLong: 'El contenido supera la longitud permitida.',
+          spam: 'Se ha detectado un envío no válido.',
+        },
+      },
+    },
+    en: {
+      tag: 'DIRECT_LINK',
+      title: 'Let us open the channel',
+      subtitle:
+        'System online. Ready to receive your project proposal. Estimated response time: < 24h.',
+      status: 'STATUS: SYSTEM_ONLINE | ENCRYPTION: END_TO_END | LATENCY: <12MS',
+      form: {
+        fullNameLabel: 'Full name',
+        fullNamePlaceholder: 'Your name',
+        companyLabel: 'Company / organization',
+        companyPlaceholder: 'Company name',
+        emailLabel: 'Email',
+        emailPlaceholder: 'name@company.com',
+        messageLabel: 'Message',
+        messagePlaceholder: 'Describe your project, technical challenge, or business need.',
+        submitIdle: 'SEND_MESSAGE ›',
+        submitLoading: 'TRANSMITTING...',
+        successTitle: 'Channel open.',
+        successMessage: 'Your message has been sent successfully. I will get back to you soon.',
+        errorTitle: 'Transmission interrupted.',
+        errorFallback:
+          'I could not send your message right now. Please try again in a few minutes.',
+        validationSummary: 'Review the highlighted fields before sending the message.',
+        privacyPrefix: 'By sending this form you accept the',
+        privacyLinkLabel: 'Privacy Policy',
+        validation: {
+          required: 'This field is required.',
+          invalidEmail: 'Enter a valid email address.',
+          tooLong: 'The content exceeds the allowed length.',
+          spam: 'An invalid submission was detected.',
+        },
+      },
+    },
+  },
+
   footer: {
     es: {
       status: 'STATUS: SISTEMA_ONLINE | UPTIME: 99.99% | CIFRADO: AES-256',
       copy: '© 2026 CODE29 // TODOS LOS DERECHOS RESERVADOS',
       legalLinks: [
-        { label: 'Aviso Legal', href: '/aviso-legal' },
-        { label: 'Privacidad', href: '/privacidad' },
+        { label: 'Aviso Legal', href: '/legal-notice' },
+        { label: 'Privacidad', href: '/privacy-policy' },
         { label: 'Cookies', href: '/cookies' },
       ],
       cookiePreferences: 'Preferencias de cookies',
@@ -321,8 +455,8 @@ export const translations = {
       status: 'STATUS: SYSTEM_ONLINE | UPTIME: 99.99% | ENCRYPTION: AES-256',
       copy: '© 2026 CODE29 // ALL RIGHTS RESERVED',
       legalLinks: [
-        { label: 'Legal Notice', href: '/aviso-legal' },
-        { label: 'Privacy', href: '/privacidad' },
+        { label: 'Legal Notice', href: '/legal-notice' },
+        { label: 'Privacy', href: '/privacy-policy' },
         { label: 'Cookies', href: '/cookies' },
       ],
       cookiePreferences: 'Cookie preferences',

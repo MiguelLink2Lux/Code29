@@ -1,39 +1,67 @@
 ---
-// Contact section wrapper — ContactForm.vue will be added in Phase 5
-// Placeholder shown until the Vue component is implemented
+import ContactForm from '@/components/contact/ContactForm.vue'
+import { translations, type Lang } from '@/i18n/translations'
+import { DEFAULT_LANG } from '@/utils/i18n'
+
+const lang: Lang = DEFAULT_LANG
+const t = translations.contact[lang]
 ---
 
-<section class="contact" id="contacto" aria-label="Contacto">
+<section class="contact" id="contact" aria-label="Contacto">
   <div class="contact__inner">
     <div class="contact__header">
-      <span class="contact__tag">ENLACE_DIRECTO</span>
-      <h2 class="contact__title">Iniciemos la conexión</h2>
-      <p class="contact__subtitle">
-        Sistema en línea. Listo para recibir tu propuesta de proyecto.
-        Tiempo de respuesta estimado: &lt; 24h.
-      </p>
+      <span class="contact__tag" data-i18n="contact.tag">{t.tag}</span>
+      <h2 class="contact__title" data-i18n="contact.title">{t.title}</h2>
+      <p class="contact__subtitle" data-i18n="contact.subtitle">{t.subtitle}</p>
     </div>
 
-    <!-- ContactForm.vue — implemented in Phase 5 (C29-45) -->
-    <div class="contact__form-placeholder" aria-label="Formulario de contacto — próximamente">
-      <p class="contact__placeholder-text">
-        ESTABLECIENDO_CONEXIÓN... // Formulario disponible en Phase 5
-      </p>
+    <div class="contact__form-shell">
+      <ContactForm client:load />
     </div>
 
-    <div class="contact__status" aria-hidden="true">
-      STATUS: SISTEMA_ONLINE &nbsp;|&nbsp; CIFRADO: EXTREMO_A_EXTREMO &nbsp;|&nbsp; LATENCIA: &lt;12MS
+    <div class="contact__status" aria-hidden="true" data-i18n="contact.status">
+      {t.status}
     </div>
   </div>
 </section>
 
 <style>
   .contact {
+    position: relative;
     padding: var(--space-16) var(--space-8);
     background: var(--color-surface-1);
+    overflow: hidden;
+  }
+
+  .contact::before,
+  .contact::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .contact::before {
+    background:
+      radial-gradient(rgba(0, 240, 255, 0.24) 1px, transparent 1px) 0 0 / 22px 22px,
+      linear-gradient(115deg, transparent 42%, rgba(0, 240, 255, 0.08) 50%, transparent 58%) 140% 50% / 220% 220%;
+    mix-blend-mode: screen;
+    opacity: 0.28;
+    animation: contact-lower-band 8s ease-in-out infinite;
+  }
+
+  .contact::after {
+    background:
+      radial-gradient(circle at 18% 24%, rgba(0, 240, 255, 0.18), transparent 18%),
+      radial-gradient(circle at 78% 68%, rgba(157, 0, 255, 0.12), transparent 22%),
+      radial-gradient(circle at 62% 88%, rgba(0, 240, 255, 0.16), transparent 18%);
+    opacity: 0.72;
+    animation: contact-lower-glow 9s ease-in-out infinite;
   }
 
   .contact__inner {
+    position: relative;
+    z-index: 1;
     max-width: 720px;
     margin: 0 auto;
     display: flex;
@@ -58,6 +86,12 @@
     gap: var(--space-4);
   }
 
+  .contact__form-shell {
+    position: relative;
+    width: 100%;
+    padding: var(--space-4);
+  }
+
   .contact__title {
     font-family: var(--font-display);
     font-size: clamp(1.75rem, 3vw, 2.5rem);
@@ -71,22 +105,6 @@
     color: var(--color-text-muted);
   }
 
-  /* Placeholder */
-  .contact__form-placeholder {
-    width: 100%;
-    padding: var(--space-12);
-    background: var(--color-surface-2);
-    box-shadow: var(--shadow-ambient);
-  }
-
-  .contact__placeholder-text {
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    letter-spacing: 0.15em;
-    color: var(--color-text-muted);
-    opacity: 0.5;
-  }
-
   /* Status bar */
   .contact__status {
     font-family: var(--font-display);
@@ -94,5 +112,70 @@
     letter-spacing: 0.15em;
     color: var(--color-text-muted);
     opacity: 0.4;
+  }
+
+  @keyframes contact-lower-band {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0.18;
+      background-position:
+        0 0,
+        140% 50%;
+    }
+
+    35% {
+      transform: translate3d(12px, -8px, 0);
+      opacity: 0.34;
+      background-position:
+        10px -8px,
+        62% 44%;
+    }
+
+    65% {
+      transform: translate3d(-8px, 6px, 0);
+      opacity: 0.28;
+      background-position:
+        -6px 6px,
+        -8% 56%;
+    }
+  }
+
+  @keyframes contact-lower-glow {
+    0%,
+    100% {
+      transform: scale(0.96);
+      opacity: 0.46;
+    }
+
+    50% {
+      transform: scale(1.06) translate3d(-10px, -8px, 0);
+      opacity: 0.92;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .contact {
+      padding: var(--space-12) var(--space-4);
+    }
+
+    .contact__inner {
+      gap: var(--space-6);
+    }
+
+    .contact__status {
+      line-height: 1.6;
+    }
+
+    .contact__form-shell {
+      padding: var(--space-3);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contact::before,
+    .contact::after {
+      animation: none;
+    }
   }
 </style>

@@ -95,8 +95,39 @@ const { title, description = 'Información legal — CODE29' } = Astro.props
     margin-bottom: var(--space-4);
   }
 
+  .legal-content ul {
+    margin: 0 0 var(--space-4) var(--space-6);
+    color: var(--color-text-muted);
+  }
+
+  .legal-content li {
+    margin-bottom: var(--space-2);
+    line-height: 1.7;
+  }
+
+  .legal-content strong {
+    color: var(--color-text);
+  }
+
+  .legal-content .legal-note {
+    padding: var(--space-6);
+    margin-bottom: var(--space-8);
+    background: var(--color-surface-1);
+    box-shadow: var(--shadow-ambient);
+  }
+
   .legal-content a {
     color: var(--color-primary);
     text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .legal-main {
+      padding: var(--space-12) var(--space-4);
+    }
+
+    .legal-content h1 {
+      font-size: 1.75rem;
+    }
   }
 </style>
