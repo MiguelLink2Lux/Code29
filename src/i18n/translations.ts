@@ -29,7 +29,7 @@ export const translations = {
       subheadline:
         'Uniendo la intuición humana con la inteligencia artificial.\nCTO as a Service & AI Developer — Miguel Navarro Mantas',
       ctaPrimary: 'INICIALIZAR_PROTOCOLO ›',
-      ctaSecondary: 'VER_MANIFIESTO',
+      ctaSecondary: 'VER_SERVICIOS',
       status: 'ESTADO_DEL_SISTEMA: OPTIMIZADO | MATRIZ_IA: 99.8% | CIFRADO: AES-256',
     },
     en: {
@@ -39,7 +39,7 @@ export const translations = {
       subheadline:
         'Bridging human intuition with artificial intelligence.\nCTO as a Service & AI Developer — Miguel Navarro Mantas',
       ctaPrimary: 'INITIALIZE_PROTOCOL ›',
-      ctaSecondary: 'VIEW_MANIFESTO',
+      ctaSecondary: 'VIEW_SERVICES',
       status: 'SYSTEM_STATUS: OPTIMIZED | AI_MATRIX: 99.8% | ENCRYPTION: AES-256',
     },
   },
@@ -97,6 +97,8 @@ export const translations = {
       heading: 'Máster en Desarrollo con IA',
       description:
         'Especialización en optimización del desarrollo con inteligencia artificial. Investigación principal: Orquestación de agentes autónomos y sistemas de inteligencia distribuida.',
+      experienceSummary:
+        'Más de 10 años trabajando con APIs, gestión de eCommerce y software de retail desplegado en mercados de todo el mundo. Experiencia conectando operativa, producto y tecnología en entornos de alta exigencia.',
       metaSpecialization: 'Especialización',
       metaSpecializationValue: 'Inteligencia Artificial',
       metaMethodology: 'Metodología',
@@ -129,6 +131,8 @@ export const translations = {
       heading: 'AI Development Master\'s Degree',
       description:
         'Specialization in optimizing development with artificial intelligence. Main research: Autonomous agent orchestration and distributed intelligence systems.',
+      experienceSummary:
+        'More than 10 years working with APIs, eCommerce operations, and retail software deployed across global markets. Experience connecting operations, product, and technology in high-demand environments.',
       metaSpecialization: 'Specialization',
       metaSpecializationValue: 'Artificial Intelligence',
       metaMethodology: 'Methodology',

@@ -6,6 +6,10 @@ export type { Lang } from '../i18n/translations'
 
 export const DEFAULT_LANG = 'es' as const satisfies Lang
 
+export function resolveBrowserLang(value?: string | null): Lang {
+  return value?.toLowerCase().startsWith('es') ? 'es' : 'en'
+}
+
 /**
  * Reads the current language from localStorage.
  * Falls back to DEFAULT_LANG if not set or if the value is invalid.
@@ -15,6 +19,7 @@ export function getLang(): Lang {
   if (typeof localStorage === 'undefined') return DEFAULT_LANG
   const stored = localStorage.getItem('lang')
   if (stored === 'es' || stored === 'en') return stored
+  if (typeof navigator !== 'undefined') return resolveBrowserLang(navigator.language)
   return DEFAULT_LANG
 }
 

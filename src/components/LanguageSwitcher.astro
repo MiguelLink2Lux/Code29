@@ -16,6 +16,7 @@
 <script>
   import { translations } from '../i18n/translations'
   import type { Lang } from '../i18n/translations'
+  import { resolveBrowserLang } from '../utils/i18n'
 
   // Resolve a dot-notated key like "stats.0.label" from the translations object
   function resolveKey(lang: Lang, key: string): string | null {
@@ -64,7 +65,8 @@
 
   function initSwitcher(): void {
     const stored = localStorage.getItem('lang')
-    const currentLang: Lang = stored === 'en' ? 'en' : 'es'
+    const currentLang: Lang =
+      stored === 'es' || stored === 'en' ? stored : resolveBrowserLang(navigator.language)
 
     // Apply stored language on page load (handles reload after switch)
     if (currentLang !== 'es') {

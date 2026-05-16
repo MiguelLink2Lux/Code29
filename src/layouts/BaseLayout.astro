@@ -59,9 +59,10 @@ const isHomePage = Astro.url.pathname === '/'
     <script is:inline>
       (function () {
         var lang = localStorage.getItem('lang')
-        if (lang === 'en') {
-          document.documentElement.setAttribute('lang', 'en')
-        }
+        var resolved = lang === 'es' || lang === 'en'
+          ? lang
+          : ((navigator.language || '').toLowerCase().indexOf('es') === 0 ? 'es' : 'en')
+        document.documentElement.setAttribute('lang', resolved)
       })()
     </script>
 

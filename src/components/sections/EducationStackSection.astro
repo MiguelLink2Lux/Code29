@@ -14,6 +14,7 @@ const t = translations.educationStack[lang]
       <span class="stack__section-tag">{t.sectionTagEducation}</span>
       <h2 class="stack__title" data-i18n="educationStack.heading">{t.heading}</h2>
       <p class="stack__description" data-i18n="educationStack.description">{t.description}</p>
+      <p class="stack__experience-summary" data-i18n="educationStack.experienceSummary">{t.experienceSummary}</p>
       <dl class="stack__meta">
         <div>
           <dt data-i18n="educationStack.metaSpecialization">{t.metaSpecialization}</dt>
@@ -118,6 +119,13 @@ const t = translations.educationStack[lang]
     font-size: 0.9375rem;
     line-height: 1.7;
     color: var(--color-text-muted);
+    margin-bottom: var(--space-4);
+  }
+
+  .stack__experience-summary {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--color-text);
     margin-bottom: var(--space-8);
   }
 
