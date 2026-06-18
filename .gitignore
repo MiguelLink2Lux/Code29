@@ -28,6 +28,16 @@ dist/
 build/
 coverage/
 
+# Python (backend)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
 # Astro
 .astro/
 
