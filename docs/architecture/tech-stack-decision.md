@@ -109,12 +109,12 @@ api.dominio.com   → Backend (FastAPI)
 
 ### Phase 1 — Static Landing (current)
 - Static Astro landing with Vue islands
-- Contact form via **Vercel serverless function + Resend** (no FastAPI needed)
+- Contact form via an **Astro API route** (`src/pages/api/contact.ts`) + Resend (no FastAPI needed)
 - Cookie consent system (GDPR compliant)
 - Legal pages
 - Deploy to Vercel
 
-> **Note:** FastAPI is NOT introduced in Phase 1. A serverless function handles the contact form. This avoids operational overhead (CORS, separate domain, monitoring) before the AI backend is justified.
+> **Note:** FastAPI is NOT introduced in Phase 1. An Astro API route (`src/pages/api/contact.ts`) handles the contact form. This avoids operational overhead (CORS, separate domain, monitoring) before the AI backend is justified.
 
 ### Phase 2 — AI System Design + FastAPI Introduction
 - Introduce FastAPI backend (`api.dominio.com`)
@@ -172,6 +172,7 @@ This architecture allows:
 
 - PRD: [docs/requirements/PRD.md](../requirements/PRD.md)
 - Design system: [docs/architecture/design.md](design.md)
+- Architecture decisions: [decisions/index.md](decisions/index.md) (ADR 0001–0003)
 - Agent map: [docs/protocols/ai-agents.md](../protocols/ai-agents.md)
 - Implementation plan: [docs/architecture/sdd-landing-v1.md](sdd-landing-v1.md)
 - Jira: C29-8 (closed), C29-9 (closed), C29-10 (closed), C29-11 (closed)
