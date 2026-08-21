@@ -68,6 +68,12 @@
     const currentLang: Lang =
       stored === 'es' || stored === 'en' ? stored : resolveBrowserLang(navigator.language)
 
+    // Persist the resolved language, even when it came from the browser locale.
+    // Without this, the toggle below read an empty localStorage and re-applied
+    // the language already on screen, so the first click did nothing for every
+    // visitor arriving with a non-Spanish browser.
+    localStorage.setItem('lang', currentLang)
+
     // Apply stored language on page load (handles reload after switch)
     if (currentLang !== 'es') {
       applyLang(currentLang)
@@ -75,7 +81,10 @@
 
     const btn = document.getElementById('lang-switcher')
     btn?.addEventListener('click', () => {
-      const next: Lang = localStorage.getItem('lang') === 'en' ? 'es' : 'en'
+      // Toggle from what is actually on screen, not from storage: the two can
+      // disagree on a first visit resolved from the browser locale.
+      const current: Lang = document.documentElement.lang === 'en' ? 'en' : 'es'
+      const next: Lang = current === 'en' ? 'es' : 'en'
       localStorage.setItem('lang', next)
       applyLang(next)
     })
