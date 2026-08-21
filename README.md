@@ -139,8 +139,8 @@ If any of the three contact variables is missing, `POST /api/contact` responds `
 | `APP_ENV` | `development` | Environment name. |
 | `CORS_ORIGINS` | `http://localhost:4321` | Comma-separated list of allowed origins. Never `*`. |
 
-> **Note:** `backend/.env.example` does not exist yet — it is pending Phase 5 of the
-> `fastapi-backend-setup` SDD cycle. Until then, the table above is the reference.
+> **Note:** copy `backend/.env.example` to `backend/.env` to get started — it ships the
+> defaults above as placeholders.
 
 ---
 
