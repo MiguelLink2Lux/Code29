@@ -12,7 +12,7 @@
     "preview": "astro preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "node scripts/assert-e2e-specs.mjs && playwright test",
     "lint": "eslint .",
     "format": "prettier --write .",
     "verify:assets": "vitest run --config vitest.artifacts.config.ts"

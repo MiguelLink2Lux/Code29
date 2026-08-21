@@ -21,5 +21,12 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:4321',
     reuseExistingServer: !process.env.CI,
+    env: {
+      // Without a GA4 id the analytics snippet renders nothing, and the consent
+      // assertions would pass vacuously. A dummy id makes them real.
+      PUBLIC_GA4_ID: process.env.PUBLIC_GA4_ID ?? 'G-E2ETESTID',
+      // The dev toolbar adds its own h1/landmarks and breaks strict locators.
+      ASTRO_DEV_TOOLBAR: 'false',
+    },
   },
 })
