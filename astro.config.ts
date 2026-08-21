@@ -13,6 +13,10 @@ const site = resolveSiteUrl(process.env)
 // https://astro.build/config
 export default defineConfig({
   site,
+  // The dev toolbar injects its own h1/landmark elements, which collide with
+  // strict-mode locators in the e2e suite. Disabled when Playwright starts the
+  // server; on by default for normal development.
+  devToolbar: { enabled: process.env.ASTRO_DEV_TOOLBAR !== 'false' },
   integrations: [
     vue(),
     sitemap({
