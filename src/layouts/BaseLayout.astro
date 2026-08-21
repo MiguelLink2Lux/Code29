@@ -4,6 +4,7 @@ import Nav from '@/components/layout/Nav.astro'
 import Footer from '@/components/layout/Footer.astro'
 import CookieBanner from '@/components/cookies/CookieBanner.vue'
 import Analytics from '@/components/analytics/Analytics.astro'
+import { absoluteUrl } from '@/utils/seo'
 
 interface Props {
   title: string
@@ -26,6 +27,8 @@ const {
 const resolvedOgTitle = ogTitle ?? title
 const resolvedOgDescription = ogDescription ?? description
 const resolvedCanonical = canonical ?? Astro.url.href
+// Social scrapers ignore root-relative image paths, so og:image must be absolute.
+const resolvedOgImage = absoluteUrl(ogImage)
 const isHomePage = Astro.url.pathname === '/'
 ---
 
@@ -34,6 +37,11 @@ const isHomePage = Astro.url.pathname === '/'
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Primary meta -->
     <title>{title}</title>
@@ -44,7 +52,7 @@ const isHomePage = Astro.url.pathname === '/'
     <meta property="og:type" content="website" />
     <meta property="og:title" content={resolvedOgTitle} />
     <meta property="og:description" content={resolvedOgDescription} />
-    <meta property="og:image" content={ogImage} />
+    <meta property="og:image" content={resolvedOgImage} />
     <meta property="og:url" content={resolvedCanonical} />
     <meta property="og:site_name" content="CODE29" />
     <meta property="og:locale" content="es_ES" />
@@ -53,7 +61,7 @@ const isHomePage = Astro.url.pathname === '/'
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={resolvedOgTitle} />
     <meta name="twitter:description" content={resolvedOgDescription} />
-    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image" content={resolvedOgImage} />
 
     <!-- i18n anti-flash: applies stored language before first paint to avoid FOUC -->
     <script is:inline>
