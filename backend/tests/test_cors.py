@@ -28,3 +28,22 @@ def test_no_wildcard_origin_ever_returned(app_with_env: Callable[..., FastAPI]) 
     client = TestClient(app)
     response = client.get("/api/v1/health", headers={"Origin": "https://other.com"})
     assert response.headers.get("access-control-allow-origin") != "*"
+
+
+def test_production_origin_can_be_configured(app_with_env: Callable[..., FastAPI]) -> None:
+    # The deployed frontend lives on its own Vercel project, so the backend must
+    # accept an absolute https origin, not just the local dev server.
+    app = app_with_env(CORS_ORIGINS="https://code29.dev,https://www.code29.dev")
+    client = TestClient(app)
+    response = client.get("/api/v1/health", headers={"Origin": "https://code29.dev"})
+    assert response.headers.get("access-control-allow-origin") == "https://code29.dev"
+
+
+def test_wildcard_origin_is_rejected_at_config_time() -> None:
+    # Fail fast on boot rather than silently deploying an open CORS policy.
+    import pytest
+
+    from app.core.config import Settings
+
+    with pytest.raises(ValueError, match="wildcard"):
+        Settings(cors_origins="*")
