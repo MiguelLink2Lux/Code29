@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { absoluteUrl, PUBLIC_ROUTES, resolveSiteUrl, sitemapUrl } from './seo'
+import { absoluteUrl, buildRobotsTxt, PUBLIC_ROUTES, resolveSiteUrl, sitemapUrl } from './seo'
 
 describe('resolveSiteUrl', () => {
   it('falls back to the production origin when the env var is unset', () => {
@@ -58,5 +58,29 @@ describe('PUBLIC_ROUTES', () => {
     for (const route of ['/404', '/maintenance', '/coming-soon']) {
       expect(PUBLIC_ROUTES).not.toContain(route)
     }
+  })
+})
+
+describe('buildRobotsTxt', () => {
+  it('advertises the sitemap that the integration actually emits', () => {
+    expect(buildRobotsTxt({})).toContain('Sitemap: https://code29.dev/sitemap-index.xml')
+  })
+
+  it('allows crawling of the whole site', () => {
+    const robots = buildRobotsTxt({})
+    expect(robots).toContain('User-agent: *')
+    expect(robots).toContain('Allow: /')
+  })
+
+  it('follows PUBLIC_SITE_URL so a preview deploy never advertises production', () => {
+    // The old static public/robots.txt hardcoded the origin and drifted the
+    // moment the sitemap filename changed. Deriving it removes that failure mode.
+    expect(buildRobotsTxt({ PUBLIC_SITE_URL: 'https://code29.vercel.app' })).toContain(
+      'Sitemap: https://code29.vercel.app/sitemap-index.xml',
+    )
+  })
+
+  it('ends with a trailing newline', () => {
+    expect(buildRobotsTxt({}).endsWith('\n')).toBe(true)
   })
 })

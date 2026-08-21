@@ -41,3 +41,12 @@ export function sitemapUrl(env?: SeoEnv): string {
   // @astrojs/sitemap emits sitemap-index.xml as the entry document.
   return absoluteUrl('/sitemap-index.xml', env)
 }
+
+/**
+ * robots.txt body. Derived rather than shipped as a static file: the previous
+ * public/robots.txt hardcoded the origin and the sitemap filename, so it
+ * advertised a 404 as soon as either changed.
+ */
+export function buildRobotsTxt(env?: SeoEnv): string {
+  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${sitemapUrl(env)}`, ''].join('\n')
+}
