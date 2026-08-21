@@ -16,6 +16,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "verify:assets": "vitest run --config vitest.artifacts.config.ts"
+    "verify:runtime": "node scripts/assert-vercel-runtime.mjs",
+    "build:node20": "npx --yes node@20 node_modules/astro/astro.js build"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.2.1",

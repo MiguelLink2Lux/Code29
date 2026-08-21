@@ -28,8 +28,16 @@ class Settings(BaseSettings):
         # pydantic-settings would otherwise try to JSON-decode a plain
         # comma-separated env string and fail. Accept "a,b" and lists alike.
         if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
+            origins = [origin.strip() for origin in value.split(",") if origin.strip()]
+        else:
+            origins = value
+
+        # Fail fast on boot instead of deploying an open CORS policy: credentials
+        # aside, `*` would let any site call the API from a visitor's browser.
+        if isinstance(origins, list) and "*" in origins:
+            raise ValueError("CORS_ORIGINS must list explicit origins; wildcard `*` is not allowed")
+
+        return origins
 
 
 @lru_cache

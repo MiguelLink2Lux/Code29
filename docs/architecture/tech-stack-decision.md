@@ -93,8 +93,12 @@ Required across all layers (Astro + Vue) to enforce design token integrity and p
 - Deploy: Automatic CI/CD on push to `main`
 
 ### Backend (FastAPI) — Phase 2+
-- Initial phase: **Render / Railway**
-- Scaling: AWS + Docker
+- Platform: **Vercel**, as a second project with Root Directory `backend/` —
+  decided 2026-08-21, see [[0004-backend-deploy-provider]]
+- Type: serverless function (`backend/api/index.py`), catch-all rewrite in `backend/vercel.json`
+- Deploy: automatic CI/CD from Git, same as the frontend
+- Open risk: if the Phase 3 Genkit dependency tree exceeds Vercel's bundle limit, the backend
+  moves to a container host (Cloud Run) — `create_app()` is host-agnostic
 
 ### Domain structure
 
