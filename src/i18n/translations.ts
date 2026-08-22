@@ -498,15 +498,6 @@ export const translations = {
             scanningAndPolicies: 'Escaneo más políticas y bloqueo automático',
           },
         },
-        observability: {
-          prompt: '¿Cómo detectáis que algo se ha roto en producción?',
-          options: {
-            none: 'Cuando nos avisa un cliente',
-            logsOnly: 'Revisando logs a mano',
-            errorMonitoring: 'Monitorización de errores con alertas',
-            fullObservability: 'Observabilidad completa: métricas, trazas y alertas',
-          },
-        },
         website: {
           prompt: '¿Cuál es vuestra web o aplicación?',
           placeholder: 'empresa.com (opcional)',
@@ -589,15 +580,6 @@ export const translations = {
             manualReviews: 'Manual reviews',
             dependencyScanning: 'Dependency scanning (Snyk or similar)',
             scanningAndPolicies: 'Scanning plus policies and automatic blocking',
-          },
-        },
-        observability: {
-          prompt: 'How do you find out something broke in production?',
-          options: {
-            none: 'When a customer tells us',
-            logsOnly: 'By reading logs by hand',
-            errorMonitoring: 'Error monitoring with alerts',
-            fullObservability: 'Full observability: metrics, traces and alerts',
           },
         },
         website: {

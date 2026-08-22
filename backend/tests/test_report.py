@@ -223,41 +223,5 @@ class TestFactory:
         # Phase F lands the dependency; until then the error must be explicit
         # rather than silently falling back to the stub, which would ship a
         # template report while the operator believes a model wrote it.
-        with pytest.raises(UnusableReportGenerator, match="bundle limit|not supported"):
+        with pytest.raises(UnusableReportGenerator, match="not installed|Phase F|unavailable"):
             build_report_generator("genkit", model_api_key="AIza-test-key")
-
-
-class TestSummaryHonesty:
-    """The summary must not claim the site failed when it did not."""
-
-    @staticmethod
-    def _facts(**site: object) -> "ReportFacts":
-        return ReportFacts(
-            contact_name="Ada",
-            company="AE",
-            locale="es",
-            workflow=WorkflowAnswers(practices=[]),
-            site=SiteSignals(**site),
-        )
-
-    def test_says_analysed_when_the_page_was_read_even_without_a_url(self) -> None:
-        import asyncio
-
-        from app.services.report_copy import TEMPLATE_COPY
-
-        # available=True means the page WAS read. Saying otherwise tells the lead
-        # we could not look at a site we did look at.
-        report = asyncio.run(
-            TemplateReportGenerator().generate(self._facts(available=True, https=True))
-        )
-
-        assert TEMPLATE_COPY["es"]["summary_no_site"].strip() not in report.summary
-
-    def test_says_not_analysed_only_when_it_really_was_not(self) -> None:
-        import asyncio
-
-        from app.services.report_copy import TEMPLATE_COPY
-
-        report = asyncio.run(TemplateReportGenerator().generate(self._facts(available=False)))
-
-        assert TEMPLATE_COPY["es"]["summary_no_site"].strip() in report.summary

@@ -34,67 +34,18 @@ export interface ContactChatState {
   progress: { index: number; total: number }
 }
 
-/**
- * The shape the backend accepts — see tests/contracts/report-request.json.
- * Snake_case because it is the API's vocabulary, not ours: aligning here beats
- * a translation layer nobody remembers to update.
- */
 export interface ReportRequest {
-  contact_name: string
+  name: string
   company: string
-  locale: 'es' | 'en'
+  website: string
   workflow: {
-    practices: string[]
-    team_size: string | null
-    notes: string | null
+    delivery: string
+    bugs: string
+    deploys: string
+    security: string
   }
-  site_url: string | null
-  transcript: Array<{ step_id: string; answer: string }>
-  consent: {
-    privacy_accepted: boolean
-    report_accepted: boolean
-  }
-}
-
-/**
- * Chat answers → the practice identifiers the report generator diagnoses by.
- * The generator compares practices present against absent per axis, so an
- * unmapped answer is not a smaller report: it is a wrong one.
- */
-const PRACTICES_BY_ANSWER: Record<string, string[]> = {
-  // AI in development
-  'no-ai': [],
-  unsure: [],
-  'ai-assisted-editor': ['ai_assisted_coding'],
-  'ai-agents-in-workflow': ['ai_assisted_coding'],
-  // Bugs and quality
-  'manual-triage': [],
-  'issue-tracker-only': [],
-  'automated-tests-gate': ['automated_tests', 'code_review'],
-  'ai-assisted-triage': ['ai_bug_triage', 'automated_tests'],
-  // Deploys
-  'manual-deploys': [],
-  'scripted-deploys': [],
-  'ci-cd-pipeline': ['ci_pipeline'],
-  'continuous-delivery': ['ci_pipeline', 'automated_deploys'],
-  // Security and dependencies
-  none: [],
-  'manual-reviews': ['code_review'],
-  'dependency-scanning': ['dependency_scanning'],
-  'scanning-and-policies': ['dependency_scanning'],
-  // Observability
-  'logs-only': [],
-  'error-monitoring': ['error_monitoring'],
-  'full-observability': ['error_monitoring'],
-}
-
-/** Absolute URL or null: the backend rejects a scheme-less site_url outright. */
-function normalizeSiteUrl(raw: string): string | null {
-  const value = raw.trim()
-
-  if (!value) return null
-
-  return /^https?:\/\//i.test(value) ? value : `https://${value}`
+  consent: boolean
+  locale: 'es' | 'en'
 }
 
 export type AnswerResult = { ok: true } | { ok: false; error: ContactChatValidationCode }
@@ -216,36 +167,18 @@ export function createContactChat(locale: 'es' | 'en' = 'es') {
       throw new Error('Cannot build a report request from an incomplete chat')
     }
 
-    const practices = new Set<string>()
-
-    for (const stepId of ['delivery', 'bugs', 'deploys', 'security', 'observability'] as const) {
-      for (const practice of PRACTICES_BY_ANSWER[answerFor(stepId)] ?? []) {
-        practices.add(practice)
-      }
-    }
-
     return {
-      contact_name: answerFor('name'),
+      name: answerFor('name'),
       company: answerFor('company'),
-      locale,
+      website: answerFor('website'),
       workflow: {
-        practices: [...practices],
-        team_size: null,
-        notes: null,
+        delivery: answerFor('delivery'),
+        bugs: answerFor('bugs'),
+        deploys: answerFor('deploys'),
+        security: answerFor('security'),
       },
-      site_url: normalizeSiteUrl(answerFor('website')),
-      // The email is already proven by the token, and the code is a one-use
-      // secret: neither belongs in a transcript that gets emailed and logged.
-      transcript: state.transcript
-        .filter((entry) => entry.stepId !== 'email' && entry.stepId !== 'code')
-        .map((entry) => ({
-          step_id: entry.stepId,
-          answer: entry.answer,
-        })),
-      consent: {
-        privacy_accepted: answerFor('consent') === 'true',
-        report_accepted: answerFor('consent') === 'true',
-      },
+      consent: answerFor('consent') === 'true',
+      locale,
     }
   }
 

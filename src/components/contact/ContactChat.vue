@@ -11,11 +11,7 @@ import { translations, type Lang } from '@/i18n/translations'
 import { type ContactApi, ContactApiError, createContactApi } from '@/utils/contact-api'
 import { createContactChat } from '@/utils/contact-chat'
 import { stepById } from '@/utils/contact-chat-flow'
-import {
-  createTurnstileClient,
-  TurnstileNotConfigured,
-  type TurnstileClient,
-} from '@/utils/turnstile-client'
+import { createTurnstileClient, type TurnstileClient } from '@/utils/turnstile-client'
 
 const props = defineProps<{
   api?: ContactApi
@@ -74,11 +70,7 @@ function describeError(error: unknown): string {
     return copy.value.errors.generic
   }
 
-  // A missing site key is a deployment problem; telling the visitor to prove
-  // they are human would send them in circles.
-  if (error instanceof TurnstileNotConfigured) return copy.value.errors.unavailable
-
-  // Any other Turnstile failure never reaches the backend: it is a human check.
+  // A Turnstile failure never reaches the backend, so it reads as a human check.
   return copy.value.errors.humanCheck
 }
 
@@ -179,13 +171,6 @@ function goBack(): void {
   draft.value = chat.answerFor(chat.state.currentStepId)
 }
 
-/** Option label, falling back to the identifier if copy is missing. */
-function optionLabel(labelKey: string): string {
-  const options = (stepCopy.value as { options?: Record<string, string> }).options
-
-  return options?.[labelKey] ?? labelKey
-}
-
 function selectOption(value: string): void {
   draft.value = value
 }
@@ -259,7 +244,7 @@ watch(
               :checked="draft === option.value"
               @change="selectOption(option.value)"
             >
-            <span>{{ optionLabel(option.labelKey) }}</span>
+            <span>{{ (stepCopy as { options: Record<string, string> }).options[option.labelKey] }}</span>
           </label>
         </fieldset>
 
