@@ -129,7 +129,7 @@ api.dominio.com   → Backend (FastAPI)
 
 ### Phase 3 — Full AI Implementation
 - Complete, functional AI analyzer
-- Conversational assistant (Claude API streaming)
+- Conversational assistant with streaming, over Genkit (see [[0005-genkit-runtime]])
 - Lead capture with GDPR-compliant consent
 - Document generation (PDF / structured Markdown)
 - Full production deployment with monitoring

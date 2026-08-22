@@ -7,6 +7,11 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic-settings",
+    "genkit>=0.9.0",
+    "genkit-google-genai>=0.9.0",
+    "genkit-fastapi>=0.9.0",
+    "genkit-openai>=0.9.0",
+    "genkit-anthropic>=0.9.0",
 ]
 
 [dependency-groups]
