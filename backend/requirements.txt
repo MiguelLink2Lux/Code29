@@ -25,28 +25,6 @@ certifi==2026.6.17
     # via
     #   httpcore
     #   httpx
-    #   anthropic
-    #   dotpromptz
-    #   genkit
-    #   google-genai
-    #   httpx
-    #   httpx2
-    #   openai
-    #   sse-starlette
-    #   starlette
-    #   watchfiles
-asgiref==3.12.1
-    # via genkit
-certifi==2026.6.17
-    # via
-    #   google-cloud-aiplatform
-    #   httpcore
-    #   httpx
-    #   requests
-cffi==2.1.1 ; platform_python_implementation != 'PyPy'
-    # via cryptography
-charset-normalizer==3.5.1
-    # via requests
 click==8.4.1
     # via uvicorn
 colorama==0.4.6 ; sys_platform == 'win32'
@@ -162,94 +140,6 @@ idna==3.18
     # via
     #   anyio
     #   httpx
-    #   httpcore2
-    #   uvicorn
-httpcore==1.0.9
-    # via httpx
-httpcore2==2.12.0 ; sys_platform != 'emscripten'
-    # via httpx2
-httptools==0.8.0
-    # via uvicorn
-httpx==0.28.1
-    # via
-    #   anthropic
-    #   genkit
-    #   google-genai
-httpx2==2.12.0
-    # via openai
-httpx2-jsfetch==1.0 ; sys_platform == 'emscripten'
-    # via httpx2
-idna==3.18
-    # via
-    #   anyio
-    #   email-validator
-    #   httpx
-pydantic==2.13.4
-    # via
-    #   code29-backend
-    #   httpx2
-    #   requests
-jiter==0.16.0
-    # via
-    #   anthropic
-    #   openai
-json5==0.15.0
-    # via genkit
-markdown-it-py==4.2.0
-    # via rich
-mdurl==0.1.2
-    # via markdown-it-py
-openai==3.3.1
-    # via genkit-openai
-opentelemetry-api==1.44.0
-    # via
-    #   genkit
-    #   opentelemetry-instrumentation
-    #   opentelemetry-instrumentation-logging
-    #   opentelemetry-sdk
-    #   opentelemetry-semantic-conventions
-opentelemetry-instrumentation==0.65b0
-    # via opentelemetry-instrumentation-logging
-opentelemetry-instrumentation-logging==0.65b0
-    # via genkit
-opentelemetry-sdk==1.44.0
-    # via genkit
-opentelemetry-semantic-conventions==0.65b0
-    # via
-    #   opentelemetry-instrumentation
-    #   opentelemetry-instrumentation-logging
-    #   opentelemetry-sdk
-packaging==26.2
-    # via
-    #   google-cloud-aiplatform
-    #   google-cloud-bigquery
-    #   opentelemetry-instrumentation
-partial-json-parser==0.2.1.1.post7
-    # via genkit
-pillow==12.3.0
-    # via genkit
-proto-plus==1.28.3
-    # via
-    #   google-api-core
-    #   google-cloud-aiplatform
-    #   google-cloud-resource-manager
-protobuf==6.33.6
-    # via
-    #   google-api-core
-    #   google-cloud-aiplatform
-    #   google-cloud-resource-manager
-    #   googleapis-common-protos
-    #   grpc-google-iam-v1
-    #   grpcio-status
-    #   proto-plus
-psutil==7.2.2
-    # via genkit
-pyasn1==0.6.4
-    # via pyasn1-modules
-pyasn1-modules==0.4.2
-    # via google-auth
-pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
-    # via cffi
 pydantic==2.13.4
     # via
     #   anthropic
