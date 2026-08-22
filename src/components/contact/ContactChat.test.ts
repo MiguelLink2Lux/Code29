@@ -44,7 +44,7 @@ describe('rendering', () => {
 
   it('shows progress', () => {
     mount()
-    expect(screen.getByText(/1.*10/)).toBeTruthy()
+    expect(screen.getByText(/1.*11/)).toBeTruthy()
   })
 })
 
@@ -149,6 +149,7 @@ describe('report delivery', () => {
     await choose()
     await choose()
     await choose()
+    await choose()
     await fill('example.com')
     await fireEvent.click(screen.getByRole('checkbox'))
     await fireEvent.click(screen.getByRole('button', { name: /continuar|continue/i }))
@@ -161,9 +162,12 @@ describe('report delivery', () => {
     await waitFor(() => expect(api.requestReport).toHaveBeenCalled())
     const [payload, token] = api.requestReport.mock.calls[0]
     expect(token).toBe('token-abc')
-    expect(payload.consent).toBe(true)
-    expect(payload.workflow.delivery).toBeTruthy()
+    expect(payload.consent.privacy_accepted).toBe(true)
+    expect(payload.workflow.practices).toBeInstanceOf(Array)
+    expect(payload.contact_name).toBe('Ada Lovelace')
+    // Neither the address nor the code may appear anywhere in the payload.
     expect(JSON.stringify(payload)).not.toContain('ada@example.com')
+    expect(JSON.stringify(payload)).not.toContain('123456')
 
     await waitFor(() => expect(screen.getByText(/informe en camino|report on its way/i)).toBeTruthy())
   })

@@ -11,6 +11,7 @@ const answerAll = (chat: ReturnType<typeof createContactChat>) => {
   chat.answer('automated-tests-gate')
   chat.answer('ci-cd-pipeline')
   chat.answer('dependency-scanning')
+  chat.answer('error-monitoring')
   chat.answer('example.com')
   chat.answer('true')
 }
@@ -56,11 +57,11 @@ describe('progression', () => {
 
   it('exposes progress for the UI', () => {
     const chat = createContactChat()
-    expect(chat.state.progress).toEqual({ index: 0, total: 10 })
+    expect(chat.state.progress).toEqual({ index: 0, total: 11 })
 
     chat.answer('Ada')
 
-    expect(chat.state.progress).toEqual({ index: 1, total: 10 })
+    expect(chat.state.progress).toEqual({ index: 1, total: 11 })
   })
 
   it('allows going back without losing what was already answered', () => {
@@ -168,19 +169,13 @@ describe('payload', () => {
     answerAll(chat)
     chat.markEmailVerified('token-abc')
 
-    expect(chat.buildReportRequest()).toEqual({
-      name: 'Ada Lovelace',
-      company: 'Analytical Engines',
-      website: 'example.com',
-      workflow: {
-        delivery: 'ai-assisted-editor',
-        bugs: 'automated-tests-gate',
-        deploys: 'ci-cd-pipeline',
-        security: 'dependency-scanning',
-      },
-      consent: true,
-      locale: 'es',
-    })
+    const payload = chat.buildReportRequest()
+
+    expect(payload.contact_name).toBe('Ada Lovelace')
+    expect(payload.company).toBe('Analytical Engines')
+    expect(payload.locale).toBe('es')
+    expect(payload.site_url).toBe('https://example.com')
+    expect(payload.consent.privacy_accepted).toBe(true)
   })
 
   it('omits the email from the payload — the token carries it', () => {
@@ -196,5 +191,96 @@ describe('payload', () => {
     chat.answer('Ada')
 
     expect(() => chat.buildReportRequest()).toThrow(/incomplete/i)
+  })
+})
+
+describe('backend contract', () => {
+  it('maps the four choice answers onto the practice identifiers the report expects', () => {
+    const chat = createContactChat()
+    answerAll(chat)
+    chat.markEmailVerified('token-abc')
+
+    const payload = chat.buildReportRequest()
+
+    // The report diagnoses axes by comparing practices present against absent,
+    // so the chat's answers must arrive as those identifiers — not as its own
+    // option values, which the generator would not recognise.
+    expect(payload.workflow.practices).toEqual(
+      expect.arrayContaining(['ai_assisted_coding', 'automated_tests', 'ci_pipeline']),
+    )
+  })
+
+  it('reports no practices when nothing is in place', () => {
+    const chat = createContactChat()
+    chat.answer('Ada')
+    chat.answer('')
+    chat.answer('ada@example.com')
+    chat.answer('123456')
+    chat.answer('no-ai')
+    chat.answer('manual-triage')
+    chat.answer('manual-deploys')
+    chat.answer('none')
+    chat.answer('none')
+    chat.answer('')
+    chat.answer('true')
+
+    expect(chat.buildReportRequest().workflow.practices).toEqual([])
+  })
+
+  it('sends an absolute site_url, since the backend rejects a scheme-less one', () => {
+    const chat = createContactChat()
+    answerAll(chat)
+
+    expect(chat.buildReportRequest().site_url).toBe('https://example.com')
+  })
+
+  it('sends null site_url when the visitor skipped it', () => {
+    const chat = createContactChat()
+    chat.answer('Ada')
+    chat.answer('')
+    chat.answer('ada@example.com')
+    chat.answer('123456')
+    chat.answer('no-ai')
+    chat.answer('manual-triage')
+    chat.answer('manual-deploys')
+    chat.answer('none')
+    chat.answer('none')
+    chat.answer('')
+    chat.answer('true')
+
+    expect(chat.buildReportRequest().site_url).toBeNull()
+  })
+
+  it('records consent granularly, as the backend models it', () => {
+    const chat = createContactChat()
+    answerAll(chat)
+
+    expect(chat.buildReportRequest().consent).toEqual({
+      privacy_accepted: true,
+      report_accepted: true,
+    })
+  })
+
+  it('includes the transcript so the delivered email is a complete record', () => {
+    const chat = createContactChat()
+    answerAll(chat)
+
+    const transcript = chat.buildReportRequest().transcript
+    expect(transcript[0]).toEqual({ step_id: 'name', answer: 'Ada Lovelace' })
+    // 11 steps minus the email and the verification code, which never travel.
+    expect(transcript).toHaveLength(9)
+    expect(transcript.map((entry) => entry.step_id)).not.toContain('email')
+    expect(transcript.map((entry) => entry.step_id)).not.toContain('code')
+  })
+
+  it('matches the shared contract fixture field for field', async () => {
+    const fixture = (await import('../../tests/contracts/report-request.json')).default
+    const chat = createContactChat()
+    answerAll(chat)
+
+    const payload = chat.buildReportRequest() as unknown as Record<string, unknown>
+    const expectedKeys = Object.keys(fixture).filter((key) => !key.startsWith('_'))
+
+    expect(Object.keys(payload).sort()).toEqual(expectedKeys.sort())
   })
 })

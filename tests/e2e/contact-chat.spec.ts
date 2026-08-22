@@ -94,9 +94,9 @@ test.describe('guided contact chat', () => {
     await stubBackend(page)
     await page.goto('/')
 
-    await expect(page.locator('#contact')).toContainText(/1.*10/)
+    await expect(page.locator('#contact')).toContainText(/1.*11/)
     await answerText(page, 'Ada Lovelace')
-    await expect(page.locator('#contact')).toContainText(/2.*10/)
+    await expect(page.locator('#contact')).toContainText(/2.*11/)
   })
 
   test('keeps the visitor on a step until the answer is valid', async ({ page }) => {
@@ -106,7 +106,7 @@ test.describe('guided contact chat', () => {
     await page.locator('#contact button[type="submit"]').click()
 
     await expect(page.locator('#contact [role="alert"]')).toBeVisible()
-    await expect(page.locator('#contact')).toContainText(/1.*10/)
+    await expect(page.locator('#contact')).toContainText(/1.*11/)
   })
 
   test('never asks the backend for a code before the email is valid', async ({ page }) => {
@@ -150,6 +150,7 @@ test.describe('guided contact chat', () => {
     await answerChoice(page)
     await answerChoice(page)
     await answerChoice(page)
+    await answerChoice(page)
     await answerText(page, 'example.com')
 
     await page.locator('#contact input[type="checkbox"]').check()
@@ -169,7 +170,7 @@ test.describe('guided contact chat', () => {
     await answerText(page, '123456')
 
     await expect(page.locator('#contact [role="alert"]')).toBeVisible()
-    await expect(page.locator('#contact')).toContainText(/4.*10/)
+    await expect(page.locator('#contact')).toContainText(/4.*11/)
   })
 
   test('an unconfigured backend reads as unavailable, not as the visitor’s fault', async ({
@@ -200,6 +201,7 @@ test.describe('guided contact chat', () => {
     await answerChoice(page)
     await answerChoice(page)
     await answerChoice(page)
+    await answerChoice(page)
     await answerText(page, 'example.com')
     await page.locator('#contact input[type="checkbox"]').check()
     await page.locator('#contact button[type="submit"]').click()
@@ -216,6 +218,6 @@ test.describe('guided contact chat', () => {
     await page.reload()
 
     // sessionStorage keeps the flow; the visitor does not start over.
-    await expect(page.locator('#contact')).toContainText(/2.*10/)
+    await expect(page.locator('#contact')).toContainText(/2.*11/)
   })
 })

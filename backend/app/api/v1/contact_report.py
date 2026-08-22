@@ -86,7 +86,9 @@ class ConsentPayload(BaseModel):
 
 class ReportRequest(BaseModel):
     contact_name: str = Field(min_length=1, max_length=120)
-    company: str = Field(min_length=1, max_length=160)
+    # The chat presents the company as optional, so an empty string must not
+    # strand a visitor on a step they were told they could skip.
+    company: str = Field(default="", max_length=160)
     locale: str = "es"
     workflow: WorkflowAnswers
     site_url: str | None = None

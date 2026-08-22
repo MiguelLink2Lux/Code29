@@ -1,0 +1,20 @@
+{
+  "_comment": "Shared contract fixture. The frontend must PRODUCE this shape and the backend must ACCEPT it. Both sides assert against this file, so a divergence breaks a gate instead of surfacing in production.",
+  "contact_name": "Ada Lovelace",
+  "company": "Analytical Engines",
+  "locale": "es",
+  "workflow": {
+    "practices": ["ai_assisted_coding", "automated_tests", "code_review", "ci_pipeline"],
+    "team_size": null,
+    "notes": null
+  },
+  "site_url": "https://example.com",
+  "transcript": [
+    { "step_id": "name", "answer": "Ada Lovelace" },
+    { "step_id": "company", "answer": "Analytical Engines" }
+  ],
+  "consent": {
+    "privacy_accepted": true,
+    "report_accepted": true
+  }
+}
