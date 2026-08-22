@@ -9,6 +9,11 @@ dependencies = [
     "pydantic-settings",
     "httpx>=0.28.1",
     "pydantic[email]>=2.13.4",
+    "genkit>=0.9.0",
+    "genkit-google-genai>=0.9.0",
+    "genkit-fastapi>=0.9.0",
+    "genkit-openai>=0.9.0",
+    "genkit-anthropic>=0.9.0",
 ]
 
 [dependency-groups]
