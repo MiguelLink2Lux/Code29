@@ -8,7 +8,7 @@
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-const MINIMUM_SPECS = 4
+const MINIMUM_SPECS = 5
 const E2E_DIR = join(process.cwd(), 'tests', 'e2e')
 
 const specs = readdirSync(E2E_DIR).filter((file) => file.endsWith('.spec.ts'))

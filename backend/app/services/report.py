@@ -22,8 +22,16 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
 
+from app.services.report_copy import (
+    AXIS_COPY,
+    PRACTICE_LABELS,
+    TEMPLATE_COPY,
+    resolve_locale,
+)
+
 STUB_GENERATOR = "stub"
 GENKIT_GENERATOR = "genkit"
+GEMINI_GENERATOR = "gemini"
 
 
 class UnusableReportGenerator(Exception):
@@ -244,20 +252,22 @@ _AXES: dict[DiagnosisAxis, _AxisSpec] = {
 _UNAVAILABLE_SITE_EVIDENCE = "Website: not analysed (the page could not be read)"
 
 
-def _practice_evidence(axis: DiagnosisAxis, reported: set[str]) -> list[str]:
+def _practice_evidence(axis: DiagnosisAxis, reported: set[str], locale: str) -> list[str]:
     spec = _AXES[axis]
-    present = [_PRACTICE_LABELS[p] for p in spec.practices if p in reported]
-    absent = [_PRACTICE_LABELS[p] for p in spec.practices if p not in reported]
+    labels = PRACTICE_LABELS[locale]
+    copy = TEMPLATE_COPY[locale]
+    present = [labels[p] for p in spec.practices if p in reported]
+    absent = [labels[p] for p in spec.practices if p not in reported]
 
     evidence = []
     if present:
-        evidence.append(f"Reported in place: {', '.join(present)}")
+        evidence.append(copy["evidence_present"].format(items=", ".join(present)))
     if absent:
-        evidence.append(f"Not reported: {', '.join(absent)}")
+        evidence.append(copy["evidence_absent"].format(items=", ".join(absent)))
     return evidence
 
 
-def _site_evidence(axis: DiagnosisAxis, site: SiteSignals) -> list[str]:
+def _site_evidence(axis: DiagnosisAxis, site: SiteSignals, locale: str) -> list[str]:
     """Site facts attached to the axis they inform. Only measured values appear."""
     if not site.available:
         # Only the axes that would have used site data say so, to avoid repeating
@@ -268,14 +278,14 @@ def _site_evidence(axis: DiagnosisAxis, site: SiteSignals) -> list[str]:
             DiagnosisAxis.SECURITY_DEPENDENCIES,
             DiagnosisAxis.OBSERVABILITY,
         }:
-            return [_UNAVAILABLE_SITE_EVIDENCE]
+            return [TEMPLATE_COPY[locale]["evidence_site_unavailable"]]
         return []
 
     def presence(value: bool | None) -> str:
         return "present" if value else "absent"
 
     if axis is DiagnosisAxis.AI_DEVELOPMENT and site.framework:
-        return [f"Stack detected on the home page: {site.framework}"]
+        return [TEMPLATE_COPY[locale]["evidence_framework"].format(framework=site.framework)]
 
     if axis is DiagnosisAxis.DELIVERY_AUTOMATION:
         return [
@@ -288,12 +298,15 @@ def _site_evidence(axis: DiagnosisAxis, site: SiteSignals) -> list[str]:
         ]
 
     if axis is DiagnosisAxis.SECURITY_DEPENDENCIES:
-        evidence = [f"HTTPS: {'enabled' if site.https else 'not enabled'}"]
+        copy = TEMPLATE_COPY[locale]
+        evidence = [copy["evidence_https_on"] if site.https else copy["evidence_https_off"]]
         if site.security_headers:
             evidence.append(f"Security headers present: {', '.join(site.security_headers)}")
         if site.missing_security_headers:
             evidence.append(
-                f"Security headers missing: {', '.join(site.missing_security_headers)}"
+                copy["evidence_missing_headers"].format(
+                    items=", ".join(site.missing_security_headers)
+                )
             )
         return evidence
 
@@ -338,28 +351,36 @@ class TemplateReportGenerator:
 
     async def generate(self, facts: ReportFacts) -> ContactReport:
         reported = {practice.strip() for practice in facts.workflow.practices if practice.strip()}
+        locale = resolve_locale(facts.locale)
+        axis_copy = AXIS_COPY[locale]
+        copy = TEMPLATE_COPY[locale]
 
         sections: list[ReportSection] = []
         recommendations: list[Recommendation] = []
 
         for axis, spec in _AXES.items():
-            evidence = _practice_evidence(axis, reported) + _site_evidence(axis, facts.site)
+            evidence = _practice_evidence(axis, reported, locale) + _site_evidence(
+                axis, facts.site, locale
+            )
             priority = _priority_for(axis, reported, facts.site)
             is_gap = priority is Priority.HIGH
+
+            texts = axis_copy[axis.value]
+            rationale = texts["gap_rationale"] if is_gap else texts["strength_rationale"]
 
             sections.append(
                 ReportSection(
                     axis=axis,
-                    heading=spec.heading,
-                    diagnosis=spec.gap_rationale if is_gap else spec.strength_rationale,
+                    heading=texts["heading"],
+                    diagnosis=rationale,
                     evidence=evidence,
                 )
             )
             recommendations.append(
                 Recommendation(
                     axis=axis,
-                    action=spec.gap_action if is_gap else spec.strength_action,
-                    rationale=spec.gap_rationale if is_gap else spec.strength_rationale,
+                    action=texts["gap_action"] if is_gap else texts["strength_action"],
+                    rationale=rationale,
                     service=spec.service,
                     priority=priority,
                 )
@@ -371,38 +392,44 @@ class TemplateReportGenerator:
         recommendations.sort(key=lambda r: (r.priority.rank, axis_order.index(r.axis)))
 
         return ContactReport(
-            title=f"Workflow assessment — {facts.company}",
-            summary=self._summary(facts, recommendations),
+            title=copy["title"].format(company=facts.company),
+            summary=self._summary(facts, recommendations, locale),
             sections=sections,
             recommendations=recommendations,
             generator=self.name,
         )
 
     @staticmethod
-    def _summary(facts: ReportFacts, recommendations: list[Recommendation]) -> str:
+    def _summary(facts: ReportFacts, recommendations: list[Recommendation], locale: str) -> str:
+        copy = TEMPLATE_COPY[locale]
         urgent = [r for r in recommendations if r.priority is Priority.HIGH]
+
+        if facts.site.available and facts.site.url:
+            site_clause = copy["summary_with_url"].format(url=facts.site.url)
+        elif facts.site.available:
+            # available=True means the page WAS read: claiming otherwise would tell
+            # the lead we could not look at a site we did look at.
+            site_clause = copy["summary_site_analysed"]
+        else:
+            site_clause = copy["summary_no_site"]
+
         parts = [
-            f"{facts.contact_name}, this assessment of {facts.company} is based on the answers "
-            f"given in the chat"
-            + (
-                f" and on signals measured from {facts.site.url}."
-                if facts.site.available and facts.site.url
-                else ", since the website could not be analysed."
-            )
+            copy["summary_opening"].format(name=facts.contact_name, company=facts.company)
+            + site_clause
         ]
 
         if facts.workflow.team_size:
-            parts.append(f"Team size reported: {facts.workflow.team_size}.")
+            parts.append(copy["summary_team_size"].format(team_size=facts.workflow.team_size))
 
         parts.append(
-            f"{len(urgent)} of {len(recommendations)} areas need attention first."
+            copy["summary_priorities"].format(count=len(urgent))
             if urgent
-            else "No area was found without some practice already in place."
+            else copy["summary_all_good"]
         )
 
         if facts.workflow.notes:
             # Quoted verbatim, never paraphrased: it is the visitor's own account.
-            parts.append(f'In their words: "{facts.workflow.notes}"')
+            parts.append(copy["summary_notes"].format(notes=facts.workflow.notes))
 
         return " ".join(parts)
 
@@ -411,12 +438,25 @@ def build_report_generator(
     name: str,
     *,
     model_api_key: str = "",
+    model_name: str = "",
 ) -> ReportGenerator:
     """Select the generator by name. Unknown or unusable values raise."""
     selected = (name or STUB_GENERATOR).strip().lower()
 
     if selected == STUB_GENERATOR:
         return TemplateReportGenerator()
+
+    if selected == GEMINI_GENERATOR:
+        if not model_api_key:
+            raise UnusableReportGenerator(
+                "REPORT_GENERATOR=gemini requires GEMINI_API_KEY to be set"
+            )
+
+        # Imported here so the module stays importable without httpx present and
+        # so selecting the stub never pulls the model path in.
+        from app.services.report_gemini import GeminiReportGenerator
+
+        return GeminiReportGenerator(api_key=model_api_key, model=model_name)
 
     if selected == GENKIT_GENERATOR:
         if not model_api_key:
@@ -425,12 +465,15 @@ def build_report_generator(
             )
         # The dependency lands in a later phase (F). Failing here is deliberate:
         # a silent fallback would email a template report as if a model wrote it.
+        # Deliberately still refuses. The Genkit plugin for Gemini pulls 137MB of
+        # google/ and grpc/, which does not fit Vercel's Python function ceiling
+        # (ADR 0004, measured). Use `gemini`, which speaks the same API over REST.
         raise UnusableReportGenerator(
-            "REPORT_GENERATOR=genkit is not installed yet: the Genkit dependency arrives in "
-            "Phase F. Use REPORT_GENERATOR=stub until then."
+            "REPORT_GENERATOR=genkit is not supported: the Genkit Gemini plugin does not fit "
+            "the deployment's bundle limit. Use REPORT_GENERATOR=gemini instead."
         )
 
     raise UnusableReportGenerator(
         f"Unknown REPORT_GENERATOR value: {name!r}. Valid values: "
-        f"{STUB_GENERATOR!r}, {GENKIT_GENERATOR!r}"
+        f"{STUB_GENERATOR!r}, {GEMINI_GENERATOR!r}"
     )

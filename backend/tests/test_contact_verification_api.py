@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
-from app.services.mailer import RecordingMailer
+from app.services.mailer import NullMailer
 from app.services.tokens import derive_code, verify_access_token
 
 SECRET = "x" * 40
@@ -52,9 +52,9 @@ def build_client(
     *,
     settings: Settings | None = None,
     verifier: object | None = None,
-    mailer: RecordingMailer | None = None,
-) -> tuple[TestClient, RecordingMailer]:
-    recorder = mailer or RecordingMailer()
+    mailer: NullMailer | None = None,
+) -> tuple[TestClient, NullMailer]:
+    recorder = mailer or NullMailer()
     app = create_app(
         settings=settings or configured_settings(),
         turnstile_verifier=verifier or _Verifier(),
@@ -71,7 +71,7 @@ class TestRequestCode:
 
         assert response.status_code == 202
         assert len(mailer.sent) == 1
-        assert mailer.sent[0].to == EMAIL
+        assert mailer.sent[0].to == [EMAIL]
         # The code must travel only by email — returning it would defeat verification.
         assert derive_code(EMAIL, secret=SECRET) not in response.text
 
@@ -80,7 +80,7 @@ class TestRequestCode:
 
         client.post(REQUEST_URL, json={"email": EMAIL, "turnstileToken": "t"})
 
-        assert derive_code(EMAIL, secret=SECRET) in mailer.sent[0].text_body
+        assert derive_code(EMAIL, secret=SECRET) in mailer.sent[0].text
 
     def test_a_failed_challenge_sends_nothing(self) -> None:
         client, mailer = build_client(verifier=_Verifier(result=False))

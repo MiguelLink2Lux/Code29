@@ -85,13 +85,30 @@ class ConsentPayload(BaseModel):
 
 
 class ReportRequest(BaseModel):
+    """The payload the chat posts. See tests/contracts/report-request.json.
+
+    Free-text fields the chat does not collect are dropped rather than trusted:
+    `ReportFacts` is serialised straight into the model prompt, so any field a
+    caller controls is a channel into it. Output validation is the hard
+    guarantee, but narrowing the input costs nothing.
+    """
+
     contact_name: str = Field(min_length=1, max_length=120)
-    company: str = Field(min_length=1, max_length=160)
+    # The chat presents the company as optional, so an empty string must not
+    # strand a visitor on a step they were told they could skip.
+    company: str = Field(default="", max_length=160)
     locale: str = "es"
     workflow: WorkflowAnswers
     site_url: str | None = None
     transcript: list[TranscriptEntry] = Field(default_factory=list)
     consent: ConsentPayload
+
+    @field_validator("workflow")
+    @classmethod
+    def _drop_client_free_text(cls, value: WorkflowAnswers) -> WorkflowAnswers:
+        # The chat posts notes/team_size as null; anything arriving here came
+        # from a direct API caller and has no business reaching the prompt.
+        return value.model_copy(update={"notes": None, "team_size": None})
 
     @field_validator("locale")
     @classmethod

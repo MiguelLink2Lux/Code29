@@ -74,12 +74,12 @@ Implementation shape:
   --no-hashes --no-emit-project`), carries a "GENERATED FILE — do not edit by hand" header,
   and `backend/tests/test_requirements_manifest.py` fails the suite when the two manifests
   drift. `pyproject.toml` remains canonical; the generated file is an artifact of the host.
-- **Bad — open risk for Phase 3.** The Genkit dependency tree pulls ~97 packages, including
-  `anthropic`, `openai` and a full OpenTelemetry stack. That may exceed Vercel's serverless
-  bundle size limit, and OpenTelemetry tracing fits a short-lived function poorly (spans must
-  flush before the process freezes). If either problem materializes the backend moves to a
-  container host — most likely Cloud Run — and `backend/vercel.json` plus `backend/api/index.py`
-  become throwaway. The migration is additive: `create_app()` is host-agnostic.
+- **Bad — MATERIALIZED (2026-08-22): the Genkit dependency tree does not fit.** What this ADR
+  filed as an open risk has been measured, and it is in failure territory. See
+  "Measured bundle size" below. OpenTelemetry's fit with a short-lived function remains a
+  separate, still-unmeasured concern (spans must flush before the process freezes). The
+  migration path out stays additive: `create_app()` is host-agnostic, and
+  `backend/vercel.json` plus `backend/api/index.py` become throwaway.
 - **Good — deploy isolation is structural.** The two projects build independently; the backend
   project can be created, broken or deleted without touching the landing page. It also
   sidesteps the adapter/`api/` incompatibility instead of fighting it.
@@ -94,10 +94,51 @@ Implementation shape:
   Vercel has rejected Node 18 on new deployments since 2025-09-01. Building on Vercel makes
   the local Node version irrelevant; `.nvmrc` and `engines` pin 20 for local work.
 
+## Measured bundle size — materialized risk (2026-08-22)
+
+The Phase 3 dependency set was installed and measured on macOS/arm64. These are
+**orders of magnitude, not Vercel's own figure** — the platform computes its limit over its
+own build image — but the gap is too large for the platform difference to close.
+
+| Measurement | Value |
+|---|---|
+| Pinned packages | 92 |
+| `site-packages`, production only, no compiled bytecode | **233 MB** |
+| Wheels (download size) | 46 MB |
+| `google/` | 98 MB |
+| `grpc/` | 39 MB |
+| **Vercel Python function limit** | **~250 MB** |
+
+`google/` + `grpc/` alone are **137 MB**, and both arrive through `genkit-google-genai`. At
+233 MB against a ~250 MB ceiling there is no headroom for the application, and bytecode
+compilation in the build image only adds to it.
+
+Two ways out, both real:
+
+1. **Trim the plugin set** to what Phase 3 actually calls. Most of `google/` and `grpc/` is
+   transitively pulled machinery the report generator never touches; a narrower dependency
+   choice may fit under the limit.
+2. **Move the backend to a container host** — Cloud Run, the fallback this ADR already names
+   under "Considered Options", where the limit does not exist and the runtime fit is better
+   anyway.
+
+**The decision is unchanged: the backend stays on Vercel.**
+
+**Resolved (2026-08-22) — way out (1), taken to its limit.** Phase 3 drops the Genkit SDK
+altogether and calls Gemini over its REST API with the `httpx` already in the dependency tree,
+adding **0 MB** ([[0007-gemini-over-rest]]). The bundle stays where Phase 2 left it and this
+risk is closed, not merely mitigated: nothing in the AI layer imports `google/` or `grpc/`.
+
+Way out (2) is therefore still parked, and only one thing brings it back to the table — wanting
+Genkit *itself*: its tracing, its prompt management, its flow registry. Those are exactly what
+ADR 0007 gives up, and a container host is what it would cost to get them back.
+
 ## References
 
 - [[0001-backend-repo-structure]] — why frontend and backend share a repository
 - [[0002-fastapi-as-backend-framework]] — the framework being deployed
 - [[0003-api-versioning-strategy]] — the routes served behind the catch-all rewrite
+- [[0007-gemini-over-rest]] — how the bundle-size risk above was closed without changing host
 - [[tech-stack-decision]] — overall architecture and phases
+- [[0006-guided-ai-contact-flow]] — the Phase 3 flow whose dependencies produced the measurement above
 - [[index]] — ADR index

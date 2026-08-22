@@ -13,3 +13,4 @@ Chronological log of significant architecture decisions (MADR format).
 ## References
 
 - [[tech-stack-decision]]
+- [[contact-chat-v1]]
