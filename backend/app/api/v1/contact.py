@@ -16,7 +16,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field
 
-from app.services.mailer import EmailMessage, Mailer, MailerUnavailable
+from app.services.mailer import EmailMessage, MailDeliveryError, Mailer
 from app.services.tokens import derive_code, issue_access_token, verify_code
 from app.services.turnstile import TurnstileUnavailable, TurnstileVerifier
 
@@ -93,12 +93,12 @@ async def request_verification(payload: VerificationRequest, request: Request) -
     try:
         await mailer.send(
             EmailMessage(
-                to=str(payload.email),
+                to=[str(payload.email)],
                 subject="Your Code29 verification code",
-                text_body=_code_email(code),
+                text=_code_email(code),
             )
         )
-    except MailerUnavailable as error:
+    except MailDeliveryError as error:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Could not send the verification email. Try again shortly.",
