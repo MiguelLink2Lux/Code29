@@ -7,8 +7,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic-settings",
-    "httpx>=0.28.1",
-    "pydantic[email]>=2.13.4",
+    "httpx",
     "genkit>=0.9.0",
     "genkit-google-genai>=0.9.0",
     "genkit-fastapi>=0.9.0",
@@ -19,7 +18,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
-    "httpx",
     "ruff",
 ]
 

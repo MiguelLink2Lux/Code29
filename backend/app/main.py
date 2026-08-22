@@ -1,13 +1,12 @@
 """FastAPI application factory and module-level app for uvicorn."""
 
-import httpx
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_v1
-from app.core.config import Settings, get_settings
-from app.services.mailer import Mailer, ResendMailer
-from app.services.turnstile import HttpTurnstileVerifier, TurnstileVerifier
+from app.core.config import get_settings
+from app.core.report_settings import ReportDeliveryUnavailable
 
 
 def create_app(
@@ -46,6 +45,16 @@ def create_app(
     )
 
     app.include_router(api_v1)
+
+    @app.exception_handler(ReportDeliveryUnavailable)
+    async def _unconfigured_flow(
+        _request: Request, error: ReportDeliveryUnavailable
+    ) -> JSONResponse:
+        # A feature switched off or half-configured on this deployment: the
+        # caller did nothing wrong, so it is 503 and not 4xx. The message names
+        # the missing variable so the operator can act on it.
+        return JSONResponse(status_code=503, content={"detail": str(error)})
+
     return app
 
 

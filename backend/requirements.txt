@@ -158,6 +158,10 @@ httptools==0.8.0
     # via uvicorn
 httpx==0.28.1
     # via code29-backend
+idna==3.18
+    # via
+    #   anyio
+    #   httpx
     #   httpcore2
     #   uvicorn
 httpcore==1.0.9
