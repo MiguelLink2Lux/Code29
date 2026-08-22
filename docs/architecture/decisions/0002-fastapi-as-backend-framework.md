@@ -15,7 +15,7 @@ and scale with async I/O. We need to pick a Python web framework.
 
 - Async-first request handling for AI/streaming workloads.
 - First-class data validation and typed contracts.
-- Native AI/ML ecosystem fit (Anthropic SDK, LangChain, etc.).
+- Native AI/ML ecosystem fit (Genkit, provider SDKs, etc. — see [[0005-genkit-runtime]]).
 - Auto-generated OpenAPI for client/contract tooling.
 
 ## Considered Options
@@ -42,3 +42,4 @@ AI ecosystem the product targets in Phase 3.
 - [[tech-stack-decision]]
 - [[0001-backend-repo-structure]]
 - [[0003-api-versioning-strategy]]
+- [[0005-genkit-runtime]] — supersedes the assumption of direct Anthropic SDK access
