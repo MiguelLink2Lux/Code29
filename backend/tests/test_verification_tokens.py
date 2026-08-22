@@ -59,7 +59,8 @@ class TestVerifyCode:
         assert verify_code(EMAIL, stale, secret=SECRET, at=now) is False
 
     def test_rejects_another_addresss_code(self) -> None:
-        assert verify_code(EMAIL, derive_code("eve@example.com", secret=SECRET), secret=SECRET) is False
+        other = derive_code("eve@example.com", secret=SECRET)
+        assert verify_code(EMAIL, other, secret=SECRET) is False
 
     def test_rejects_garbage(self) -> None:
         for candidate in ["", "abcdef", "12345", "1234567", "  ", "12 456", "-12345"]:
