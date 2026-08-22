@@ -14,8 +14,13 @@ annotated-types==0.7.0
     # via pydantic
 anyio==4.14.0
     # via
+    #   httpx
     #   starlette
     #   watchfiles
+certifi==2026.6.17
+    # via
+    #   httpcore
+    #   httpx
 click==8.4.1
     # via uvicorn
 colorama==0.4.6 ; sys_platform == 'win32'
@@ -25,11 +30,19 @@ colorama==0.4.6 ; sys_platform == 'win32'
 fastapi==0.137.2
     # via code29-backend
 h11==0.16.0
-    # via uvicorn
+    # via
+    #   httpcore
+    #   uvicorn
+httpcore==1.0.9
+    # via httpx
 httptools==0.8.0
     # via uvicorn
+httpx==0.28.1
+    # via code29-backend
 idna==3.18
-    # via anyio
+    # via
+    #   anyio
+    #   httpx
 pydantic==2.13.4
     # via
     #   fastapi
