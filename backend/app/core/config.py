@@ -48,20 +48,35 @@ class Settings(BaseSettings):
             ]
         )
 
+    @property
+    def _contact_flow_intended(self) -> bool:
+        """True when any contact-flow variable is set, i.e. someone meant to enable it."""
+        return any(
+            [
+                self.contact_token_secret.get_secret_value(),
+                self.resend_api_key.get_secret_value(),
+                self.turnstile_secret_key.get_secret_value(),
+                self.contact_from_email,
+                self.contact_to_email,
+            ]
+        )
+
     @model_validator(mode="after")
     def _require_strong_secret_in_production(self) -> "Settings":
-        if not self.is_production:
-            return self
-
+        # A weak secret is always a hard failure: it would authorise outbound
+        # email and third-party fetches with a guessable signature.
         secret = self.contact_token_secret.get_secret_value()
 
-        if not secret:
-            raise ValueError("CONTACT_TOKEN_SECRET is required when APP_ENV is production")
-
-        if len(secret) < MIN_SECRET_LENGTH:
+        if secret and self.is_production and len(secret) < MIN_SECRET_LENGTH:
             raise ValueError(
                 f"CONTACT_TOKEN_SECRET must be at least {MIN_SECRET_LENGTH} characters long"
             )
+
+        # An absent secret only fails when the flow was clearly meant to run.
+        # Otherwise a health-only production deploy — which is what ships today —
+        # would refuse to boot over a feature it does not serve.
+        if self.is_production and self._contact_flow_intended and not secret:
+            raise ValueError("CONTACT_TOKEN_SECRET is required when the contact flow is configured")
 
         return self
 

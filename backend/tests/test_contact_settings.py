@@ -17,11 +17,19 @@ class TestSigningSecret:
         settings = Settings(app_env="development", contact_token_secret="")
         assert settings.contact_flow_enabled is False
 
-    def test_production_rejects_an_absent_secret(self) -> None:
+    def test_production_rejects_an_absent_secret_when_the_flow_is_configured(self) -> None:
         with pytest.raises(ValueError, match="CONTACT_TOKEN_SECRET"):
-            Settings(app_env="production", contact_token_secret="")
+            Settings(app_env="production", contact_token_secret="", resend_api_key="re_test")
 
-    def test_production_rejects_a_short_secret(self) -> None:
+    def test_production_boots_without_the_flow_configured(self) -> None:
+        # A health-only deploy — what ships today — must not refuse to boot over
+        # a feature it does not serve.
+        settings = Settings(app_env="production", contact_token_secret="")
+        assert settings.contact_flow_enabled is False
+
+    def test_production_rejects_a_short_secret_even_alone(self) -> None:
+        # A weak secret is always fatal: it signs tokens that authorise sending
+        # email and fetching third-party sites.
         with pytest.raises(ValueError, match="32"):
             Settings(app_env="production", contact_token_secret="too-short")
 
