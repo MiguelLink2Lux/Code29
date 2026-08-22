@@ -444,6 +444,176 @@ export const translations = {
     },
   },
 
+  contactChat: {
+    es: {
+      intro: 'Diagnóstico en 2 minutos. Diez preguntas y te envío un informe con mejoras concretas para vuestro flujo de trabajo.',
+      progress: 'Paso {index} de {total}',
+      back: '‹ Atrás',
+      next: 'Continuar ›',
+      skip: 'Saltar',
+      sending: 'Enviando…',
+      steps: {
+        name: { prompt: '¿Cómo te llamas?', placeholder: 'Nombre y apellidos' },
+        company: { prompt: '¿En qué empresa trabajas?', placeholder: 'Nombre de la empresa (opcional)' },
+        email: { prompt: '¿A qué email te envío el informe?', placeholder: 'tu@empresa.com' },
+        code: {
+          prompt: 'Te he enviado un código de 6 dígitos. Escríbelo aquí.',
+          placeholder: '000000',
+          hint: 'Caduca en 10 minutos. Revisa la carpeta de spam si no aparece.',
+          resend: 'Enviar otro código',
+        },
+        delivery: {
+          prompt: '¿Cómo usáis la IA en el desarrollo hoy?',
+          options: {
+            noAi: 'Todavía no la usamos',
+            aiAssistedEditor: 'Autocompletado en el editor',
+            aiAgents: 'Agentes integrados en el flujo',
+            unsure: 'No lo tengo claro',
+          },
+        },
+        bugs: {
+          prompt: '¿Cómo gestionáis los bugs?',
+          options: {
+            manualTriage: 'Triaje manual, sin herramienta',
+            trackerOnly: 'Gestor de incidencias, sin automatizar',
+            testsGate: 'Tests automáticos que bloquean el merge',
+            aiTriage: 'Triaje y diagnóstico asistidos por IA',
+          },
+        },
+        deploys: {
+          prompt: '¿Cómo desplegáis a producción?',
+          options: {
+            manual: 'A mano, cuando toca',
+            scripted: 'Con scripts propios',
+            pipeline: 'Pipeline de CI/CD',
+            continuous: 'Entrega continua, varias veces al día',
+          },
+        },
+        security: {
+          prompt: '¿Y la seguridad y las dependencias?',
+          options: {
+            none: 'Sin proceso definido',
+            manualReviews: 'Revisiones manuales',
+            dependencyScanning: 'Escaneo de dependencias (Snyk o similar)',
+            scanningAndPolicies: 'Escaneo más políticas y bloqueo automático',
+          },
+        },
+        website: {
+          prompt: '¿Cuál es vuestra web o aplicación?',
+          placeholder: 'empresa.com (opcional)',
+          hint: 'Miro solo la portada, para incluir datos objetivos en el informe.',
+        },
+        consent: {
+          prompt: 'Para generar y enviarte el informe necesito tu consentimiento.',
+          label: 'Acepto que se analice la web indicada y se me envíe el informe por email. He leído la',
+          privacyLinkLabel: 'Política de privacidad',
+        },
+      },
+      success: {
+        title: 'Informe en camino',
+        body: 'Te lo he enviado a tu email. Si algo no cuadra, responde a ese mensaje y lo revisamos.',
+      },
+      errors: {
+        required: 'Este campo es obligatorio.',
+        invalidEmail: 'Ese email no parece válido.',
+        invalidCode: 'El código son 6 dígitos.',
+        invalidChoice: 'Elige una de las opciones.',
+        invalidUrl: 'Escribe un dominio válido, por ejemplo empresa.com.',
+        consentRequired: 'Necesito tu consentimiento para continuar.',
+        tooLong: 'El texto es demasiado largo.',
+        humanCheck: 'No he podido verificar que eres una persona. Recarga la página e inténtalo de nuevo.',
+        codeRejected: 'Ese código no es válido. Pide uno nuevo.',
+        unavailable: 'El servicio no está disponible ahora mismo. Inténtalo en unos minutos.',
+        network: 'No he podido conectar con el servidor. Comprueba tu conexión.',
+        expired: 'La verificación ha caducado. Vuelve a pedir un código.',
+        generic: 'Algo ha fallado. Inténtalo de nuevo.',
+      },
+    },
+    en: {
+      intro: 'A two-minute diagnosis. Ten questions and I will email you a report with concrete improvements for your workflow.',
+      progress: 'Step {index} of {total}',
+      back: '‹ Back',
+      next: 'Continue ›',
+      skip: 'Skip',
+      sending: 'Sending…',
+      steps: {
+        name: { prompt: "What's your name?", placeholder: 'Full name' },
+        company: { prompt: 'Which company do you work for?', placeholder: 'Company name (optional)' },
+        email: { prompt: 'Where should I send the report?', placeholder: 'you@company.com' },
+        code: {
+          prompt: "I've sent you a 6-digit code. Type it here.",
+          placeholder: '000000',
+          hint: 'It expires in 10 minutes. Check your spam folder if it does not arrive.',
+          resend: 'Send another code',
+        },
+        delivery: {
+          prompt: 'How do you use AI in development today?',
+          options: {
+            noAi: 'We do not use it yet',
+            aiAssistedEditor: 'Autocomplete in the editor',
+            aiAgents: 'Agents wired into the workflow',
+            unsure: 'Not sure',
+          },
+        },
+        bugs: {
+          prompt: 'How do you handle bugs?',
+          options: {
+            manualTriage: 'Manual triage, no tooling',
+            trackerOnly: 'Issue tracker, nothing automated',
+            testsGate: 'Automated tests gating the merge',
+            aiTriage: 'AI-assisted triage and diagnosis',
+          },
+        },
+        deploys: {
+          prompt: 'How do you deploy to production?',
+          options: {
+            manual: 'By hand, when needed',
+            scripted: 'With our own scripts',
+            pipeline: 'A CI/CD pipeline',
+            continuous: 'Continuous delivery, several times a day',
+          },
+        },
+        security: {
+          prompt: 'What about security and dependencies?',
+          options: {
+            none: 'No defined process',
+            manualReviews: 'Manual reviews',
+            dependencyScanning: 'Dependency scanning (Snyk or similar)',
+            scanningAndPolicies: 'Scanning plus policies and automatic blocking',
+          },
+        },
+        website: {
+          prompt: 'What is your website or app?',
+          placeholder: 'company.com (optional)',
+          hint: 'I only look at the home page, to put objective data in the report.',
+        },
+        consent: {
+          prompt: 'To generate and send the report I need your consent.',
+          label: 'I agree to the analysis of the site above and to receiving the report by email. I have read the',
+          privacyLinkLabel: 'Privacy Policy',
+        },
+      },
+      success: {
+        title: 'Report on its way',
+        body: 'I have sent it to your inbox. If anything looks off, reply to that email and we will go through it.',
+      },
+      errors: {
+        required: 'This field is required.',
+        invalidEmail: 'That email does not look valid.',
+        invalidCode: 'The code is 6 digits.',
+        invalidChoice: 'Pick one of the options.',
+        invalidUrl: 'Enter a valid domain, for example company.com.',
+        consentRequired: 'I need your consent to continue.',
+        tooLong: 'That text is too long.',
+        humanCheck: 'I could not verify you are a person. Reload the page and try again.',
+        codeRejected: 'That code is not valid. Request a new one.',
+        unavailable: 'The service is unavailable right now. Try again in a few minutes.',
+        network: 'I could not reach the server. Check your connection.',
+        expired: 'Verification expired. Request a new code.',
+        generic: 'Something went wrong. Try again.',
+      },
+    },
+  },
   footer: {
     es: {
       status: 'STATUS: SISTEMA_ONLINE | UPTIME: 99.99% | CIFRADO: AES-256',
