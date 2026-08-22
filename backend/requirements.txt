@@ -53,6 +53,8 @@ colorama==0.4.6 ; sys_platform == 'win32'
     # via
     #   click
     #   uvicorn
+dnspython==2.8.0
+    # via email-validator
 cryptography==50.0.0
     # via google-auth
 distro==1.9.0
@@ -182,6 +184,9 @@ idna==3.18
     #   anyio
     #   email-validator
     #   httpx
+pydantic==2.13.4
+    # via
+    #   code29-backend
     #   httpx2
     #   requests
 jiter==0.16.0
