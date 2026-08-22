@@ -120,6 +120,11 @@ api.dominio.com   → Backend (FastAPI)
 
 > **Note:** FastAPI is NOT introduced in Phase 1. An Astro API route (`src/pages/api/contact.ts`) handles the contact form. This avoids operational overhead (CORS, separate domain, monitoring) before the AI backend is justified.
 
+> **Superseded (2026-08-22):** Phase 3 retired that route. `src/pages/api/contact.ts`,
+> `ContactForm.vue` and `src/utils/contact.ts` are deleted; the FastAPI backend is now the
+> single contact path and the single sender of email. See
+> [[decisions/0006-guided-ai-contact-flow]].
+
 ### Phase 2 — AI System Design + FastAPI Introduction
 - Introduce FastAPI backend (`api.dominio.com`)
 - Design and analysis of the AI analyzer system

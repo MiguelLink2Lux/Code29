@@ -25,20 +25,23 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 .
 ├── src/
 │   ├── pages/            index · 404 · coming-soon · maintenance
-│   │   │                 cookies · legal-notice · privacy-policy
-│   │   │                 robots.txt.ts — generated, not a static file
-│   │   └── api/          contact.ts — serverless contact endpoint
+│   │                     cookies · legal-notice · privacy-policy
+│   │                     robots.txt.ts — generated, not a static file
 │   ├── components/
 │   │   ├── layout/       Nav · Footer
 │   │   ├── sections/     Hero · Stats · EducationStack · Services
 │   │   │                 Toolbelt · Testimonials · Contact
-│   │   ├── contact/      ContactForm.vue
+│   │   ├── contact/      ContactChat.vue — the guided contact flow island
 │   │   ├── cookies/      CookieBanner.vue
 │   │   ├── analytics/    Analytics.astro
 │   │   └── LanguageSwitcher.astro
 │   ├── layouts/          BaseLayout · LegalLayout · StatusLayout
 │   ├── i18n/             translations.ts — single source of truth for all copy (ES/EN)
-│   ├── utils/            analytics · contact · cookie-consent · i18n
+│   ├── utils/            analytics · cookie-consent · i18n
+│   │                     contact-chat-flow.ts — the ten fixed steps, declarative
+│   │                     contact-chat.ts — client state, sessionStorage persistence
+│   │                     contact-api.ts — the only caller of the backend
+│   │                     turnstile-client.ts — Turnstile widget wrapper
 │   │                     seo.ts — single source of truth for the site origin
 │   │                     (+ colocated *.test.ts)
 │   └── styles/           tokens.css — design system tokens
@@ -52,22 +55,28 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 │   ├── app/
 │   │   ├── main.py       create_app() factory + module-level app
 │   │   ├── api/v1/       router.py · health.py
-│   │   └── core/         config.py — env-driven Settings
+│   │   │                 contact.py — email verification (request/confirm)
+│   │   │                 contact_report.py · site_analysis.py
+│   │   ├── services/     tokens.py — stateless codes + signed access tokens
+│   │   │                 turnstile.py — anti-abuse gate, fails closed
+│   │   │                 mailer.py · report.py
+│   │   │                 site_analysis.py · url_guard.py — SSRF boundary
+│   │   └── core/         config.py · report_settings.py — env-driven Settings
 │   ├── api/index.py      Vercel entrypoint — `from app.main import app`
 │   ├── scripts/          gen-requirements.sh — regenerates requirements.txt
-│   └── tests/            config · cors · health · requirements manifest
-│                         vercel config · vercel entrypoint
+│   └── tests/            17 modules, 261 collected cases — see testing strategy
 ├── tests/
 │   ├── artifacts/        Assertions on the real build output (13 cases)
-│   └── e2e/              Playwright specs — 4 files, 26 cases
+│   └── e2e/              Playwright specs — 5 files, 32 cases
 ├── vitest.config.ts              Unit gate
 ├── vitest.artifacts.config.ts    Build-artifact gate (needs `npm run build`)
 ├── .nvmrc                        Node 20 — see Deployment
 └── docs/                 PRD · architecture · ADRs · protocols
 ```
 
-External services (analytics, email, the future API) are reached **exclusively** through the
-abstractions in `src/utils/` — see [SOLID](#conventions).
+External services (analytics, the backend API, Turnstile) are reached **exclusively** through the
+abstractions in `src/utils/` — see [SOLID](#conventions). Email is no longer sent from the
+frontend at all.
 
 ---
 
@@ -99,9 +108,9 @@ uv run uvicorn app.main:app --reload    # interactive docs at /docs
 | `npm run dev` | Astro dev server |
 | `npm run build` | Production build |
 | `npm run preview` | Preview the build locally |
-| `npm test` | Unit tests (`vitest run`) — 30 cases |
+| `npm test` | Unit tests (`vitest run`) — 79 cases |
 | `npm run test:watch` | Unit tests in watch mode |
-| `npm run test:e2e` | End-to-end tests. Runs `scripts/assert-e2e-specs.mjs` first, then `playwright test` — **fails if `tests/e2e/` holds fewer than 4 spec files**, so a deleted spec breaks the gate instead of quietly shrinking coverage. |
+| `npm run test:e2e` | End-to-end tests. Runs `scripts/assert-e2e-specs.mjs` first, then `playwright test` — **fails if `tests/e2e/` holds fewer than 4 spec files**, so a deleted spec breaks the gate instead of quietly shrinking coverage. The floor is still 4 while the suite holds 5 — raising it is a one-line change in the script. |
 | `npm run verify:assets` | Build-artifact assertions (`vitest run --config vitest.artifacts.config.ts`) — 13 cases over the **real** output in `.vercel/output/static`. Requires `npm run build` first. |
 | `npm run verify:runtime` | `scripts/assert-vercel-runtime.mjs` — fails if the build emitted a Node runtime Vercel no longer accepts. Requires a build first. |
 | `npm run build:node20` | Build under Node 20 regardless of the local version (`npx --yes node@20 node_modules/astro/astro.js build`). |
@@ -124,7 +133,29 @@ Full breakdown of the four test levels: [Testing strategy](docs/architecture/tes
 | Method | Route | Description |
 |--------|-------|-------------|
 | `GET` | `/api/v1/health` | Backend liveness — returns `{"status": "ok"}`. Dependency-free: no DB, no external calls. |
-| `POST` | `/api/contact` | Astro serverless route. Validates the payload, then sends the message via Resend. |
+| `POST` | `/api/v1/contact/verification/request` | Verifies the Turnstile challenge, then emails a 6-digit code. The code is never in the response. |
+| `POST` | `/api/v1/contact/verification/confirm` | Exchanges a valid code for a signed access token (30 min) that authorises the expensive steps. |
+| `POST` | `/api/v1/contact/site-analysis` | Token required. Fetches the lead's home page behind the SSRF guard and returns measured signals. |
+| `POST` | `/api/v1/contact/report` | Token required. Generates the workflow report and emails it. The recipient comes from the token, never from the body. |
+
+There is **no `/api/contact`** any more: the Astro serverless route, `ContactForm.vue` and
+`src/utils/contact.ts` were deleted with the guided flow. The backend is the single email sender.
+
+### Contact flow
+
+One path, ten fixed steps, in this order:
+
+```
+name → company → email → code → delivery → bugs → deploys → security → website → consent
+```
+
+The order is an **authorisation rule, not a UX preference**: everything expensive — the
+outbound fetch of the visitor's site, the AI draft, the email — sits after `code`, so nothing
+runs for a visitor who has not proven control of the address. Verification is stateless (an
+HMAC-derived code, a signed token; no datastore), Cloudflare Turnstile gates every outbound
+email, and the AI only *drafts* the report from validated facts — it never sees free text.
+Full rationale, privacy posture and the open risks: [ADR
+0006](docs/architecture/decisions/0006-guided-ai-contact-flow.md).
 
 ### Route redirects
 
@@ -148,11 +179,11 @@ Names only — never commit values. `.env` files are git-ignored.
 |----------|---------|
 | `PUBLIC_SITE_URL` | **Optional.** Absolute site origin, scheme included (e.g. `https://code29.dev`). When unset, `src/utils/seo.ts` falls back to `https://code29.dev`. |
 | `PUBLIC_GA4_ID` | GA4 measurement ID. The script loads **only** after the visitor grants analytics consent. |
-| `RESEND_API_KEY` | Resend API key. Required by `POST /api/contact`. |
-| `CONTACT_TO_EMAIL` | Recipient of contact form submissions. Required. |
-| `CONTACT_FROM_EMAIL` | Verified sender address. Required. |
+| `PUBLIC_API_BASE_URL` | Absolute base URL of the backend, scheme included. A value without a scheme is rejected at runtime. |
+| `PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key. **Without it the chat stops before the verification step** rather than skipping the challenge. |
 
-If any of the three contact variables is missing, `POST /api/contact` responds `503` instead of failing silently.
+The frontend no longer holds any Resend credentials: `RESEND_API_KEY`, `CONTACT_TO_EMAIL` and
+`CONTACT_FROM_EMAIL` moved to the **backend**, which is now the only sender of email.
 
 `PUBLIC_SITE_URL` is the **only** place the domain is configured. The canonical URL,
 `og:image`, `robots.txt` and the sitemap are all derived from it — change it here and
@@ -167,11 +198,23 @@ social scrapers silently reject. See
 |----------|---------|---------|
 | `APP_ENV` | `development` | Environment name. |
 | `CORS_ORIGINS` | `http://localhost:4321` | Comma-separated list of allowed origins. Never `*`. |
+| `CONTACT_TOKEN_SECRET` | *(unset)* | HMAC key for verification codes and access tokens. In production it must be **≥ 32 characters** or the app refuses to boot. |
+| `RESEND_API_KEY` | *(unset)* | Resend API key — the backend is the only email sender. |
+| `CONTACT_FROM_EMAIL` | *(unset)* | Verified sender address. |
+| `CONTACT_TO_EMAIL` | *(unset)* | Where the owner's copy of a report is delivered. |
+| `TURNSTILE_SECRET_KEY` | *(unset)* | Cloudflare Turnstile secret. Without it no email path opens. |
+| `REPORT_GENERATOR` | `stub` | `stub` (deterministic) or `genkit`. `genkit` **raises** unless the dependency and `GEMINI_API_KEY` are both present — it never degrades silently. |
+| `GEMINI_API_KEY` | *(unset)* | Required only by `REPORT_GENERATOR=genkit`. |
 
-> **Note:** copy `backend/.env.example` to `backend/.env` to get started — it ships the
-> defaults above as placeholders.
+The five contact-flow variables are **all-or-nothing**: when any of them is missing,
+`contact_flow_enabled` is false and every contact endpoint answers `503` instead of
+half-working. Local development therefore needs no configuration at all.
 
-In production both variables are set in the **backend** Vercel project's environment settings:
+> **Note:** copy `backend/.env.example` to `backend/.env` to get started. That template
+> currently ships only `APP_ENV` and `CORS_ORIGINS` — the contact-flow variables above are
+> not in it yet.
+
+In production these are set in the **backend** Vercel project's environment settings:
 
 | Variable | Production value |
 |----------|------------------|
@@ -249,9 +292,9 @@ cd backend
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 1 | **Landing v1** — 7 sections, GDPR cookie consent with granular categories persisted in `localStorage`, legal pages, contact form (Vercel serverless + Resend), centralized ES/EN i18n with a client-side switcher that does not change the URL | ✅ Complete |
-| 2 | **FastAPI backend** — scaffolding: health endpoint, env-driven config, CORS. No database, no auth, no business logic. Deploys on Vercel as a second project ([ADR 0004](docs/architecture/decisions/0004-backend-deploy-provider.md)). | 🟡 Scaffolding |
-| 3 | **AI services** | ⬜ Not started |
+| 1 | **Landing v1** — 7 sections, GDPR cookie consent with granular categories persisted in `localStorage`, legal pages, centralized ES/EN i18n with a client-side switcher that does not change the URL. The Phase 1 contact form has since been **replaced** by the guided flow below. | ✅ Complete |
+| 2 | **FastAPI backend** — health endpoint, env-driven config, CORS. No database, no auth. Deploys on Vercel as a second project ([ADR 0004](docs/architecture/decisions/0004-backend-deploy-provider.md)). | ✅ Complete |
+| 3 | **AI services** — the guided contact flow: stateless email verification, Turnstile gate, SSRF-guarded site analysis, generated workflow report by email ([ADR 0006](docs/architecture/decisions/0006-guided-ai-contact-flow.md)). **The report generator is still a deterministic stub** until `GEMINI_API_KEY` is provisioned, and the Genkit dependency set does not currently fit Vercel's function size limit ([ADR 0004 → Measured bundle size](docs/architecture/decisions/0004-backend-deploy-provider.md)). | 🟡 In progress |
 
 ---
 
@@ -265,6 +308,7 @@ cd backend
 | [i18n](docs/architecture/i18n.md) | Translation architecture and language detection |
 | [SEO & discoverability](docs/architecture/seo-and-discoverability.md) | Site origin, canonical/OG tags, robots.txt, sitemap |
 | [Testing strategy](docs/architecture/testing-strategy.md) | The four test levels and what each one catches |
+| [Contact chat](docs/architecture/contact-chat-v1.md) | The phased design of the contact flow and what shipped |
 | [ADR index](docs/architecture/decisions/index.md) | Architecture decision records |
 | [SDD workflow](docs/protocols/sdd-workflow.md) | Spec-driven development protocol |
 
