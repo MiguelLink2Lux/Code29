@@ -13,6 +13,7 @@ describe('flow definition', () => {
       'bugs',
       'deploys',
       'security',
+      'observability',
       'website',
       'consent',
     ])
@@ -30,13 +31,13 @@ describe('flow definition', () => {
 
   it('asks about the four diagnosis axes the report is built on', () => {
     const ids = CONTACT_CHAT_STEPS.map((step) => step.id)
-    for (const axis of ['delivery', 'bugs', 'deploys', 'security']) {
+    for (const axis of ['delivery', 'bugs', 'deploys', 'security', 'observability']) {
       expect(ids).toContain(axis)
     }
   })
 
   it('offers choices for the workflow questions instead of free text', () => {
-    for (const id of ['delivery', 'bugs', 'deploys', 'security']) {
+    for (const id of ['delivery', 'bugs', 'deploys', 'security', 'observability']) {
       const step = stepById(id)
       expect(step.kind).toBe('choice')
       expect(step.options?.length ?? 0).toBeGreaterThanOrEqual(3)

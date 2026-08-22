@@ -66,14 +66,41 @@ async function stubBackend(page: Page, stub: BackendStub = {}) {
   return calls
 }
 
-async function answerText(page: Page, value: string) {
-  await page.locator('#contact input[type="text"]').fill(value)
-  await page.locator('#contact button[type="submit"]').click()
+const PROGRESS = '.contact-chat__progress'
+
+/**
+ * Submits a step and waits for the flow to actually advance.
+ *
+ * Without that wait these helpers raced the island's re-render: under four
+ * parallel workers the next fill could land on the previous step's input, which
+ * made the long journeys fail roughly every other run.
+ */
+async function advance(page: Page, act: () => Promise<void>, expectAdvance = true) {
+  const before = await page.locator(PROGRESS).innerText()
+
+  await act()
+
+  if (expectAdvance) {
+    await expect(page.locator(PROGRESS)).not.toHaveText(before)
+  }
+}
+
+async function answerText(page: Page, value: string, expectAdvance = true) {
+  await advance(
+    page,
+    async () => {
+      await page.locator('#contact input[type="text"]').fill(value)
+      await page.locator('#contact button[type="submit"]').click()
+    },
+    expectAdvance,
+  )
 }
 
 async function answerChoice(page: Page) {
-  await page.locator('#contact input[type="radio"]').first().check()
-  await page.locator('#contact button[type="submit"]').click()
+  await advance(page, async () => {
+    await page.locator('#contact input[type="radio"]').first().check()
+    await page.locator('#contact button[type="submit"]').click()
+  })
 }
 
 test.beforeEach(async ({ page }) => {
@@ -115,7 +142,7 @@ test.describe('guided contact chat', () => {
 
     await answerText(page, 'Ada Lovelace')
     await answerText(page, 'Analytical Engines')
-    await answerText(page, 'not-an-email')
+    await answerText(page, 'not-an-email', false)
 
     expect(calls).toEqual([])
     await expect(page.locator('#contact [role="alert"]')).toBeVisible()
@@ -167,7 +194,8 @@ test.describe('guided contact chat', () => {
     await answerText(page, 'Ada Lovelace')
     await answerText(page, 'Analytical Engines')
     await answerText(page, 'ada@example.com')
-    await answerText(page, '123456')
+    // The backend rejects this code, so the flow must NOT advance.
+    await answerText(page, '123456', false)
 
     await expect(page.locator('#contact [role="alert"]')).toBeVisible()
     await expect(page.locator('#contact')).toContainText(/4.*11/)

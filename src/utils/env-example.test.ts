@@ -4,8 +4,8 @@
  * discovered the hard way: a 503 in production, or a blank og:image.
  *
  * Static `import.meta.env.X` reads are discovered by scanning; the ones reached
- * dynamically (api/contact.ts indexes import.meta.env by name) are listed here
- * explicitly, since no scan can see them.
+ * reached through an injected env bag rather than a literal `import.meta.env.X`
+ * are listed explicitly, since no scan can see them.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -15,8 +15,12 @@ import { describe, expect, it } from 'vitest'
 const ROOT = process.cwd()
 const TEMPLATE = join(ROOT, '.env.example')
 
-/** Read dynamically in src/pages/api/contact.ts — invisible to a scan. */
-const DYNAMICALLY_READ = ['RESEND_API_KEY', 'CONTACT_TO_EMAIL', 'CONTACT_FROM_EMAIL']
+/**
+ * Variables reached through an injected bag rather than a literal
+ * `import.meta.env.X`, so no scan can see them. The Resend/CONTACT_* trio moved
+ * to the backend when the guided chat replaced the serverless form.
+ */
+const DYNAMICALLY_READ = ['PUBLIC_API_BASE_URL', 'PUBLIC_TURNSTILE_SITE_KEY']
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {

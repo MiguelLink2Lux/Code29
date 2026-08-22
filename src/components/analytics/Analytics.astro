@@ -1,29 +1,26 @@
 ---
-// GA4 script with Consent Mode v2 — default denied.
-// Renders nothing if PUBLIC_GA4_ID is not set (safe in development).
+// GA4 with Consent Mode v2 — the tag is loaded only after analytics consent.
+//
+// The measurement id travels in a meta tag rather than through define:vars,
+// because this script imports the analytics abstraction and Astro does not allow
+// combining the two. Renders nothing if PUBLIC_GA4_ID is unset (safe in dev).
 const GA_ID = import.meta.env.PUBLIC_GA4_ID
 ---
 
 {GA_ID && (
   <>
-    <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
-    <script define:vars={{ GA_ID }}>
-      window.dataLayer = window.dataLayer || []
-      function gtag() { window.dataLayer.push(arguments) }
-      window.gtag = gtag
+    <meta name="ga4-measurement-id" content={GA_ID} />
+    <script>
+      import { AnalyticsService } from '@/utils/analytics'
 
-      gtag('js', new Date())
+      const id = document
+        .querySelector('meta[name="ga4-measurement-id"]')
+        ?.getAttribute('content')
 
-      // Consent Mode v2: block all tracking until user decides
-      gtag('consent', 'default', {
-        analytics_storage: 'denied',
-        ad_storage: 'denied',
-        ad_user_data: 'denied',
-        ad_personalization: 'denied',
-        wait_for_update: 500,
-      })
-
-      gtag('config', GA_ID)
+      // Declares consent as denied and loads the tag only for a visitor who
+      // already granted analytics. A first-time visitor sends nothing until
+      // they choose — Consent Mode's denied ping would still reach Google.
+      if (id) AnalyticsService.bootstrap(id)
     </script>
   </>
 )}
