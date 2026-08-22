@@ -225,3 +225,35 @@ class TestFactory:
         # template report while the operator believes a model wrote it.
         with pytest.raises(UnusableReportGenerator, match="bundle limit|not supported"):
             build_report_generator("genkit", model_api_key="AIza-test-key")
+
+
+class TestSummaryHonesty:
+    """The summary must not claim the site failed when it did not."""
+
+    @staticmethod
+    def _facts(**site: object) -> "ReportFacts":
+        return ReportFacts(
+            contact_name="Ada",
+            company="AE",
+            locale="es",
+            workflow=WorkflowAnswers(practices=[]),
+            site=SiteSignals(**site),
+        )
+
+    def test_says_analysed_when_the_page_was_read_even_without_a_url(self) -> None:
+        import asyncio
+
+        # available=True means the page WAS read. Saying otherwise tells the lead
+        # we could not look at a site we did look at.
+        report = asyncio.run(
+            TemplateReportGenerator().generate(self._facts(available=True, https=True))
+        )
+
+        assert "could not be analysed" not in report.summary
+
+    def test_says_not_analysed_only_when_it_really_was_not(self) -> None:
+        import asyncio
+
+        report = asyncio.run(TemplateReportGenerator().generate(self._facts(available=False)))
+
+        assert "could not be analysed" in report.summary

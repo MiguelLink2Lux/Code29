@@ -388,6 +388,10 @@ class TemplateReportGenerator:
             + (
                 f" and on signals measured from {facts.site.url}."
                 if facts.site.available and facts.site.url
+                # available=True means the page WAS read: claiming otherwise
+                # tells the lead we could not look at a site we did look at.
+                else " and on signals measured from the home page."
+                if facts.site.available
                 else ", since the website could not be analysed."
             )
         ]
