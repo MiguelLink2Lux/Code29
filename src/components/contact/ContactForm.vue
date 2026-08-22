@@ -333,13 +333,11 @@ onBeforeUnmount(() => {
   color: #ff7a7a;
 }
 
+/* Honeypot: hidden outright, not just visually. The previous 1x1 clip left a
+   focusable, autofillable field on the page — a password manager filling it
+   silently flags a legitimate message as spam. */
 .contact-form__honeypot {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
+  display: none;
 }
 
 .contact-form__feedback {
