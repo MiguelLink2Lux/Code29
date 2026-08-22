@@ -27,6 +27,11 @@ export default defineConfig({
       PUBLIC_GA4_ID: process.env.PUBLIC_GA4_ID ?? 'G-E2ETESTID',
       // The dev toolbar adds its own h1/landmarks and breaks strict locators.
       ASTRO_DEV_TOOLBAR: 'false',
+      // Cloudflare's documented always-passing test key. Without a key the
+      // chat short-circuits before requesting a challenge, and every contact
+      // journey would assert against a configuration error instead of the flow.
+      PUBLIC_TURNSTILE_SITE_KEY:
+        process.env.PUBLIC_TURNSTILE_SITE_KEY ?? '1x00000000000000000000AA',
     },
   },
 })

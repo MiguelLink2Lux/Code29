@@ -7,6 +7,13 @@
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
 const SCRIPT_ID = 'cf-turnstile-script'
 
+export class TurnstileNotConfigured extends Error {
+  constructor() {
+    super('PUBLIC_TURNSTILE_SITE_KEY is not configured')
+    this.name = 'TurnstileNotConfigured'
+  }
+}
+
 export interface TurnstileClient {
   /** Resolves a challenge token, or throws if the challenge cannot be completed. */
   getToken(container: HTMLElement): Promise<string>
@@ -56,7 +63,8 @@ export function createTurnstileClient(siteKey: string): TurnstileClient {
   return {
     async getToken(container: HTMLElement): Promise<string> {
       if (!siteKey) {
-        throw new Error('PUBLIC_TURNSTILE_SITE_KEY is not configured')
+        // Not the visitor's fault: the deployment is missing a key.
+        throw new TurnstileNotConfigured()
       }
 
       await loadScript()

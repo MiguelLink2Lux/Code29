@@ -11,7 +11,11 @@ import { translations, type Lang } from '@/i18n/translations'
 import { type ContactApi, ContactApiError, createContactApi } from '@/utils/contact-api'
 import { createContactChat } from '@/utils/contact-chat'
 import { stepById } from '@/utils/contact-chat-flow'
-import { createTurnstileClient, type TurnstileClient } from '@/utils/turnstile-client'
+import {
+  createTurnstileClient,
+  TurnstileNotConfigured,
+  type TurnstileClient,
+} from '@/utils/turnstile-client'
 
 const props = defineProps<{
   api?: ContactApi
@@ -70,7 +74,11 @@ function describeError(error: unknown): string {
     return copy.value.errors.generic
   }
 
-  // A Turnstile failure never reaches the backend, so it reads as a human check.
+  // A missing site key is a deployment problem; telling the visitor to prove
+  // they are human would send them in circles.
+  if (error instanceof TurnstileNotConfigured) return copy.value.errors.unavailable
+
+  // Any other Turnstile failure never reaches the backend: it is a human check.
   return copy.value.errors.humanCheck
 }
 

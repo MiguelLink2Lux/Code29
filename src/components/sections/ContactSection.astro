@@ -1,5 +1,5 @@
 ---
-import ContactForm from '@/components/contact/ContactForm.vue'
+import ContactChat from '@/components/contact/ContactChat.vue'
 import { translations, type Lang } from '@/i18n/translations'
 import { DEFAULT_LANG } from '@/utils/i18n'
 
@@ -16,7 +16,7 @@ const t = translations.contact[lang]
     </div>
 
     <div class="contact__form-shell">
-      <ContactForm client:load />
+      <ContactChat client:load />
     </div>
 
     <div class="contact__status" aria-hidden="true" data-i18n="contact.status">
