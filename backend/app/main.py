@@ -6,13 +6,43 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_v1
+from app.api.v1.site_analysis import (
+    AccessTokenVerifier,
+    FlowNotConfigured,
+    InvalidAccessToken,
+    get_access_token_verifier,
+)
 from app.core.config import Settings, get_settings
 from app.core.report_settings import ReportDeliveryUnavailable
 from app.services.mailer import Mailer, ResendMailer
+from app.services.tokens import InvalidToken, verify_access_token
 from app.services.turnstile import (
     VERIFY_TIMEOUT_SECONDS as TURNSTILE_TIMEOUT_SECONDS,
 )
 from app.services.turnstile import HttpTurnstileVerifier, TurnstileVerifier
+
+
+class _SignedTokenVerifier:
+    """Bridges the site-analysis port to the real token service.
+
+    Each phase shipped against a Protocol with a refusing default so it could
+    deploy alone. Wiring them is this factory's job — without it a caller with a
+    valid token gets 503, which is precisely what a local run caught.
+    """
+
+    def __init__(self, secret: str) -> None:
+        self._secret = secret
+
+    def verified_email(self, token: str) -> str:
+        if not self._secret:
+            raise FlowNotConfigured("no signing secret is configured")
+
+        try:
+            return verify_access_token(token, secret=self._secret)
+        except InvalidToken as error:
+            # The route's own type: it turns this into 401, and it must never
+            # surface as a 500 or be confused with a configuration failure.
+            raise InvalidAccessToken("invalid access token") from error
 
 
 def create_app(
@@ -50,6 +80,11 @@ def create_app(
     )
 
     app.include_router(api_v1)
+
+    def _token_verifier() -> AccessTokenVerifier:
+        return _SignedTokenVerifier(settings.contact_token_secret.get_secret_value())
+
+    app.dependency_overrides[get_access_token_verifier] = _token_verifier
 
     @app.exception_handler(ReportDeliveryUnavailable)
     async def _unconfigured_flow(

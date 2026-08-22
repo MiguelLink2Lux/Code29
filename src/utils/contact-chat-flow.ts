@@ -18,6 +18,7 @@ export type ContactChatStepId =
   | 'bugs'
   | 'deploys'
   | 'security'
+  | 'observability'
   | 'website'
   | 'consent'
 
@@ -48,7 +49,7 @@ export interface ContactChatStep {
   options?: ContactChatOption[]
   maxLength?: number
   /** Diagnosis axis this step feeds in the generated report. */
-  axis?: 'delivery' | 'bugs' | 'deploys' | 'security'
+  axis?: 'delivery' | 'bugs' | 'deploys' | 'security' | 'observability'
 }
 
 const FREE_TEXT_MAX = 300
@@ -110,6 +111,18 @@ export const CONTACT_CHAT_STEPS: readonly ContactChatStep[] = [
       option('manual-reviews', 'manualReviews'),
       option('dependency-scanning', 'dependencyScanning'),
       option('scanning-and-policies', 'scanningAndPolicies'),
+    ],
+  },
+  {
+    id: 'observability',
+    kind: 'choice',
+    required: true,
+    axis: 'observability',
+    options: [
+      option('none', 'none'),
+      option('logs-only', 'logsOnly'),
+      option('error-monitoring', 'errorMonitoring'),
+      option('full-observability', 'fullObservability'),
     ],
   },
   { id: 'website', kind: 'text', required: false, skippable: true, maxLength: 300 },

@@ -179,6 +179,13 @@ function goBack(): void {
   draft.value = chat.answerFor(chat.state.currentStepId)
 }
 
+/** Option label, falling back to the identifier if copy is missing. */
+function optionLabel(labelKey: string): string {
+  const options = (stepCopy.value as { options?: Record<string, string> }).options
+
+  return options?.[labelKey] ?? labelKey
+}
+
 function selectOption(value: string): void {
   draft.value = value
 }
@@ -252,7 +259,7 @@ watch(
               :checked="draft === option.value"
               @change="selectOption(option.value)"
             >
-            <span>{{ (stepCopy as { options: Record<string, string> }).options[option.labelKey] }}</span>
+            <span>{{ optionLabel(option.labelKey) }}</span>
           </label>
         </fieldset>
 
