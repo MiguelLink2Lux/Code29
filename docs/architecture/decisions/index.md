@@ -8,6 +8,7 @@ Chronological log of significant architecture decisions (MADR format).
 | [[0002-fastapi-as-backend-framework]] | FastAPI (+ Pydantic) as the backend framework | Accepted |
 | [[0003-api-versioning-strategy]] | URL path API versioning (`/api/v1`) | Accepted |
 | [[0004-backend-deploy-provider]] | Backend deploys on Vercel as a second project (root `backend/`) | Accepted |
+| [[0005-genkit-runtime]] | Genkit on Python, embedded in the FastAPI backend | Accepted |
 
 ## References
 
