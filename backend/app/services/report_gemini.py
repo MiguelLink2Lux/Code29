@@ -32,12 +32,17 @@ from app.services.report import (
     ServiceOffering,
 )
 
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_ENDPOINT = (
-    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-)
+API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
+# Google retires model ids and then answers 404 with "no longer available to new
+# users", so this is a default, not a constant: GEMINI_MODEL overrides it without
+# a code change. `gemini-2.5-flash` was already retired this way.
+DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
+
+# Kept as an alias so existing imports keep working.
+GEMINI_MODEL = DEFAULT_GEMINI_MODEL
+
 REQUEST_TIMEOUT_SECONDS = 30.0
-GENERATOR_NAME = f"gemini:{GEMINI_MODEL}"
 
 # Models wrap JSON in fences even when asked not to.
 _FENCE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.IGNORECASE)
@@ -76,9 +81,24 @@ def _system_instruction(locale: str) -> str:
 class GeminiReportGenerator:
     """Generates the report with Gemini and validates whatever comes back."""
 
-    def __init__(self, *, api_key: str, transport: httpx.AsyncBaseTransport | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        model: str = "",
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
         self._api_key = api_key
+        self._model = (model or DEFAULT_GEMINI_MODEL).strip()
         self._transport = transport
+
+    @property
+    def endpoint(self) -> str:
+        return f"{API_BASE}/{self._model}:generateContent"
+
+    @property
+    def generator_name(self) -> str:
+        return f"gemini:{self._model}"
 
     async def generate(self, facts: ReportFacts) -> ContactReport:
         payload = {
@@ -107,7 +127,7 @@ class GeminiReportGenerator:
                 transport=self._transport, timeout=REQUEST_TIMEOUT_SECONDS
             ) as client:
                 response = await client.post(
-                    GEMINI_ENDPOINT,
+                    self.endpoint,
                     json=payload,
                     # Header, not query string: URLs reach proxy logs and traces.
                     headers={"x-goog-api-key": self._api_key},
@@ -135,7 +155,9 @@ class GeminiReportGenerator:
         try:
             # Validation is the trust boundary: an unknown axis or an invented
             # service offering fails here rather than reaching a lead's inbox.
-            return ContactReport.model_validate({**document, "generator": GENERATOR_NAME})
+            return ContactReport.model_validate(
+                {**document, "generator": self.generator_name}
+            )
         except ValidationError as error:
             raise ModelResponseInvalid(f"model report failed validation: {error.error_count()} "
                                        "problem(s)") from error

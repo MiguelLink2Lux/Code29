@@ -438,6 +438,7 @@ def build_report_generator(
     name: str,
     *,
     model_api_key: str = "",
+    model_name: str = "",
 ) -> ReportGenerator:
     """Select the generator by name. Unknown or unusable values raise."""
     selected = (name or STUB_GENERATOR).strip().lower()
@@ -455,7 +456,7 @@ def build_report_generator(
         # so selecting the stub never pulls the model path in.
         from app.services.report_gemini import GeminiReportGenerator
 
-        return GeminiReportGenerator(api_key=model_api_key)
+        return GeminiReportGenerator(api_key=model_api_key, model=model_name)
 
     if selected == GENKIT_GENERATOR:
         if not model_api_key:

@@ -257,3 +257,35 @@ class TestFactory:
     def test_genkit_still_refuses_rather_than_pretending(self) -> None:
         with pytest.raises(UnusableReportGenerator):
             build_report_generator("genkit", model_api_key=API_KEY)
+
+
+class TestModelSelection:
+    """The model id is configuration, not a constant baked into the code.
+
+    Google retires model ids and answers 404 with "no longer available to new
+    users": pinning one in source turns that into a code change under pressure.
+    """
+
+    def test_defaults_to_a_current_model(self) -> None:
+        from app.services.report_gemini import DEFAULT_GEMINI_MODEL
+
+        assert DEFAULT_GEMINI_MODEL.startswith("gemini-")
+
+    def test_an_explicit_model_is_used_in_the_url(self) -> None:
+        generator = GeminiReportGenerator(api_key=API_KEY, model="gemini-3.5-flash")
+
+        assert "gemini-3.5-flash:generateContent" in generator.endpoint
+
+    def test_the_report_records_which_model_wrote_it(self) -> None:
+        import asyncio
+
+        generator = GeminiReportGenerator(
+            api_key=API_KEY,
+            model="gemini-3.5-flash",
+            transport=transport_returning(gemini_response(valid_model_payload())),
+        )
+
+        report = asyncio.run(generator.generate(FACTS))
+
+        # Whoever reads the report later must know which model produced it.
+        assert report.generator == "gemini:gemini-3.5-flash"
