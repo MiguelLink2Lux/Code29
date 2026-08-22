@@ -7,12 +7,12 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic-settings",
+    "httpx",
 ]
 
 [dependency-groups]
 dev = [
     "pytest",
-    "httpx",
     "ruff",
 ]
 
