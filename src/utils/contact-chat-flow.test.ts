@@ -23,7 +23,7 @@ describe('flow definition', () => {
     const codeIndex = ids.indexOf('code')
 
     // Nothing that costs us money or reputation may precede verification.
-    for (const gated of ['website', 'consent']) {
+    for (const gated of ['website', 'consent'] as const) {
       expect(ids.indexOf(gated)).toBeGreaterThan(codeIndex)
     }
   })
