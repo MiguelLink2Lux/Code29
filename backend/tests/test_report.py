@@ -243,17 +243,21 @@ class TestSummaryHonesty:
     def test_says_analysed_when_the_page_was_read_even_without_a_url(self) -> None:
         import asyncio
 
+        from app.services.report_copy import TEMPLATE_COPY
+
         # available=True means the page WAS read. Saying otherwise tells the lead
         # we could not look at a site we did look at.
         report = asyncio.run(
             TemplateReportGenerator().generate(self._facts(available=True, https=True))
         )
 
-        assert "could not be analysed" not in report.summary
+        assert TEMPLATE_COPY["es"]["summary_no_site"].strip() not in report.summary
 
     def test_says_not_analysed_only_when_it_really_was_not(self) -> None:
         import asyncio
 
+        from app.services.report_copy import TEMPLATE_COPY
+
         report = asyncio.run(TemplateReportGenerator().generate(self._facts(available=False)))
 
-        assert "could not be analysed" in report.summary
+        assert TEMPLATE_COPY["es"]["summary_no_site"].strip() in report.summary
