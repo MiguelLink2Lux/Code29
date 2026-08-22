@@ -16,6 +16,12 @@ from app.main import create_app
 
 
 @pytest.fixture
+def anyio_backend() -> str:
+    """Async tests run on asyncio only. anyio's pytest plugin ships with httpx."""
+    return "asyncio"
+
+
+@pytest.fixture
 def client() -> TestClient:
     """TestClient over a freshly built app using current (default) settings."""
     get_settings.cache_clear()
