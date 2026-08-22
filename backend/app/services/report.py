@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 
 STUB_GENERATOR = "stub"
 GENKIT_GENERATOR = "genkit"
+GEMINI_GENERATOR = "gemini"
 
 
 class UnusableReportGenerator(Exception):
@@ -418,6 +419,18 @@ def build_report_generator(
     if selected == STUB_GENERATOR:
         return TemplateReportGenerator()
 
+    if selected == GEMINI_GENERATOR:
+        if not model_api_key:
+            raise UnusableReportGenerator(
+                "REPORT_GENERATOR=gemini requires GEMINI_API_KEY to be set"
+            )
+
+        # Imported here so the module stays importable without httpx present and
+        # so selecting the stub never pulls the model path in.
+        from app.services.report_gemini import GeminiReportGenerator
+
+        return GeminiReportGenerator(api_key=model_api_key)
+
     if selected == GENKIT_GENERATOR:
         if not model_api_key:
             raise UnusableReportGenerator(
@@ -425,12 +438,15 @@ def build_report_generator(
             )
         # The dependency lands in a later phase (F). Failing here is deliberate:
         # a silent fallback would email a template report as if a model wrote it.
+        # Deliberately still refuses. The Genkit plugin for Gemini pulls 137MB of
+        # google/ and grpc/, which does not fit Vercel's Python function ceiling
+        # (ADR 0004, measured). Use `gemini`, which speaks the same API over REST.
         raise UnusableReportGenerator(
-            "REPORT_GENERATOR=genkit is not installed yet: the Genkit dependency arrives in "
-            "Phase F. Use REPORT_GENERATOR=stub until then."
+            "REPORT_GENERATOR=genkit is not supported: the Genkit Gemini plugin does not fit "
+            "the deployment's bundle limit. Use REPORT_GENERATOR=gemini instead."
         )
 
     raise UnusableReportGenerator(
         f"Unknown REPORT_GENERATOR value: {name!r}. Valid values: "
-        f"{STUB_GENERATOR!r}, {GENKIT_GENERATOR!r}"
+        f"{STUB_GENERATOR!r}, {GEMINI_GENERATOR!r}"
     )

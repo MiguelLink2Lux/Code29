@@ -223,5 +223,5 @@ class TestFactory:
         # Phase F lands the dependency; until then the error must be explicit
         # rather than silently falling back to the stub, which would ship a
         # template report while the operator believes a model wrote it.
-        with pytest.raises(UnusableReportGenerator, match="not installed|Phase F|unavailable"):
+        with pytest.raises(UnusableReportGenerator, match="bundle limit|not supported"):
             build_report_generator("genkit", model_api_key="AIza-test-key")
