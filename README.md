@@ -203,8 +203,35 @@ social scrapers silently reject. See
 | `CONTACT_FROM_EMAIL` | *(unset)* | Verified sender address. |
 | `CONTACT_TO_EMAIL` | *(unset)* | Where the owner's copy of a report is delivered. |
 | `TURNSTILE_SECRET_KEY` | *(unset)* | Cloudflare Turnstile secret. Without it no email path opens. |
-| `REPORT_GENERATOR` | `stub` | `stub` (deterministic) or `genkit`. `genkit` **raises** unless the dependency and `GEMINI_API_KEY` are both present — it never degrades silently. |
-| `GEMINI_API_KEY` | *(unset)* | Required only by `REPORT_GENERATOR=genkit`. |
+| `REPORT_GENERATOR` | `stub` | Which generator writes the workflow report: `stub` or `gemini`. Never degrades silently — see below. |
+| `GEMINI_API_KEY` | *(unset)* | Google AI Studio key. Required by `REPORT_GENERATOR=gemini`; unused by `stub`. |
+
+#### The workflow report generator
+
+`REPORT_GENERATOR` picks the implementation behind the one-method `ReportGenerator` port — the
+contact endpoint, the mailer and the frontend never know which one ran:
+
+| Value | Behaviour |
+|-------|-----------|
+| `stub` | **Default, and what runs today.** A deterministic template: same facts in, byte-identical report out. No key, no network. |
+| `gemini` | Calls `gemini-2.5-flash` over the Generative Language REST API. Refuses to boot without `GEMINI_API_KEY`. |
+| `genkit` | Refused on purpose: the Genkit Gemini plugin does not fit Vercel's Python bundle limit. Use `gemini` — [ADR 0007](docs/architecture/decisions/0007-gemini-over-rest.md). |
+
+**Today the report is written by the deterministic stub, not by a model**, because no
+`GEMINI_API_KEY` exists in any environment. The Gemini connector is implemented and covered by
+18 tests against a mock transport, but it has never been run against the real model — so
+switching a lead-facing environment to `gemini` is an unverified change until a key exists and
+someone reads what the model actually produces.
+
+Both generators write in the visitor's language. The template's Spanish and English copy lives
+in `backend/app/services/report_copy.py`, with `backend/tests/test_report_locale.py` asserting
+key parity so a missing translation fails the suite; Gemini is instructed to write in the locale
+it is given.
+
+The model never receives the visitor's email address, and whatever it returns is validated
+against the same Pydantic models the stub produces: an invented diagnosis axis, or a service
+Code29 does not sell, is a hard failure rather than a delivered report. There is no silent
+fallback to the stub.
 
 The five contact-flow variables are **all-or-nothing**: when any of them is missing,
 `contact_flow_enabled` is false and every contact endpoint answers `503` instead of
@@ -294,7 +321,7 @@ cd backend
 |-------|-------|--------|
 | 1 | **Landing v1** — 7 sections, GDPR cookie consent with granular categories persisted in `localStorage`, legal pages, centralized ES/EN i18n with a client-side switcher that does not change the URL. The Phase 1 contact form has since been **replaced** by the guided flow below. | ✅ Complete |
 | 2 | **FastAPI backend** — health endpoint, env-driven config, CORS. No database, no auth. Deploys on Vercel as a second project ([ADR 0004](docs/architecture/decisions/0004-backend-deploy-provider.md)). | ✅ Complete |
-| 3 | **AI services** — the guided contact flow: stateless email verification, Turnstile gate, SSRF-guarded site analysis, generated workflow report by email ([ADR 0006](docs/architecture/decisions/0006-guided-ai-contact-flow.md)). **The report generator is still a deterministic stub** until `GEMINI_API_KEY` is provisioned, and the Genkit dependency set does not currently fit Vercel's function size limit ([ADR 0004 → Measured bundle size](docs/architecture/decisions/0004-backend-deploy-provider.md)). | 🟡 In progress |
+| 3 | **AI services** — the guided contact flow: stateless email verification, Turnstile gate, SSRF-guarded site analysis, generated workflow report by email ([ADR 0006](docs/architecture/decisions/0006-guided-ai-contact-flow.md)). **The report generator is still a deterministic stub** until `GEMINI_API_KEY` is provisioned. The Gemini connector is written and tested but never run against the real model; it talks to the API over REST because the Genkit dependency set does not fit Vercel's function size limit ([ADR 0007](docs/architecture/decisions/0007-gemini-over-rest.md), [ADR 0004 → Measured bundle size](docs/architecture/decisions/0004-backend-deploy-provider.md)). | 🟡 Connector ready, unverified |
 
 ---
 

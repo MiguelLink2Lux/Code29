@@ -122,14 +122,23 @@ Two ways out, both real:
    under "Considered Options", where the limit does not exist and the runtime fit is better
    anyway.
 
-**The decision is unchanged: the backend stays on Vercel** until the user chooses between
-those two. This section records the measurement, not a reversal.
+**The decision is unchanged: the backend stays on Vercel.**
+
+**Resolved (2026-08-22) — way out (1), taken to its limit.** Phase 3 drops the Genkit SDK
+altogether and calls Gemini over its REST API with the `httpx` already in the dependency tree,
+adding **0 MB** ([[0007-gemini-over-rest]]). The bundle stays where Phase 2 left it and this
+risk is closed, not merely mitigated: nothing in the AI layer imports `google/` or `grpc/`.
+
+Way out (2) is therefore still parked, and only one thing brings it back to the table — wanting
+Genkit *itself*: its tracing, its prompt management, its flow registry. Those are exactly what
+ADR 0007 gives up, and a container host is what it would cost to get them back.
 
 ## References
 
 - [[0001-backend-repo-structure]] — why frontend and backend share a repository
 - [[0002-fastapi-as-backend-framework]] — the framework being deployed
 - [[0003-api-versioning-strategy]] — the routes served behind the catch-all rewrite
+- [[0007-gemini-over-rest]] — how the bundle-size risk above was closed without changing host
 - [[tech-stack-decision]] — overall architecture and phases
 - [[0006-guided-ai-contact-flow]] — the Phase 3 flow whose dependencies produced the measurement above
 - [[index]] — ADR index
