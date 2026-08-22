@@ -15,7 +15,7 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 | Language | TypeScript 5.6 |
 | Backend | FastAPI · Python 3.12 (`>=3.12,<3.13`), managed with [uv](https://docs.astral.sh/uv/) |
 | Hosting | Vercel |
-| Tests | Vitest (unit) · Playwright (e2e) · pytest (backend) |
+| Tests | Vitest (unit + build artifacts) · Playwright (e2e) · pytest (backend). No CI — every gate runs locally, see [testing strategy](docs/architecture/testing-strategy.md) |
 
 ---
 
@@ -26,6 +26,7 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 ├── src/
 │   ├── pages/            index · 404 · coming-soon · maintenance
 │   │   │                 cookies · legal-notice · privacy-policy
+│   │   │                 robots.txt.ts — generated, not a static file
 │   │   └── api/          contact.ts — serverless contact endpoint
 │   ├── components/
 │   │   ├── layout/       Nav · Footer
@@ -38,15 +39,30 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 │   ├── layouts/          BaseLayout · LegalLayout · StatusLayout
 │   ├── i18n/             translations.ts — single source of truth for all copy (ES/EN)
 │   ├── utils/            analytics · contact · cookie-consent · i18n
+│   │                     seo.ts — single source of truth for the site origin
 │   │                     (+ colocated *.test.ts)
 │   └── styles/           tokens.css — design system tokens
+├── public/               og-image.png · favicon.svg · favicon-32.png
+│                         apple-touch-icon.png  (generated, committed)
+├── scripts/
+│   ├── generate-brand-assets.mjs   Rasterizes the OG card and icons
+│   ├── assert-vercel-runtime.mjs   Fails on a build that emits nodejs18.x
+│   └── assert-e2e-specs.mjs        Fails if the e2e suite shrinks
 ├── backend/
 │   ├── app/
 │   │   ├── main.py       create_app() factory + module-level app
 │   │   ├── api/v1/       router.py · health.py
 │   │   └── core/         config.py — env-driven Settings
-│   └── tests/            conftest · test_config · test_cors · test_health
-├── tests/e2e/            Playwright specs
+│   ├── api/index.py      Vercel entrypoint — `from app.main import app`
+│   ├── scripts/          gen-requirements.sh — regenerates requirements.txt
+│   └── tests/            config · cors · health · requirements manifest
+│                         vercel config · vercel entrypoint
+├── tests/
+│   ├── artifacts/        Assertions on the real build output (13 cases)
+│   └── e2e/              Playwright specs — 4 files, 26 cases
+├── vitest.config.ts              Unit gate
+├── vitest.artifacts.config.ts    Build-artifact gate (needs `npm run build`)
+├── .nvmrc                        Node 20 — see Deployment
 └── docs/                 PRD · architecture · ADRs · protocols
 ```
 
@@ -83,11 +99,16 @@ uv run uvicorn app.main:app --reload    # interactive docs at /docs
 | `npm run dev` | Astro dev server |
 | `npm run build` | Production build |
 | `npm run preview` | Preview the build locally |
-| `npm test` | Unit tests (`vitest run`) |
+| `npm test` | Unit tests (`vitest run`) — 30 cases |
 | `npm run test:watch` | Unit tests in watch mode |
-| `npm run test:e2e` | End-to-end tests (`playwright test`) |
+| `npm run test:e2e` | End-to-end tests. Runs `scripts/assert-e2e-specs.mjs` first, then `playwright test` — **fails if `tests/e2e/` holds fewer than 4 spec files**, so a deleted spec breaks the gate instead of quietly shrinking coverage. |
+| `npm run verify:assets` | Build-artifact assertions (`vitest run --config vitest.artifacts.config.ts`) — 13 cases over the **real** output in `.vercel/output/static`. Requires `npm run build` first. |
+| `npm run verify:runtime` | `scripts/assert-vercel-runtime.mjs` — fails if the build emitted a Node runtime Vercel no longer accepts. Requires a build first. |
+| `npm run build:node20` | Build under Node 20 regardless of the local version (`npx --yes node@20 node_modules/astro/astro.js build`). |
 | `npm run lint` | ESLint |
 | `npm run format` | Prettier |
+
+Full breakdown of the four test levels: [Testing strategy](docs/architecture/testing-strategy.md).
 
 ### Backend
 
@@ -125,12 +146,20 @@ Names only — never commit values. `.env` files are git-ignored.
 
 | Variable | Purpose |
 |----------|---------|
+| `PUBLIC_SITE_URL` | **Optional.** Absolute site origin, scheme included (e.g. `https://code29.dev`). When unset, `src/utils/seo.ts` falls back to `https://code29.dev`. |
 | `PUBLIC_GA4_ID` | GA4 measurement ID. The script loads **only** after the visitor grants analytics consent. |
 | `RESEND_API_KEY` | Resend API key. Required by `POST /api/contact`. |
 | `CONTACT_TO_EMAIL` | Recipient of contact form submissions. Required. |
 | `CONTACT_FROM_EMAIL` | Verified sender address. Required. |
 
 If any of the three contact variables is missing, `POST /api/contact` responds `503` instead of failing silently.
+
+`PUBLIC_SITE_URL` is the **only** place the domain is configured. The canonical URL,
+`og:image`, `robots.txt` and the sitemap are all derived from it — change it here and
+nothing else needs touching. A value without a scheme (`code29.dev`) **fails the build on
+purpose**: it would otherwise emit relative `og:image` and sitemap URLs that crawlers and
+social scrapers silently reject. See
+[SEO and discoverability](docs/architecture/seo-and-discoverability.md).
 
 ### Backend (`backend/.env`)
 
@@ -169,8 +198,29 @@ Deploy **from Git** (push to `main` / open a PR) — never with `vercel --prebui
 
 > With a local Node version other than 20, the adapter bakes `"runtime": "nodejs18.x"` into
 > `.vercel/output/functions/_render.func/.vc-config.json`, and Vercel has rejected Node 18 on
-> new deployments since 2025-09-01. Building on Vercel makes the local Node version irrelevant.
+> new deployments since 2025-09-01. The build still **succeeds**, so nothing warns you until
+> the deploy fails. Building on Vercel makes the local Node version irrelevant.
 > `.nvmrc` and `package.json` → `engines` pin Node 20 for local work.
+
+To check the runtime a local build actually emitted:
+
+```bash
+npm run build:node20      # build under Node 20 whatever the local version is
+npm run verify:runtime    # fails unless .vc-config.json says nodejs20.x
+```
+
+### Brand and social assets
+
+`public/og-image.png`, `favicon.svg`, `favicon-32.png` and `apple-touch-icon.png` are
+generated from inline SVG with `sharp`, using the colors in `src/styles/tokens.css`:
+
+```bash
+node scripts/generate-brand-assets.mjs
+```
+
+The outputs are **committed on purpose** — the deploy must never depend on a rasterizer
+being available in the build image. Regenerate and commit after any brand change, then run
+`npm run build && npm run verify:assets` to confirm the emitted output carries them.
 
 ### Backend
 
@@ -213,6 +263,8 @@ cd backend
 | [Tech stack decision](docs/architecture/tech-stack-decision.md) | Why Astro + Vue + FastAPI |
 | [Design](docs/architecture/design.md) | Design system, tokens, source of truth |
 | [i18n](docs/architecture/i18n.md) | Translation architecture and language detection |
+| [SEO & discoverability](docs/architecture/seo-and-discoverability.md) | Site origin, canonical/OG tags, robots.txt, sitemap |
+| [Testing strategy](docs/architecture/testing-strategy.md) | The four test levels and what each one catches |
 | [ADR index](docs/architecture/decisions/index.md) | Architecture decision records |
 | [SDD workflow](docs/protocols/sdd-workflow.md) | Spec-driven development protocol |
 
