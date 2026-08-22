@@ -43,7 +43,9 @@ SECURITY_HEADERS = (
     "permissions-policy",
 )
 
-_TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+# Closing tags in the wild carry stray whitespace (`</title >`); requiring the
+# exact form silently reported "no title" for pages that have one.
+_TITLE = re.compile(r"<title[^>]*>(.*?)</title\s*>", re.IGNORECASE | re.DOTALL)
 _META = re.compile(r"<meta\s+([^>]+?)/?>", re.IGNORECASE)
 _LINK = re.compile(r"<link\s+([^>]+?)/?>", re.IGNORECASE)
 _ATTR = re.compile(r"([a-zA-Z-]+)\s*=\s*(\"([^\"]*)\"|'([^']*)'|([^\s\"'>]+))")
@@ -331,7 +333,9 @@ def extract_signals(outcome: FetchOutcome) -> SiteSignals:
         https=outcome.https,
         redirect_hops=outcome.redirect_hops,
         security_headers={name: name in outcome.headers for name in SECURITY_HEADERS},
-        title=title_match.group(1).strip() if title_match else None,
+        # Collapsed, not just stripped: a title split across source lines
+        # renders as one line in a browser and must read that way in the report.
+        title=" ".join(title_match.group(1).split()) if title_match else None,
         meta_description=description,
         canonical_url=_extract_canonical(body),
         viewport_declared=viewport,
