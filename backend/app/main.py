@@ -14,6 +14,7 @@ from app.api.v1.site_analysis import (
 )
 from app.core.config import Settings, get_settings
 from app.core.report_settings import ReportDeliveryUnavailable
+from app.services.extraction import FactExtractor, GeminiFactExtractor, StubFactExtractor
 from app.services.mailer import Mailer, ResendMailer
 from app.services.tokens import InvalidToken, verify_access_token
 from app.services.turnstile import (
@@ -50,6 +51,7 @@ def create_app(
     settings: Settings | None = None,
     turnstile_verifier: TurnstileVerifier | None = None,
     mailer: Mailer | None = None,
+    fact_extractor: FactExtractor | None = None,
 ) -> FastAPI:
     """Build the FastAPI app: CORS from settings + the /api/v1 router.
 
@@ -79,6 +81,10 @@ def create_app(
         sender=settings.contact_from_email,
     )
 
+    # The deterministic stub is the default: with no model key the conversation
+    # still works, it just extracts less. A 503 per turn would be worse.
+    app.state.fact_extractor = fact_extractor or _build_extractor(settings)
+
     app.include_router(api_v1)
 
     def _token_verifier() -> AccessTokenVerifier:
@@ -96,6 +102,12 @@ def create_app(
         return JSONResponse(status_code=503, content={"detail": str(error)})
 
     return app
+
+
+def _build_extractor(settings: Settings) -> FactExtractor:
+    key = settings.gemini_api_key.get_secret_value() if hasattr(settings, "gemini_api_key") else ""
+
+    return GeminiFactExtractor(api_key=key) if key else StubFactExtractor()
 
 
 # Module-level instance for `uvicorn app.main:app`. Import is side-effect-free

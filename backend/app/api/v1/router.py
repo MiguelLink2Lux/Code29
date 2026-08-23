@@ -2,10 +2,11 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import contact, contact_report, health, site_analysis
+from app.api.v1 import contact, contact_report, conversation, health, site_analysis
 
 api_v1 = APIRouter(prefix="/api/v1")
 api_v1.include_router(health.router)
 api_v1.include_router(contact.router)
 api_v1.include_router(contact_report.router)
 api_v1.include_router(site_analysis.router)
+api_v1.include_router(conversation.router)
