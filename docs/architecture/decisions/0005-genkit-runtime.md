@@ -1,11 +1,20 @@
-> **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-08-19
+> **Type:** Architecture · ADR — **Status:** Accepted (partially superseded by 0007) — **Date:** 2026-08-19
 
 # ADR 0005 — Genkit on Python, embedded in the FastAPI backend
 
-- **Status:** Accepted
+- **Status:** Accepted — **partially superseded by [[0007-gemini-over-rest]]**
 - **Date:** 2026-08-19
 - **Deciders:** Miguel Navarro Mantas
 - **Linear:** COD-31
+
+> **Partially superseded by [[0007-gemini-over-rest]] (2026-08-22).** This ADR decided two
+> things at once. What **still stands**: the AI layer lives embedded in the FastAPI backend —
+> one language on the server side, one process, one deployment, one test suite. What was
+> **replaced**: the *mechanism* for reaching the model. The Genkit Python SDK is no longer
+> used; the backend calls the Google Generative Language REST API directly over `httpx`,
+> because the `genkit-google-genai` plugin drags in 137 MB of `google/` and `grpc/` and does
+> not fit Vercel's ~250 MB Python function ceiling. Genkit is not installed. Everything below
+> is kept as the historical record of the original decision.
 
 ## Context and Problem Statement
 

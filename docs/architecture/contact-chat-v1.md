@@ -124,6 +124,7 @@ differs in ways worth reading before touching the code:
 | `src/utils/contact-submit.ts` submit contract | `src/utils/contact-api.ts` (+ `src/utils/turnstile-client.ts`) |
 | Email delivery of a contact lead | Email delivery of a **generated workflow report** |
 | Free-form `need` answer | Four structured diagnosis axes (`delivery`, `bugs`, `deploys`, `security`) |
+| Genkit SDK fronting the model | Direct **REST** call to the Gemini API — Genkit is not installed ([[decisions/0007-gemini-over-rest]]) |
 
 The step **order is an authorisation rule**, not a UX preference: `code` verifies the email
 address before any step that costs money or makes an outbound request. The full rationale,
@@ -143,6 +144,7 @@ Endpoints serving the flow, all under `/api/v1`:
 ## References
 
 - [[decisions/0006-guided-ai-contact-flow]] — Phase 3 decisions, risks and privacy posture
+- [[decisions/0007-gemini-over-rest]] — how the backend reaches the model, and why not Genkit
 - [[decisions/0004-backend-deploy-provider]] — where the backend runs, and its bundle limit
 - [[testing-strategy]] — the gates covering the chat
 - [[index]]

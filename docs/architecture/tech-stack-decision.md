@@ -97,8 +97,11 @@ Required across all layers (Astro + Vue) to enforce design token integrity and p
   decided 2026-08-21, see [[0004-backend-deploy-provider]]
 - Type: serverless function (`backend/api/index.py`), catch-all rewrite in `backend/vercel.json`
 - Deploy: automatic CI/CD from Git, same as the frontend
-- Open risk: if the Phase 3 Genkit dependency tree exceeds Vercel's bundle limit, the backend
-  moves to a container host (Cloud Run) — `create_app()` is host-agnostic
+- **Risk closed (2026-08-22):** the Genkit dependency tree *did* exceed what fits under
+  Vercel's ~250 MB Python function limit, but the backend stayed on Vercel — Genkit was dropped
+  for a direct REST call to Gemini over the already-present `httpx`, see
+  [[0007-gemini-over-rest]]. A move to a container host (Cloud Run) remains available because
+  `create_app()` is host-agnostic; it was not needed.
 
 ### Domain structure
 
@@ -134,7 +137,9 @@ api.dominio.com   → Backend (FastAPI)
 
 ### Phase 3 — Full AI Implementation
 - Complete, functional AI analyzer
-- Conversational assistant with streaming, over Genkit (see [[0005-genkit-runtime]])
+- Conversational assistant, AI layer embedded in the FastAPI backend
+  (see [[0005-genkit-runtime]]; the model is reached over REST, not via Genkit —
+  [[0007-gemini-over-rest]])
 - Lead capture with GDPR-compliant consent
 - Document generation (PDF / structured Markdown)
 - Full production deployment with monitoring

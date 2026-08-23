@@ -10,19 +10,24 @@ description.
 
 | Level | Runner | Cases | Command | Answers |
 |-------|--------|-------|---------|---------|
-| Unit | Vitest (jsdom) | 79 | `npm test` | Does the logic in `src/utils/` and the chat island behave? |
+| Unit | Vitest (jsdom) | 89 | `npm test` | Does the logic in `src/utils/` and the chat island behave? |
 | Build artifacts | Vitest (separate config) | 13 | `npm run build && npm run verify:assets` | Did the build *emit* the files we claim to ship? |
 | End-to-end | Playwright (Chromium) | 32 in 5 specs | `npm run test:e2e` | Does a real browser see the intended behaviour? |
-| Backend | pytest | 261 | `cd backend && uv run pytest` | Does the API boot, respond, refuse correctly and stay deploy-consistent? |
+| Backend | pytest | 309 | `cd backend && uv run pytest` | Does the API boot, respond, refuse correctly and stay deploy-consistent? |
 
 ## Components
 
 ### Unit — `src/utils/*.test.ts`
 
 Colocated with the code they cover: `contact-api` (12), `contact-chat-flow` (12),
-`contact-chat` (18), `cookie-consent` (4), `i18n` (7), `seo` (15), plus the chat island
-itself in `src/components/contact/ContactChat.test.ts` (11). Fast, no build, no browser.
+`contact-chat` (18), `cookie-consent` (4), `env-example` (3), `i18n` (7), `seo` (15), plus
+the chat island itself in `src/components/contact/ContactChat.test.ts` (11). Fast, no build, no browser.
 This is the only gate cheap enough to run on every save (`npm run test:watch`).
+
+`env-example.test.ts` is not a logic test but a **drift gate**: it scans `src/` for the
+environment variables the frontend actually reads and fails if `.env.example` omits one, so a
+new variable cannot ship undocumented (the dynamically-read names, invisible to a scan, are
+listed in the spec itself).
 
 The contact-chat trio is where the flow's *rules* are asserted rather than its looks: that
 the ten steps keep their fixed order, that a step's validation rejects what it should, that
@@ -93,19 +98,25 @@ nothing. A deleted spec must break the command, not quietly shrink coverage.
 
 ### Backend — `backend/tests/`
 
-261 collected cases across 17 modules — many are `pytest.mark.parametrize` expansions, so
+309 collected cases across 21 modules — many are `pytest.mark.parametrize` expansions, so
 the collected total is well above the number of `def test_` lines.
 
 | Area | Modules |
 |---|---|
 | Contact flow | `test_contact_verification_api` (11), `test_verification_tokens` (17), `test_turnstile` (8), `test_contact_settings` (8) |
-| Report | `test_report` (22), `test_contact_report_endpoint` (18), `test_mailer` (12) |
+| Report | `test_report` (22), `test_contact_report_endpoint` (18), `test_mailer` (12), `test_report_gemini` (21), `test_report_contract` (9), `test_report_locale` (9) |
 | Site analysis | `test_url_guard` (20), `test_site_fetch` (15), `test_site_signals` (19), `test_site_analysis_endpoint` (12) |
-| Platform | `test_config` (4), `test_cors` (5), `test_health` (5) |
+| Platform | `test_config` (4), `test_cors` (5), `test_health` (5), `test_wiring` (4) |
 | Deploy consistency | `test_requirements_manifest` (4), `test_vercel_config` (4), `test_vercel_entrypoint` (3) |
 
 (Counts above are declared test functions; parameterization is what lifts the collected total
-to 261.)
+to 309.)
+
+The report group covers both generators behind the same port: `test_report_gemini` drives the
+Gemini connector against a **mock transport** — the real Generative Language API is never
+called from the suite — and `test_report_locale` asserts ES/EN copy-key parity so a missing
+translation fails the run. `test_report_contract` pins the shape both generators must return,
+and `test_wiring` asserts the configured generator is the one actually injected.
 
 The security-shaped modules carry most of the weight, and deliberately: `test_url_guard`
 asserts the SSRF policy refusal by refusal, and `test_turnstile` asserts that every failure
@@ -138,6 +149,7 @@ cd backend && uv run pytest                 # backend
 ## References
 
 - [[seo-and-discoverability]]
+- [[decisions/0007-gemini-over-rest]] — why the Gemini connector is REST, not the Genkit SDK
 - [[i18n]]
 - [[decisions/0004-backend-deploy-provider]]
 - [[decisions/0006-guided-ai-contact-flow]]

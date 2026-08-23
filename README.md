@@ -58,18 +58,22 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 │   │   │                 contact.py — email verification (request/confirm)
 │   │   │                 contact_report.py · site_analysis.py
 │   │   ├── services/     tokens.py — stateless codes + signed access tokens
+│   │   │                 tokens_port.py — the abstraction the endpoints depend on
 │   │   │                 turnstile.py — anti-abuse gate, fails closed
-│   │   │                 mailer.py · report.py
+│   │   │                 mailer.py · report.py — deterministic stub generator
+│   │   │                 report_copy.py — ES/EN template copy
+│   │   │                 report_gemini.py — Gemini over the REST API (ADR 0007)
 │   │   │                 site_analysis.py · url_guard.py — SSRF boundary
 │   │   └── core/         config.py · report_settings.py — env-driven Settings
 │   ├── api/index.py      Vercel entrypoint — `from app.main import app`
 │   ├── scripts/          gen-requirements.sh — regenerates requirements.txt
-│   └── tests/            17 modules, 261 collected cases — see testing strategy
+│   └── tests/            21 modules, 309 collected cases — see testing strategy
 ├── tests/
 │   ├── artifacts/        Assertions on the real build output (13 cases)
 │   └── e2e/              Playwright specs — 5 files, 32 cases
 ├── vitest.config.ts              Unit gate
 ├── vitest.artifacts.config.ts    Build-artifact gate (needs `npm run build`)
+├── .env.example                  Frontend variable template — asserted by the unit gate
 ├── .nvmrc                        Node 20 — see Deployment
 └── docs/                 PRD · architecture · ADRs · protocols
 ```
@@ -108,7 +112,7 @@ uv run uvicorn app.main:app --reload    # interactive docs at /docs
 | `npm run dev` | Astro dev server |
 | `npm run build` | Production build |
 | `npm run preview` | Preview the build locally |
-| `npm test` | Unit tests (`vitest run`) — 79 cases |
+| `npm test` | Unit tests (`vitest run`) — 89 cases |
 | `npm run test:watch` | Unit tests in watch mode |
 | `npm run test:e2e` | End-to-end tests. Runs `scripts/assert-e2e-specs.mjs` first, then `playwright test` — **fails if `tests/e2e/` holds fewer than 4 spec files**, so a deleted spec breaks the gate instead of quietly shrinking coverage. The floor is still 4 while the suite holds 5 — raising it is a one-line change in the script. |
 | `npm run verify:assets` | Build-artifact assertions (`vitest run --config vitest.artifacts.config.ts`) — 13 cases over the **real** output in `.vercel/output/static`. Requires `npm run build` first. |
@@ -219,7 +223,8 @@ contact endpoint, the mailer and the frontend never know which one ran:
 
 **Today the report is written by the deterministic stub, not by a model**, because no
 `GEMINI_API_KEY` exists in any environment. The Gemini connector is implemented and covered by
-18 tests against a mock transport, but it has never been run against the real model — so
+a dedicated test module (`backend/tests/test_report_gemini.py`) against a mock transport, but
+it has never been run against the real model — so
 switching a lead-facing environment to `gemini` is an unverified change until a key exists and
 someone reads what the model actually produces.
 
@@ -237,9 +242,11 @@ The five contact-flow variables are **all-or-nothing**: when any of them is miss
 `contact_flow_enabled` is false and every contact endpoint answers `503` instead of
 half-working. Local development therefore needs no configuration at all.
 
-> **Note:** copy `backend/.env.example` to `backend/.env` to get started. That template
-> currently ships only `APP_ENV` and `CORS_ORIGINS` — the contact-flow variables above are
-> not in it yet.
+> **Note:** copy `backend/.env.example` to `backend/.env` to get started. The template ships
+> every variable in the table above, contact-flow ones included, with placeholders and no real
+> secrets. On the frontend side the root `.env.example` plays the same role, and
+> `src/utils/env-example.test.ts` fails the unit gate if the code reads a variable the template
+> does not document.
 
 In production these are set in the **backend** Vercel project's environment settings:
 
