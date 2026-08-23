@@ -166,7 +166,7 @@ export const translations = {
     es: {
       sectionTag: 'WHAT_I_DO',
       heading: 'Servicios',
-      subheading: 'Soluciones diseñadas para empresas que quieren moverse más rápido con la inteligencia correcta.',
+      subheading: 'Un flujo de desarrollo completo asistido por IA: del diagnóstico al despliegue, con el equipo formado y los criterios de calidad bajo control.',
       cta: 'Solicitar información ›',
       items: [
         {
@@ -178,6 +178,7 @@ export const translations = {
             'Arquitectura de sistemas escalables',
             'Gestión y crecimiento del equipo técnico',
             'Definición de roadmap tecnológico',
+            'Gobernanza de datos, secretos y dependencias',
             'Due diligence e integración tecnológica',
           ],
         },
@@ -185,12 +186,14 @@ export const translations = {
           tag: 'SERVICIO_02',
           title: 'Análisis & Transformación IA',
           description:
-            'Diagnóstico integral del proyecto —desde cero o ya en marcha— diseño del plan de mejora e implantación del flujo de desarrollo asistido por IA, incluyendo la capacitación del equipo.',
+            'Diagnóstico integral del proyecto —desde cero o ya en marcha— e implantación del flujo completo de desarrollo asistido por IA: entorno preparado, equipo formado y criterios de calidad bajo control.',
           features: [
             'Diagnóstico técnico y auditoría del proyecto',
             'Hoja de ruta de mejora y planificación',
+            'Preparación del entorno de desarrollo asistido',
             'Implementación del flujo AI-First',
-            'Capacitación del equipo en desarrollo asistido con IA',
+            'Formación del equipo en desarrollo asistido con IA',
+            'Definición y control de criterios de calidad',
           ],
         },
         {
@@ -202,6 +205,7 @@ export const translations = {
             'Integración avanzada de LLMs',
             'Orquestación de agentes autónomos',
             'Automatización de flujos de desarrollo',
+            'Documentación viva y contexto histórico del proyecto',
             'Hoja de ruta estratégica de IA',
           ],
         },
@@ -212,6 +216,8 @@ export const translations = {
             'Diseño e implantación de pipelines inteligentes de CI/CD, observabilidad y automatización operativa para desplegar más rápido, con menos fricción y más control.',
           features: [
             'Pipelines CI/CD asistidos por IA',
+            'Tests automatizados como puerta de merge',
+            'Revisión de código asistida por IA',
             'Automatización de despliegues y rollback',
             'Observabilidad y alertado operativo',
             'Optimización de entornos y costes de infraestructura',
@@ -222,7 +228,7 @@ export const translations = {
     en: {
       sectionTag: 'WHAT_I_DO',
       heading: 'Services',
-      subheading: 'Solutions built for companies that want to move faster with the right intelligence.',
+      subheading: 'A complete AI-assisted development workflow: from diagnosis to deployment, with the team trained and quality criteria under control.',
       cta: 'Request information ›',
       items: [
         {
@@ -234,6 +240,7 @@ export const translations = {
             'Scalable systems architecture',
             'Technical team management & growth',
             'Technology roadmap definition',
+            'Data, secrets and dependency governance',
             'Due diligence & technology integration',
           ],
         },
@@ -241,12 +248,14 @@ export const translations = {
           tag: 'SERVICE_02',
           title: 'AI Analysis & Transformation',
           description:
-            'Comprehensive project diagnosis — from scratch or already in progress — design of the improvement plan and implementation of the AI-assisted development workflow, including team training.',
+            'Comprehensive project diagnosis — greenfield or already running — and implementation of the complete AI-assisted development workflow: environment prepared, team trained, quality criteria under control.',
           features: [
             'Technical diagnosis and project audit',
             'Improvement roadmap and planning',
+            'AI-assisted development environment setup',
             'AI-First workflow implementation',
             'Team training in AI-assisted development',
+            'Quality criteria definition and control',
           ],
         },
         {
@@ -258,6 +267,7 @@ export const translations = {
             'Advanced LLM integration',
             'Autonomous agent orchestration',
             'Development workflow automation',
+            'Living documentation and project history',
             'Strategic AI roadmap',
           ],
         },
@@ -268,6 +278,8 @@ export const translations = {
             'Design and implementation of intelligent CI/CD pipelines, observability, and operational automation so you can deploy faster with less friction and more control.',
           features: [
             'AI-assisted CI/CD pipelines',
+            'Automated tests as a merge gate',
+            'AI-assisted code review',
             'Deployment and rollback automation',
             'Observability and operational alerting',
             'Infrastructure environment and cost optimization',
