@@ -22,7 +22,7 @@ from app.services.canon import (
     EvidenceSource,
     PointAssessment,
     PointState,
-)
+)  # noqa: I001 — grouped deliberately, CanonPoint is used in the signatures below
 from app.services.report import SiteSignals
 
 _VALID_SOURCES = {source.value for source in EvidenceSource}
@@ -78,8 +78,18 @@ def dropped_claim_count(items: Any) -> int:
     return sum(1 for item in items if _coerce(item) is None)
 
 
+#: The only canon point a home page can say anything about, and even then weakly.
+#: Everything else a page reveals — framework, sitemap, page weight — is context
+#: about their stack, not evidence of how they work.
+_SECURITY_POINT = 10
+
+
 def measured_evidence(signals: SiteSignals) -> list[Evidence]:
-    """Our own signals as evidence.
+    """Every signal we measured, regardless of which point it speaks to.
+
+    Kept for callers that want the raw pool (report context, for instance). To
+    resolve a canon point, use `measured_evidence_for`: a signal attached to the
+    wrong point is a false statement about the lead even though it is sourced.
 
     Returns nothing when the page was never read. Emitting "no HTTPS" because we
     failed to fetch would turn our own failure into a finding about the lead.
@@ -96,6 +106,7 @@ def measured_evidence(signals: SiteSignals) -> list[Evidence]:
                 text="HTTPS enabled" if signals.https else "HTTPS not enabled",
                 source=EvidenceSource.MEASURED,
                 ref=ref,
+                partial=True,
             )
         )
 
@@ -105,6 +116,7 @@ def measured_evidence(signals: SiteSignals) -> list[Evidence]:
                 text=f"Security headers present: {', '.join(signals.security_headers)}",
                 source=EvidenceSource.MEASURED,
                 ref=ref,
+                partial=True,
             )
         )
 
@@ -114,34 +126,30 @@ def measured_evidence(signals: SiteSignals) -> list[Evidence]:
                 text=f"Security headers absent: {', '.join(signals.missing_security_headers)}",
                 source=EvidenceSource.MEASURED,
                 ref=ref,
-            )
-        )
-
-    if signals.framework:
-        evidence.append(
-            Evidence(
-                text=f"Framework detected: {signals.framework}",
-                source=EvidenceSource.MEASURED,
-                ref=ref,
-            )
-        )
-
-    if signals.sitemap is not None or signals.robots_txt is not None:
-        found = [
-            name
-            for name, present in (("robots.txt", signals.robots_txt), ("sitemap", signals.sitemap))
-            if present
-        ]
-        evidence.append(
-            Evidence(
-                text=f"Crawlability files found: {', '.join(found)}" if found
-                else "Neither robots.txt nor a sitemap was found",
-                source=EvidenceSource.MEASURED,
-                ref=ref,
+                partial=True,
             )
         )
 
     return evidence
+
+
+def measured_evidence_for(point: CanonPoint, signals: SiteSignals) -> list[Evidence]:
+    """The measured signals that genuinely evidence *this* point.
+
+    Only the security signals map to a canon point, and only to governance —
+    marked `partial`, because a present HSTS header is a hint about security
+    posture, not proof that secret management and dependency scanning exist.
+
+    Nothing on a home page proves a pipeline exists or that documentation lives
+    beside the code, so points 8 and 9 get no measured evidence at all. The live
+    run that prompted this returned "Framework detected: Next.js" as grounds for
+    marking CI/CD *covered*, which is exactly the kind of sourced falsehood this
+    module is supposed to prevent.
+    """
+    if point.number != _SECURITY_POINT:
+        return []
+
+    return measured_evidence(signals)
 
 
 def resolve_with_sources(
@@ -172,7 +180,12 @@ def resolve_with_sources(
     if contradicted and not measured_items:
         return PointAssessment(point=point, state=PointState.NOT_EVALUATED, evidence=ordered)
 
-    if any(item.partial for item in ordered) and not measured_items:
+    # Partial stays partial whatever its source. Measured evidence is more
+    # trustworthy than reported evidence, which is why it outranks a
+    # contradiction above — but that does not make weak evidence strong. A
+    # present HSTS header is a hint about security posture, not proof that
+    # secret management and dependency scanning exist.
+    if all(item.partial for item in ordered):
         return PointAssessment(
             point=point,
             state=PointState.PARTIAL,

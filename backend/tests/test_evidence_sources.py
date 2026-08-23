@@ -16,6 +16,7 @@ from app.services.canon import CANON_POINTS, Evidence, EvidenceSource, PointStat
 from app.services.evidence import (
     dropped_claim_count,
     measured_evidence,
+    measured_evidence_for,
     parse_model_evidence,
     resolve_with_sources,
 )
@@ -186,3 +187,125 @@ def test_the_three_sources_are_the_only_ones_accepted(source: str) -> None:
     parsed = parse_model_evidence([{"text": "claim", "source": source, "ref": ref}])
 
     assert len(parsed) == 1
+
+
+class TestMeasuredEvidenceRelevance:
+    """A sourced claim attached to the wrong point is still a falsehood.
+
+    Found by the live run: every "measurable" point received the whole measured
+    pool, so `Framework detected: Next.js` marked CI/CD as covered and
+    `HTTPS enabled` became the diagnosis for living documentation. Guarding
+    against unsourced claims was not enough — evidence has to be relevant to the
+    point it resolves.
+    """
+
+    FULL = SiteSignals(
+        available=True,
+        https=True,
+        url="https://example.com",
+        framework="Next.js",
+        robots_txt=True,
+        sitemap=True,
+        missing_security_headers=["Content-Security-Policy"],
+    )
+
+    def test_a_stack_fingerprint_evidences_no_canon_point(self) -> None:
+        # Knowing they run Next.js says nothing about how they work.
+        for point in CANON_POINTS:
+            for item in measured_evidence_for(point, self.FULL):
+                assert "Next.js" not in item.text
+
+    def test_crawlability_files_evidence_no_canon_point(self) -> None:
+        for point in CANON_POINTS:
+            for item in measured_evidence_for(point, self.FULL):
+                assert "robots" not in item.text.lower()
+                assert "sitemap" not in item.text.lower()
+
+    def test_security_headers_reach_the_governance_point(self) -> None:
+        governance = next(p for p in CANON_POINTS if p.number == 10)
+
+        evidence = measured_evidence_for(governance, self.FULL)
+
+        assert any("Content-Security-Policy" in item.text for item in evidence)
+
+    def test_security_signals_never_resolve_a_point_as_covered(self) -> None:
+        # A missing CSP header is a hint about security posture, not proof that
+        # dependency scanning and secret management exist. Partial at most.
+        governance = next(p for p in CANON_POINTS if p.number == 10)
+
+        for item in measured_evidence_for(governance, self.FULL):
+            assert item.partial is True
+
+    def test_cicd_gets_no_measured_evidence_from_a_home_page(self) -> None:
+        # Nothing on a home page proves a pipeline exists.
+        cicd = next(p for p in CANON_POINTS if p.number == 8)
+
+        assert measured_evidence_for(cicd, self.FULL) == []
+
+    def test_living_documentation_gets_no_measured_evidence_either(self) -> None:
+        docs = next(p for p in CANON_POINTS if p.number == 9)
+
+        assert measured_evidence_for(docs, self.FULL) == []
+
+    def test_an_unreadable_page_yields_nothing_for_any_point(self) -> None:
+        unavailable = SiteSignals(available=False)
+
+        for point in CANON_POINTS:
+            assert measured_evidence_for(point, unavailable) == []
+
+
+class TestPartialNeverBecomesCovered:
+    """Partial evidence stays partial, whatever its source.
+
+    The precedence rule "measured outranks reported" was short-circuiting the
+    partial check, so a present HSTS header — real, measured, and explicitly
+    partial — resolved governance as *covered*. Measured evidence is more
+    trustworthy than reported evidence; that does not make weak evidence strong.
+    """
+
+    def test_only_partial_measured_evidence_resolves_partial(self) -> None:
+        assessment = resolve_with_sources(
+            CANON_POINTS[9],
+            measured=[Evidence(text="HTTPS enabled", source=EvidenceSource.MEASURED,
+                               ref="site", partial=True)],
+            reported=[],
+            cited=[],
+        )
+
+        assert assessment.state is PointState.PARTIAL
+
+    def test_a_full_measured_signal_still_covers(self) -> None:
+        assessment = resolve_with_sources(
+            CANON_POINTS[9],
+            measured=[Evidence(text="dependency scanning in the pipeline",
+                               source=EvidenceSource.MEASURED, ref="site")],
+            reported=[],
+            cited=[],
+        )
+
+        assert assessment.state is PointState.COVERED
+
+    def test_a_partial_measured_signal_with_a_full_reported_one_covers(self) -> None:
+        # The visitor stating the practice outright is not weakened by our own
+        # partial signal about it.
+        assessment = resolve_with_sources(
+            CANON_POINTS[9],
+            measured=[Evidence(text="HTTPS enabled", source=EvidenceSource.MEASURED,
+                               ref="site", partial=True)],
+            reported=[Evidence(text="escaneamos dependencias en CI",
+                               source=EvidenceSource.REPORTED, ref="chat")],
+            cited=[],
+        )
+
+        assert assessment.state is PointState.COVERED
+
+    def test_a_partial_point_is_still_an_opportunity(self) -> None:
+        assessment = resolve_with_sources(
+            CANON_POINTS[9],
+            measured=[Evidence(text="HTTPS enabled", source=EvidenceSource.MEASURED,
+                               ref="site", partial=True)],
+            reported=[],
+            cited=[],
+        )
+
+        assert assessment.is_opportunity is True
