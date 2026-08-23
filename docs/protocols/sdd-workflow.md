@@ -98,28 +98,31 @@ To retrieve a full artifact (search results are truncated):
 
 ---
 
-## Jira Integration
+## Linear Integration
 
-SDD and Jira serve different purposes — do not duplicate.
+SDD and Linear serve different purposes — do not duplicate.
 
 | Tool | Purpose |
 |------|---------|
-| **Jira** | Tracking: who, when, status, priority |
+| **Linear** | Tracking: who, when, status, priority |
 | **SDD** | Design: what, why, how, spec, validation |
 
 **Protocol:**
-1. Jira ticket created first (e.g., `C29-XX: Implement cookie consent`)
-2. If SDD is required → transition Jira ticket to **En curso** → run `/sdd-new [change-name]`
-3. SDD tasks checklist lives in engram — do NOT re-create as Jira subtasks
-4. When SDD apply is complete → run `/sdd-verify` → transition Jira ticket to **Finalizada**
+1. Linear issue created first (e.g., `COD-XX: Implement cookie consent`)
+2. If SDD is required → move the issue to **In Progress** → run `/sdd-new [change-name]`
+3. SDD tasks checklist lives in engram — do NOT re-create as Linear sub-issues
+4. When SDD apply is complete → run `/sdd-verify` → move the issue to **Done**
 5. Run `/sdd-archive` to close the SDD cycle
+
+Conventions (workspace, statuses, branch and PR linking):
+[docs/protocols/linear-claude-integration.md](linear-claude-integration.md)
 
 ---
 
 ## Example: Full SDD Cycle for Cookie Consent Banner
 
 ```
-1. Jira: C29-XX created → transition to En curso
+1. Linear: COD-XX created → move to In Progress
 
 2. /sdd-new cookie-consent-banner
    → orchestrator runs: sdd-explore → sdd-propose
@@ -140,7 +143,7 @@ SDD and Jira serve different purposes — do not duplicate.
 8. /sdd-archive cookie-consent-banner
    → archive all artifacts
 
-9. Jira: transition to Finalizada
+9. Linear: move to Done
    → Propose commit → user approves → commit
 ```
 

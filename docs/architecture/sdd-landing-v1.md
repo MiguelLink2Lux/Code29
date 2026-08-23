@@ -1,7 +1,7 @@
 # SDD: Landing v1 — Implementation Plan
 
 > **Status:** In Progress — Phase 1 ✅ Phase 2 ✅ | Next: Phase 3 (Cookie Consent)
-> **Jira epic range:** C29-16 → C29-22
+> **Epic range:** C29-16 → C29-22 (legacy Jira keys — Jira retired 2026-08-04; new work is tracked in Linear as `COD-*`)
 > **SDD artifacts:** Engram project Code29, topic keys `sdd/landing-v1/*`
 
 ## Implementation Order
@@ -60,7 +60,7 @@
 
 ### i18n — Centralized Translations ✅ (2026-05-09)
 
-> Added between Phase 2 and Phase 3. Not a Jira epic — architectural improvement.
+> Added between Phase 2 and Phase 3. Not part of the epic range — architectural improvement.
 
 | File | Action |
 |------|--------|

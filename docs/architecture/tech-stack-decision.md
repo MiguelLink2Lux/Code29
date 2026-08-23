@@ -189,4 +189,4 @@ This architecture allows:
 - Architecture decisions: [decisions/index.md](decisions/index.md) (ADR 0001–0003)
 - Agent map: [docs/protocols/ai-agents.md](../protocols/ai-agents.md)
 - Implementation plan: [docs/architecture/sdd-landing-v1.md](sdd-landing-v1.md)
-- Jira: C29-8 (closed), C29-9 (closed), C29-10 (closed), C29-11 (closed)
+- Legacy Jira keys (Jira retired 2026-08-04, kept as history): C29-8, C29-9, C29-10, C29-11 — all closed

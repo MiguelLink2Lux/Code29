@@ -59,8 +59,8 @@
 |------|---------|
 | `CLAUDE.md` | Workflow, commit format, language rules, SDD quick ref |
 | `docs/protocols/ai-agents.md` | Agent map, orchestration protocol, handoff rules |
-| `docs/protocols/sdd-workflow.md` | SDD trigger conditions, phases, naming, Jira integration |
-| `docs/protocols/jira-claude-integration.md` | Jira MCP conventions, transition IDs, sprint protocol |
+| `docs/protocols/sdd-workflow.md` | SDD trigger conditions, phases, naming, Linear integration |
+| `docs/protocols/linear-claude-integration.md` | Linear conventions: workspace, statuses, branch/PR linking |
 | `docs/architecture/design.md` | Design system tokens (Neon Architect) |
 | `docs/architecture/tech-stack-decision.md` | Stack decision: Astro+Vue+FastAPI+Vercel |
 | `docs/requirements/PRD.md` | Product requirements v1 + v2 |
