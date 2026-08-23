@@ -21,7 +21,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated, Protocol
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.report_settings import (
@@ -34,16 +34,11 @@ from app.services.mailer import (
     MailDeliveryError,
     Mailer,
     ResendMailer,
-    render_report_email,
 )
 from app.services.report import (
-    ContactReport,
-    ReportFacts,
     ReportGenerator,
     SiteSignals,
-    UnusableReportGenerator,
     WorkflowAnswers,
-    build_report_generator,
 )
 from app.services.tokens_port import (
     InvalidVerificationToken,
@@ -93,12 +88,20 @@ class ReportRequest(BaseModel):
     guarantee, but narrowing the input costs nothing.
     """
 
-    contact_name: str = Field(min_length=1, max_length=120)
+    #: The signed conversation envelope. When present it is the ONLY source of
+    #: facts: a client that could post its own would put any company into a
+    #: report we sign our name to. Absent for the legacy questionnaire payload,
+    #: which the cutover retires — see ADR 0009.
+    envelope: str | None = None
+    contact_name: str = Field(default="", max_length=120)
     # The chat presents the company as optional, so an empty string must not
     # strand a visitor on a step they were told they could skip.
     company: str = Field(default="", max_length=160)
     locale: str = "es"
-    workflow: WorkflowAnswers
+    #: Legacy questionnaire field. The canon report does not read it: practices
+    #: now arrive as reported evidence from the conversation. Optional so the
+    #: conversational payload validates.
+    workflow: WorkflowAnswers = WorkflowAnswers()
     site_url: str | None = None
     transcript: list[TranscriptEntry] = Field(default_factory=list)
     consent: ConsentPayload
@@ -181,35 +184,89 @@ def get_verified_email(
 
 def get_report_generator(
     settings: Annotated[ReportDeliverySettings, Depends(get_settings)],
-) -> ReportGenerator:
-    try:
-        return build_report_generator(
-            settings.report_generator,
-            model_api_key=settings.gemini_api_key.get_secret_value(),
-        )
-    except UnusableReportGenerator as error:
-        # Misconfiguration, not a bad request: surface it as 503.
-        raise ReportDeliveryUnavailable(str(error)) from error
+):
+    """The canon generator: ten points, not the superseded five axes (ADR 0008).
+
+    `stub` is the deterministic template — what runs with no key and what every
+    test exercises. `gemini` verifies claims with Search when the account is
+    entitled to grounding, and degrades to ungrounded (dropping every cited
+    claim) when it is not: without grounding a "citation" is a claim nobody
+    checked.
+    """
+    from app.services.canon_report import TemplateCanonGenerator
+    from app.services.grounded_report import GroundedCanonGenerator
+
+    selected = (settings.report_generator or "stub").strip().lower()
+
+    if selected == "stub":
+        return TemplateCanonGenerator()
+
+    if selected == "gemini":
+        key = settings.gemini_api_key.get_secret_value()
+        if not key:
+            # Misconfiguration, not a bad request: surface it as 503 rather than
+            # silently emailing a template report as if a model wrote it.
+            raise ReportDeliveryUnavailable(
+                "REPORT_GENERATOR=gemini requires GEMINI_API_KEY to be set"
+            )
+        return GroundedCanonGenerator(api_key=key)
+
+    raise ReportDeliveryUnavailable(
+        f"Unknown REPORT_GENERATOR value: {settings.report_generator!r}. "
+        "Valid values: 'stub', 'gemini'"
+    )
 
 
 def get_mailer(
+    request: Request,
     settings: Annotated[ReportDeliverySettings, Depends(get_settings)],
 ) -> Mailer:
+    """The app's mailer if one was injected, otherwise a Resend adapter.
+
+    Two ways to obtain a mailer is one too many: create_app already accepts one,
+    and a route building its own quietly ignored it — which is how a test that
+    asserts on delivery can pass while nothing is delivered.
+    """
+    injected = getattr(request.app.state, "mailer", None)
+
+    if injected is not None:
+        return injected
+
     api_key, sender, _owner = settings.require_mail_configuration()
     return ResendMailer(api_key=api_key, sender=sender)
 
 
 async def _no_site_analysis(url: str | None) -> SiteSignals:
-    """Default analyser: reports the site as not analysed.
+    """Kept as the explicit "nothing was measured" path, used when no URL is held.
 
-    The real one arrives with its own phase. Until then the report degrades
-    exactly as it does for an unreachable site, which is a specified state.
+    It is no longer the default: leaving it wired meant every lead's site was
+    reported as unreadable even though the SSRF-guarded analyser existed.
     """
     return SiteSignals(available=False, url=url)
 
 
+async def _analyse_through_the_guard(url: str | None) -> SiteSignals:
+    """Analyse the lead's home page behind the SSRF guard.
+
+    Degrades rather than fails: an unreachable or refused site yields
+    `available=False`, which is a specified state the report knows how to read.
+    """
+    if not url or not url.strip():
+        return await _no_site_analysis(url)
+
+    from app.api.v1.site_analysis import _analyse_with_a_fresh_client
+    from app.services.url_guard import UrlRejected
+
+    try:
+        return await _analyse_with_a_fresh_client(url.strip())
+    except UrlRejected:
+        # A blocked target is not our error and not the lead's fault either: the
+        # report simply has no measured signal for that site.
+        return await _no_site_analysis(url)
+
+
 def get_site_analyzer() -> SiteAnalyzer:
-    return _no_site_analysis
+    return _analyse_through_the_guard
 
 
 # --- Route -----------------------------------------------------------------
@@ -230,18 +287,42 @@ async def create_contact_report(
             detail="Both the privacy policy and the report consent must be accepted.",
         )
 
-    signals = await _analyse(analyzer, payload.site_url)
+    contact_name = payload.contact_name
+    company = payload.company
+    website = payload.site_url
+    team: str | None = None
 
-    facts = ReportFacts(
-        contact_name=payload.contact_name,
-        company=payload.company,
-        locale=payload.locale,  # type: ignore[arg-type]
-        workflow=payload.workflow,
-        site=signals,
-    )
+    if payload.envelope:
+        from app.services.conversation import open_envelope
+        from app.services.tokens import InvalidToken
+
+        try:
+            state = open_envelope(
+                payload.envelope, secret=settings.require_verification_secret()
+            )
+        except InvalidToken as error:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="That conversation is no longer valid. Start a new one.",
+            ) from error
+
+        # The envelope wins outright. Anything in the body is a claim by the
+        # caller about themselves, and this report carries our name.
+        contact_name = state.facts.contact_name or ""
+        company = state.facts.company or ""
+        website = state.facts.website
+        team = state.facts.team
+
+    signals = await _analyse(analyzer, website)
 
     try:
-        report = await generator.generate(facts)
+        report = await generator.generate(
+            contact_name=contact_name,
+            company=company,
+            locale=payload.locale,
+            team=team,
+            site=signals,
+        )
     except Exception as error:
         # Contained on purpose: a half-written report must never be emailed.
         logger.warning("report generation failed: %s", type(error).__name__)
@@ -262,7 +343,7 @@ async def create_contact_report(
         delivered=True,
         title=report.title,
         summary=report.summary,
-        recommendation_count=len(report.recommendations),
+        recommendation_count=len(report.sections),
     )
 
 
@@ -283,7 +364,7 @@ async def _analyse(analyzer: SiteAnalyzer, url: str | None) -> SiteSignals:
 
 async def _deliver(
     *,
-    report: ContactReport,
+    report: object,
     payload: ReportRequest,
     verified_email: str,
     mailer: Mailer,
@@ -291,9 +372,10 @@ async def _deliver(
 ) -> None:
     generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     consent_statement = CONSENT_STATEMENT[payload.locale]
-    body = render_report_email(
+    from app.services.mailer import render_canon_email
+
+    body = render_canon_email(
         report=report,
-        transcript=[(entry.step_id, entry.answer) for entry in payload.transcript],
         consent_statement=consent_statement,
         generated_at=generated_at,
     )

@@ -109,6 +109,11 @@ async function submitMessage(): Promise<void> {
   await chat.send(text)
   draft.value = ''
   sync()
+
+  // Completeness is the trigger, and the module refuses if the server has not
+  // agreed — so calling it unconditionally is safe and never premature.
+  await chat.deliverReport()
+  sync()
 }
 
 async function requestCode(): Promise<void> {
@@ -134,6 +139,11 @@ async function confirmCode(): Promise<void> {
   localError.value = null
   await chat.confirmCode(codeDraft.value)
   codeDraft.value = ''
+  sync()
+
+  // Verifying the address is usually the last missing fact, so this is the
+  // moment the report becomes possible.
+  await chat.deliverReport()
   sync()
 }
 

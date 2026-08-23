@@ -362,3 +362,78 @@ describe('persistence', () => {
     expect(sessionStorage.getItem('contact-conversation')).toBeNull()
   })
 })
+
+describe('report delivery', () => {
+  const stubApi = (overrides: Record<string, unknown> = {}) => ({
+    takeConversationTurn: vi.fn().mockResolvedValue({
+      reply: 'listo',
+      envelope: 'env-1',
+      complete: true,
+      exhausted: false,
+      missing: [],
+    }),
+    requestVerificationCode: vi.fn().mockResolvedValue(undefined),
+    confirmVerificationCode: vi.fn().mockResolvedValue('token-abc'),
+    requestConversationReport: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  })
+
+  it('asks for the report once the server says the conversation is complete', async () => {
+    const api = stubApi()
+    const chat = createConversation({ api } as never)
+
+    await chat.send('hola')
+    await chat.requestCode('ada@example.com', 'turnstile-token')
+    await chat.confirmCode('123456')
+    await chat.deliverReport()
+
+    expect(api.requestConversationReport).toHaveBeenCalledWith('env-1', 'token-abc')
+  })
+
+  it('never asks for the report before the conversation is complete', async () => {
+    const api = stubApi({
+      takeConversationTurn: vi.fn().mockResolvedValue({
+        reply: '¿y tu empresa?',
+        envelope: 'env-1',
+        complete: false,
+        exhausted: false,
+        missing: ['company'],
+      }),
+    })
+    const chat = createConversation({ api } as never)
+
+    await chat.send('hola')
+    await chat.deliverReport()
+
+    expect(api.requestConversationReport).not.toHaveBeenCalled()
+  })
+
+  it('reports a delivery failure instead of claiming the report was sent', async () => {
+    const api = stubApi({
+      requestConversationReport: vi
+        .fn()
+        .mockRejectedValue(new ContactApiError('resend down', 502)),
+    })
+    const chat = createConversation({ api } as never)
+
+    await chat.send('hola')
+    await chat.requestCode('ada@example.com', 'turnstile-token')
+    await chat.confirmCode('123456')
+    await chat.deliverReport()
+
+    expect(chat.state.delivered).toBe(false)
+    expect(chat.state.error).toBeTruthy()
+  })
+
+  it('marks the report as delivered on success', async () => {
+    const api = stubApi()
+    const chat = createConversation({ api } as never)
+
+    await chat.send('hola')
+    await chat.requestCode('ada@example.com', 'turnstile-token')
+    await chat.confirmCode('123456')
+    await chat.deliverReport()
+
+    expect(chat.state.delivered).toBe(true)
+  })
+})

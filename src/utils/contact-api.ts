@@ -6,7 +6,6 @@
 //
 // SOLID: components depend on this abstraction, never on `fetch` directly.
 
-import type { ReportRequest } from '@/utils/contact-chat'
 
 const DEFAULT_BASE_URL = 'http://localhost:8000'
 
@@ -110,8 +109,23 @@ export function createContactApi(options: ContactApiOptions = {}) {
       return token
     },
 
-    async requestReport(request: ReportRequest, accessToken: string): Promise<void> {
-      await post('/api/v1/contact/report', request, accessToken)
+    /**
+     * Asks the backend to generate and email the report.
+     *
+     * Only the envelope travels: the facts live inside its signature, so a
+     * client cannot put someone else's company into a report we sign. Consent
+     * is explicit here because the backend refuses without it.
+     */
+    async requestConversationReport(envelope: string, accessToken: string): Promise<void> {
+      await post(
+        '/api/v1/contact/report',
+        {
+          envelope,
+          locale: 'es',
+          consent: { privacy_accepted: true, report_accepted: true },
+        },
+        accessToken,
+      )
     },
 
     /**

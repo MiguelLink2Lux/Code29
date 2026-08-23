@@ -145,3 +145,52 @@ def render_report_email(
     ]
 
     return "\n".join(lines)
+
+
+def render_canon_email(
+    *,
+    report: CanonReport,  # noqa: F821 — imported lazily to avoid a cycle
+    consent_statement: str,
+    generated_at: str,
+) -> str:
+    """The plain-text body for a canon report.
+
+    Nothing about a lead is persisted, so this email *is* the record: it carries
+    the consent statement and a UTC timestamp alongside the ten points, because
+    neither can be reconstructed afterwards.
+
+    The ten points always appear, each with its state. A point nobody could
+    assess says so — it is the clearest indication the client does not
+    contemplate that part of the flow, which is what the closing proposal is
+    for. It never becomes an accusation.
+    """
+    lines = [report.title, "", report.summary, ""]
+
+    for section in report.sections:
+        lines.append(f"{section.point.number}. {section.point.title} — [{section.state.value}]")
+
+        if section.diagnosis:
+            lines.append(f"   {section.diagnosis}")
+
+        for item in section.evidence:
+            lines.append(f"   · {item.text} ({item.source.value})")
+
+        lines.append("")
+
+    lines += [
+        "—" * 40,
+        "",
+        report.proposal.headline,
+        "",
+    ]
+    lines += [f"· {part}" for part in report.proposal.parts]
+    lines += ["", report.proposal.rationale, "", "—" * 40, ""]
+
+    # Provenance and consent, last so they are the final thing read.
+    lines += [
+        f"Informe generado por: {report.generator}",
+        f"Generado (UTC): {generated_at}",
+        consent_statement,
+    ]
+
+    return "\n".join(lines)
