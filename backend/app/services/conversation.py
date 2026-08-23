@@ -1,0 +1,198 @@
+"""Conversation state for a serverless backend: signed, carried by the client.
+
+The backend has no persistent process and no store — ADR 0006 chose that
+deliberately — yet the contact flow now holds a multi-turn conversation. The
+state therefore travels with the client inside an HMAC-signed envelope, using
+the same signing primitives as the access token so there is one crypto path in
+the codebase rather than two.
+
+What the envelope carries is as important as the signature:
+
+- **Facts only.** No transcript, because the generation stage is forbidden from
+  seeing visitor prose (ADR 0007), and no email, because the verified address
+  lives in the access token. Model requests are built from these facts, so
+  anything in here can reach the model.
+- **The turn counter, inside the signature.** A client able to reset it could
+  loop the conversation indefinitely at our expense.
+
+Accepted trade-offs, identical to the ones ADR 0006 already took: a conversation
+cannot be revoked before its envelope expires, and there is no per-address rate
+limit without a store.
+"""
+
+from __future__ import annotations
+
+import base64
+import hmac
+import json
+import time
+
+from pydantic import BaseModel
+
+from app.services.tokens import InvalidToken, _b64decode, _b64encode, _sign
+
+ENVELOPE_PURPOSE = "contact-conversation"
+
+# Long enough to think between answers, short enough that an abandoned envelope
+# stops being usable within the same working session.
+ENVELOPE_TTL_SECONDS = 1800
+
+# Five facts need a handful of turns; more than this is a loop, not a
+# conversation. Tune after the first real run (design open question).
+MAX_TURNS = 12
+
+# One answer, not a pasted document. Also bounds what reaches the model.
+MAX_MESSAGE_CHARS = 1000
+
+# Envelopes ride in a request; facts are short, so anything near this is abuse.
+MAX_ENVELOPE_BYTES = 4096
+
+# An explicit "we have no website" / "no dedicated team". Held, not missing:
+# silence and refusal mean different things, and only one may end the flow.
+DECLINED = "__declined__"
+
+# The four facts the envelope tracks. The fifth — the verified email — is the
+# access token, on purpose.
+REQUIRED_FACTS = ("contact_name", "company", "website", "team")
+
+
+class EnvelopeTooLarge(InvalidToken):
+    """Envelope exceeds the size cap.
+
+    A subclass so the endpoint can answer 413 while every failure in this module
+    stays a kind of InvalidToken — nothing escapes as a bare ValueError.
+    """
+
+
+class ConversationFacts(BaseModel):
+    """What the bot has established. Deliberately has no email and no transcript."""
+
+    contact_name: str | None = None
+    company: str | None = None
+    website: str | None = None
+    team: str | None = None
+
+
+class ConversationState(BaseModel):
+    """An opened envelope: the facts held and how many turns were spent."""
+
+    facts: ConversationFacts
+    turns: int
+
+
+def _clean(value: str | None) -> str | None:
+    """Trimmed value, or None when there is nothing there."""
+    if value is None:
+        return None
+
+    stripped = value.strip()
+
+    return stripped or None
+
+
+def seal_envelope(
+    facts: ConversationFacts,
+    *,
+    turns: int,
+    secret: str,
+    at: float | None = None,
+) -> str:
+    """Sign the conversation state. Format matches the access token: payload.signature."""
+    issued_at = time.time() if at is None else at
+    payload = {
+        "facts": facts.model_dump(exclude_none=True),
+        "turns": int(turns),
+        "exp": int(issued_at + ENVELOPE_TTL_SECONDS),
+        "purpose": ENVELOPE_PURPOSE,
+    }
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+
+    envelope = f"{_b64encode(raw)}.{_b64encode(_sign(raw, secret))}"
+
+    # Checked before returning: an envelope we cannot carry is a bug on our side,
+    # not something to discover on the next request.
+    if len(envelope.encode("utf-8")) > MAX_ENVELOPE_BYTES:
+        raise EnvelopeTooLarge("conversation state exceeds the envelope size cap")
+
+    return envelope
+
+
+def open_envelope(
+    envelope: str,
+    *,
+    secret: str,
+    at: float | None = None,
+) -> ConversationState:
+    """Return the state an envelope carries, or raise InvalidToken. Nothing else."""
+    # Size first: a client can post arbitrary bytes, and parsing them is work we
+    # have not agreed to do.
+    if len(envelope.encode("utf-8")) > MAX_ENVELOPE_BYTES:
+        raise EnvelopeTooLarge("envelope exceeds the size cap")
+
+    try:
+        encoded_payload, encoded_signature = envelope.split(".")
+        raw = _b64decode(encoded_payload)
+        signature = _b64decode(encoded_signature)
+    except (ValueError, TypeError, base64.binascii.Error) as error:
+        raise InvalidToken("malformed envelope") from error
+
+    if not hmac.compare_digest(_sign(raw, secret), signature):
+        raise InvalidToken("bad envelope signature")
+
+    try:
+        payload = json.loads(raw)
+        facts = ConversationFacts.model_validate(payload["facts"])
+        turns = int(payload["turns"])
+        expires_at = int(payload["exp"])
+        purpose = str(payload["purpose"])
+    except (ValueError, KeyError, TypeError) as error:
+        raise InvalidToken("malformed envelope payload") from error
+
+    # Same secret signs the access token: without this check a report token
+    # would open as a conversation.
+    if purpose != ENVELOPE_PURPOSE:
+        raise InvalidToken("wrong purpose")
+
+    now = time.time() if at is None else at
+    if expires_at < now:
+        raise InvalidToken("expired envelope")
+
+    return ConversationState(facts=facts, turns=turns)
+
+
+def merge_facts(held: ConversationFacts, delta: ConversationFacts) -> ConversationFacts:
+    """Fill empty slots from `delta`; never overwrite something already held.
+
+    The extractor re-reads the conversation each turn, so an established fact
+    must not be rewritten by a later, worse reading of the same exchange.
+    """
+    merged: dict[str, str | None] = {}
+
+    for field in ConversationFacts.model_fields:
+        current = _clean(getattr(held, field))
+        merged[field] = current if current is not None else _clean(getattr(delta, field))
+
+    return ConversationFacts(**merged)
+
+
+def missing_facts(facts: ConversationFacts) -> list[str]:
+    """Facts still unheld, in ask order — what the next question should target."""
+    return [field for field in REQUIRED_FACTS if _clean(getattr(facts, field)) is None]
+
+
+def is_complete(facts: ConversationFacts, *, email_verified: bool) -> bool:
+    """True when all five facts are held: the four here plus the verified address.
+
+    An explicit refusal counts as held; silence does not.
+    """
+    return email_verified and not missing_facts(facts)
+
+
+def turns_exhausted(turns: int) -> bool:
+    """True when the budget is spent. Not an error: the bot closes with what it has."""
+    return turns >= MAX_TURNS
+
+
+def message_within_budget(message: str) -> bool:
+    """True when a visitor message fits the per-message cap."""
+    return len(message) <= MAX_MESSAGE_CHARS
