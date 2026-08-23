@@ -8,6 +8,9 @@ dependencies = [
     "uvicorn[standard]",
     "pydantic-settings",
     "httpx>=0.28.1",
+    # EmailStr fails at request time without the extra, not at import time, so a
+    # clean environment breaks the verification endpoints and nothing else.
+    "pydantic[email]>=2.13.4",
 ]
 
 [dependency-groups]

@@ -57,3 +57,50 @@ def test_dev_dependencies_are_excluded() -> None:
     # Shipping pytest/ruff to a serverless function only inflates the bundle,
     # which matters against Vercel's size ceiling.
     assert {"pytest", "ruff"}.isdisjoint(_requirement_names())
+
+
+def test_pydantic_email_extra_is_declared() -> None:
+    """`EmailStr` needs pydantic's email extra, and fails only at request time.
+
+    A merge once dropped this line from pyproject while uv.lock and
+    requirements.txt still carried the package, so the deployed API worked and a
+    fresh `uv sync` produced a backend whose verification endpoints raised
+    ImportError on every call. Nothing else noticed.
+    """
+    declared = PYPROJECT.read_text()
+
+    assert "pydantic[email]" in declared, "pydantic[email] must stay declared: EmailStr needs it"
+
+
+def test_every_third_party_module_the_app_imports_is_declared() -> None:
+    """Top-level imports in app/ must trace back to a declared dependency."""
+    import re
+
+    app_dir = BACKEND_ROOT / "app"
+    stdlib_or_local = {"app", "__future__"}
+    imported: set[str] = set()
+
+    for path in app_dir.rglob("*.py"):
+        for line in path.read_text().splitlines():
+            match = re.match(r"^\s*(?:from|import)\s+([a-zA-Z_][\w]*)", line)
+            if match:
+                imported.add(match.group(1))
+
+    # Names that map to a declared distribution under a different spelling.
+    aliases = {"pydantic_settings": "pydantic-settings"}
+    declared = _declared_runtime_names()
+    unresolved = {
+        name
+        for name in imported
+        if name not in stdlib_or_local
+        and aliases.get(name, name) not in declared
+        and not _is_stdlib(name)
+    }
+
+    assert not unresolved, f"imported in app/ but not declared in pyproject: {unresolved}"
+
+
+def _is_stdlib(name: str) -> bool:
+    import sys
+
+    return name in sys.stdlib_module_names
