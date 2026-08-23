@@ -1,10 +1,18 @@
-> **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-08-22
+> **Type:** Architecture · ADR — **Status:** Accepted (report structure partially superseded by 0008) — **Date:** 2026-08-22
 
 # ADR 0006 — Guided AI contact flow with stateless email verification
 
-- **Status:** Accepted
+- **Status:** Accepted — **partially superseded by** [[0008-improvement-canon]]
 - **Date:** 2026-08-22
 - **Deciders:** Miguel Navarro Mantas
+
+> **Scope of the supersession.** [[0008-improvement-canon]] replaces **the structure of the
+> report's diagnosis only**: the five `DiagnosisAxis` members become the ten fixed points of
+> [[improvement-canon]], each with an observable signal and a primary service. Everything else
+> decided here stands unchanged — the fixed step flow and its order as an authorisation rule,
+> stateless verification, the Turnstile gate, the SSRF-guarded site analysis, the
+> facts-not-instructions contract with the model, and the privacy posture. Where this ADR says
+> "four structured diagnosis axes" or "five axes", read the canon instead.
 
 ## Context and Problem Statement
 
@@ -39,7 +47,7 @@ one-time-code table. Every abuse control therefore has to work **without state**
 ## Considered Options
 
 1. **Free-form chat driven by the model**, extracting fields from natural language.
-2. **A fixed ten-step flow** with per-step validation, where the model only *drafts the report*.
+2. **A fixed eleven-step flow** with per-step validation, where the model only *drafts the report*.
 3. **Stateful verification** — store codes and rate-limit counters in a database or KV store.
 4. **Stateless verification** — derive the code cryptographically, carry authorisation in a
    signed token.
@@ -49,11 +57,17 @@ one-time-code table. Every abuse control therefore has to work **without state**
 
 ### 1. The flow is fixed, and its order is an authorisation rule
 
-Ten steps, in this order, defined declaratively in `src/utils/contact-chat-flow.ts`:
+Eleven steps, in this order, defined declaratively in `src/utils/contact-chat-flow.ts`:
 
 ```
-name → company → email → code → delivery → bugs → deploys → security → website → consent
+name → company → email → code → delivery → bugs → deploys → security → observability
+     → website → consent
 ```
+
+*(Corrected 2026-08-23: this list previously read "ten steps" and omitted `observability`,
+which `CONTACT_CHAT_STEPS` has always contained. The five practice steps —
+`delivery`, `bugs`, `deploys`, `security`, `observability` — are the five `DiagnosisAxis`
+members, replaced by the ten-point canon in [[0008-improvement-canon]].)*
 
 Chosen over free-form chat (option 1): a deterministic sequence yields structured, comparable
 answers, validates per step, and keeps the model out of the data-extraction path entirely.
@@ -171,4 +185,6 @@ believes a model wrote it is worse than failing loudly.
 - [[0003-api-versioning-strategy]] — the `/api/v1` prefix the endpoints live under
 - [[0004-backend-deploy-provider]] — the stateless serverless host that forces these choices
 - [[testing-strategy]] — the four gates covering the flow
+- [[0008-improvement-canon]] — the ten-point canon that supersedes this ADR's report structure
+- [[improvement-canon]] — the canon itself: points, signals, service mapping
 - [[index]] — ADR index

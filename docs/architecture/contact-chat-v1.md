@@ -119,11 +119,11 @@ differs in ways worth reading before touching the code:
 
 | Design said | Implementation does |
 |---|---|
-| 5 steps (`name, company, email, need, confirm`) | **10 fixed steps**: `name, company, email, code, delivery, bugs, deploys, security, website, consent` |
+| 5 steps (`name, company, email, need, confirm`) | **11 fixed steps**: `name, company, email, code, delivery, bugs, deploys, security, observability, website, consent` |
 | `src/pages/api/contact.ts` serverless endpoint | **Deleted.** The FastAPI backend is the only email sender |
 | `src/utils/contact-submit.ts` submit contract | `src/utils/contact-api.ts` (+ `src/utils/turnstile-client.ts`) |
 | Email delivery of a contact lead | Email delivery of a **generated workflow report** |
-| Free-form `need` answer | Four structured diagnosis axes (`delivery`, `bugs`, `deploys`, `security`) |
+| Free-form `need` answer | Five structured diagnosis axes (`delivery`, `bugs`, `deploys`, `security`, `observability`) — replaced by the ten-point canon, see [[decisions/0008-improvement-canon]] |
 | Genkit SDK fronting the model | Direct **REST** call to the Gemini API — Genkit is not installed ([[decisions/0007-gemini-over-rest]]) |
 
 The step **order is an authorisation rule**, not a UX preference: `code` verifies the email
@@ -143,6 +143,8 @@ Endpoints serving the flow, all under `/api/v1`:
 
 ## References
 
+- [[decisions/0008-improvement-canon]] — the ten-point canon that replaces the five-axis report structure
+- [[improvement-canon]] — the canon as an operational reference for the report generator (COD-42, not implemented)
 - [[decisions/0006-guided-ai-contact-flow]] — Phase 3 decisions, risks and privacy posture
 - [[decisions/0007-gemini-over-rest]] — how the backend reaches the model, and why not Genkit
 - [[decisions/0004-backend-deploy-provider]] — where the backend runs, and its bundle limit

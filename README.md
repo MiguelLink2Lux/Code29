@@ -343,6 +343,7 @@ cd backend
 | [SEO & discoverability](docs/architecture/seo-and-discoverability.md) | Site origin, canonical/OG tags, robots.txt, sitemap |
 | [Testing strategy](docs/architecture/testing-strategy.md) | The four test levels and what each one catches |
 | [Contact chat](docs/architecture/contact-chat-v1.md) | The phased design of the contact flow and what shipped |
+| [Improvement canon](docs/architecture/improvement-canon.md) | The ten points the workflow report diagnoses, their observable signals and service mapping (COD-42, not implemented) |
 | [ADR index](docs/architecture/decisions/index.md) | Architecture decision records |
 | [SDD workflow](docs/protocols/sdd-workflow.md) | Spec-driven development protocol |
 
