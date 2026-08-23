@@ -8,6 +8,26 @@
 - **Partially supersedes:** [[0006-guided-ai-contact-flow]] (the report's diagnosis structure)
 - **Defines:** [[improvement-canon]]
 
+> **Revision — 2026-08-23.** The decision (these ten points, in this order, two transversal) is
+> unchanged. Its *justification* was corrected on two counts that the first version of this
+> document got wrong:
+>
+> 1. **The canon is not a service catalogue.** The first version mapped each point to one of the
+>    four services on the site and recorded the points that did not map as a product finding to
+>    route. That framing is discarded. The canon is (a) the guide for analysing the client's
+>    project and (b) the roadmap of the deliverable PDF. The point→service table and the section
+>    "Where the canon exceeds the catalogue" are removed from [[improvement-canon]]: their
+>    premise — that a point with no service behind it is a defect — is false. The commercial
+>    objective is a **single** engagement, not ten sellable items.
+> 2. **An absence of signal has commercial value.** The first version treated `no evaluado` as a
+>    cost to be minimised and "five points will come back not assessed" as a risk of the design.
+>    Inverted: a point the client never raises is a point they are not contemplating, which is
+>    the opportunity the report exists to surface. The tri-state stays, as factual honesty; the
+>    reading of an absence changes.
+>
+> Also recorded here for the first time: the deliverable is a **PDF**, not the email text
+> delivered today. Pending work, tracked in Linear.
+
 ## Context and Problem Statement
 
 The contact chat's payoff is a generated **workflow report** ([[0006-guided-ai-contact-flow]],
@@ -24,16 +44,19 @@ independent claim to being the right set of things to look at.
 
 A commercial diagnosis report needs a **reference model**: a fixed, defensible list of what a
 software organisation should have in place to make AI adoption pay off, stable enough that two
-leads' reports are comparable and specific enough that each finding maps to something Code29
-sells. Choosing that list is the decision recorded here.
+leads' reports are comparable and specific enough that each finding names a concrete stage of
+the workflow Code29 prepares. Choosing that list is the decision recorded here. The reference
+model is an **analysis instrument and a roadmap**, not a catalogue of things to buy.
 
-The chosen list — the premise, the ten points, their signals and their service mapping — is
-written out in [[improvement-canon]]. This ADR argues for *why that list*.
+The chosen list — the premise, the ten points and their observable signals — is written out in
+[[improvement-canon]]. This ADR argues for *why that list*.
 
 ## Decision Drivers
 
-- **The report is a commercial diagnosis, not a maturity assessment.** Its job is to end in
-  actionable recommendations that map onto the four services on the site.
+- **The report is a commercial diagnosis, not a maturity assessment.** Its job is to end in one
+  actionable proposal: contracting the preparation of a complete AI-assisted development
+  workflow — team training, environment preparation, and quality-criteria training and control.
+  The points are how that proposal is argued, not a list of separate offers.
 - **Comparability.** Two leads must be diagnosable against the same reference, or the report is
   an opinion piece and the pipeline has no aggregate signal.
 - **Validatability.** Model output is untrusted and validated against Pydantic enums
@@ -41,7 +64,8 @@ written out in [[improvement-canon]]. This ADR argues for *why that list*.
 - **Coverage of the value stream.** The premise of the canon is that AI optimises the whole
   flow, not the coding step. A reference that only covers coding contradicts its own premise.
 - **Honesty under missing information.** A lead answers a handful of questions. Whatever is
-  chosen must survive not knowing most of what it asks about.
+  chosen must survive not knowing most of what it asks about — and must turn what the lead never
+  mentioned into a subject worth raising, not into a gap to apologise for.
 
 ## Considered Options
 
@@ -82,9 +106,9 @@ the subject of the report. Diagnosing a lead at "CMMI level 2" is a statement no
 on, and it costs an audit to produce honestly.
 
 The common failure across all four: **they are measurement or maturity frameworks, not
-adoption plans.** A commercial diagnosis needs steps a reader can start on Monday, each
-attached to a service they can buy. None of these produce that, and bending one until it does
-would leave a framework whose name no longer describes what we did with it.
+adoption plans.** A commercial diagnosis needs stages a reader can start on Monday, ordered into
+a roadmap they can contract as one piece of work. None of these produce that, and bending one
+until it does would leave a framework whose name no longer describes what we did with it.
 
 Secondary reason, stated plainly: none of them covers AI-specific practice at all. Prompt
 engineering, agent architecture, the engineer-in-the-loop accountability rule, LLM data
@@ -171,50 +195,52 @@ a test pinning both membership and order (order is load-bearing: it is the roadm
 rule, stateless verification, the Turnstile gate, the SSRF guard, the privacy posture — stands
 unchanged. Only the shape of the report's diagnosis changes.
 
-`ServiceOffering` (four members) is **unchanged**. The canon maps onto it; it does not extend
-it.
+`ServiceOffering` (four members) is **unchanged**, and the canon does not map onto it. The four
+services are how the offering is presented on the site; the canon is how a client's project is
+examined and how the resulting roadmap is ordered. No point→service correspondence is required
+or asserted.
 
 **The report gets longer, and the flow gets a gap**
 
 The chat asks five practice questions. Ten points need reported signals for ten points, so
 five points have no question behind them today. Either the flow grows — more questions, higher
-abandonment — or those points come back `no evaluado`. That choice belongs to COD-42 and is
-not decided here. What *is* decided: inventing a state for an unasked question is not an
-option.
+abandonment — or those points come back `no evaluado`. That choice belongs to COD-42 and is not
+decided here, and neither branch is a failure: unasked points are stages of the flow the client
+has not raised, which is material for the proposal. What *is* decided: inventing a state for an
+unasked question is not an option.
 
-**Named risk: ten points always present force a verdict on all ten**
+**Named risk: ten points always present invite a fabricated verdict**
 
-This is the real cost of a fixed canon and it is recorded rather than mitigated away. A lead
-who answers five questions and has a home page will not have supplied evidence for most of the
-ten points. A fixed structure invites the generator — human or model — to produce something
-for each slot anyway, and a fabricated finding in a commercial report is worse than a gap: it
-is a claim the prospect may know to be false, which discredits the findings that were correct.
+This is the real cost of a fixed canon. A lead who answers five questions and has a home page
+will not have supplied evidence for most of the ten points, and a fixed structure invites the
+generator — human or model — to produce something for each slot anyway. A fabricated finding in
+a commercial report is worse than a gap: it is a claim the prospect may know to be false, which
+discredits the findings that were correct.
+
+Note what the risk is *not*. It is not that points come back `no evaluado`; that is the expected
+outcome and a useful one. A point the client never raised is a point outside how they work today
+— the part of the workflow they are not contemplating, and therefore the part with the most to
+gain from the engagement. The risk is only the fabrication.
 
 Mitigation, in this order:
 
 1. **A tri-state per point**: `cubierto` / `parcial` / `no evaluado`, with `no evaluado` a
    first-class outcome and not a hedge.
-2. **Absence of evidence is never rendered as presence of a problem.** "We did not assess this"
-   is a legitimate sentence in a paid-for diagnosis; "you have no tests" when nobody asked is
-   not.
-3. **Measured signals outrank reported ones**, and the report leads with them — they are the
-   part the lead did not supply and cannot dispute.
-4. **`no evaluado` points are listed compactly**, not expanded into prose, so the report's
-   length tracks the evidence available.
+2. **Absence of evidence is rendered as an unbuilt stage of the flow, never as an observed
+   defect.** "Nothing in the conversation covered a gated test suite, and building one is part of
+   what we prepare" is legitimate; "you have no tests" when nobody asked is not.
+3. **Measured signals outrank reported ones**, and the report leads with them — they are the part
+   the lead did not supply and cannot dispute.
+4. **`no evaluado` points are listed compactly**, not expanded into prose, so the report's length
+   tracks the evidence available. Compact does not mean omitted: they are the roadmap's open
+   stages.
 
-**Product finding: three points have no service to sell against**
+**The deliverable is a PDF, and it does not exist yet**
 
-Recorded in [[improvement-canon]] and routed to product, not resolved here:
-
-| Point | Fit onto the four services |
-|---|---|
-| **6 — AI-guided testing** | **None.** No service sells quality engineering, test strategy or QA automation. It is among the most actionable findings the canon can produce and there is nothing in the catalogue to attach it to. |
-| **7 — Code review as first filter** | Partial. Automatización DevOps con IA sells the pipeline a review agent runs in, but no service mentions review or PR automation. |
-| **9 — Living documentation** | Partial, and split: the RAG half fits AI Project Manager, the doc-generation half fits CTO as a Service. Neither sells it by name. |
-
-A diagnosis that ends in a recommendation the reader cannot buy is a worse lead than no
-diagnosis. Either the service copy in `src/i18n/translations.ts` grows to cover these, or the
-report's recommendations for 6, 7 and 9 point at the nearest adjacent service and say so.
+The objective of the flow is a PDF the lead can keep and forward; the canon is its table of
+contents. Today `render_report_email()` in `backend/app/services/mailer.py` sends the report as
+plain text in an email. The PDF is pending work, tracked in Linear, and is recorded here as the
+target state so no later reader mistakes the email body for the intended deliverable.
 
 **Good — the canon is now a document, not a conversation**
 
@@ -223,7 +249,7 @@ applied to the canon itself. A change to the diagnosis structure is now a review
 
 ## References
 
-- [[improvement-canon]] — the canon itself: premise, ten points, signals, service mapping
+- [[improvement-canon]] — the canon itself: premise, ten points, signals, single commercial objective
 - [[0006-guided-ai-contact-flow]] — the flow; its five-axis report structure is superseded here
 - [[0007-gemini-over-rest]] — enum validation of model output, which the canon must fit
 - [[contact-chat-v1]] — the phased design of the contact flow

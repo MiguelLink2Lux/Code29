@@ -3,10 +3,15 @@
 # The Improvement Canon — ten points of an AI-First SDLC
 
 Operational reference for the diagnosis the contact-chat report produces (COD-41, COD-42).
-This is not marketing copy and not an inspirational list: it is the **structure the generated
-report must follow**, the **signal that decides each point's state**, and the **service each
-point sells**. Whoever implements the generator reads this document, not the chat transcript
-it came from.
+This is not marketing copy, not an inspirational list, and **not a service catalogue**. It is
+two things: (a) the **guide for analysing the client's project** during the chat, and (b) the
+**roadmap of the deliverable PDF**, which is the chat's final objective. It fixes the structure
+that report must follow and the observable signal that decides each point's state. Whoever
+implements the generator reads this document, not the chat transcript it came from.
+
+The canon does **not** map one point to one service, and no point is sold on its own. The
+commercial objective it serves is a single engagement — see
+[The single commercial objective](#the-single-commercial-objective).
 
 The rationale — why these ten and not another set — lives in
 [[0008-improvement-canon]]. This document says *what* the canon is; the ADR says
@@ -46,8 +51,10 @@ the finishing touch. State this explicitly in any report or roadmap that orders 
 | **Measured** | `SiteSignals` — the lead's home page, fetched by `POST /api/v1/contact/site-analysis` | Objective. It is a fact about a page, and it is either present or absent. |
 | **Reported** | An answer given in the chat flow | Self-declared. Reliable about intent, not about practice. |
 
-Where neither is available, the point's state is **`no evaluado`** — never a negative
-finding. See [Tri-state, and the honesty rule](#tri-state-and-the-honesty-rule).
+Where neither is available, the point's state is **`no evaluado`** — never a fabricated
+finding, and never a hole in the diagnosis. A point the client never raises is a point they
+are not contemplating, which is precisely what the report exists to put in front of them. See
+[Tri-state, and the honesty rule](#tri-state-and-the-honesty-rule).
 
 ---
 
@@ -69,10 +76,6 @@ enough to be worth reading.
 - *Measured (weak)* — none directly. A public repository with an `openapi.json`, a README
   with an architecture section, or a docs site is circumstantial evidence, not a signal.
 
-**Service:** CTO as a Service — *primary*. It is the offering that sells architecture
-definition and roadmap. Análisis & Transformación IA is secondary (the diagnosis that
-finds the gap).
-
 ---
 
 ## 2. Continuous team training · **TRANSVERSAL**
@@ -92,9 +95,6 @@ and a team trained on last year's workflow is a team with licences and no levera
   individual initiative? Does anyone own the practice? Can the team name what the tools are
   bad at?
 - *Measured* — none. Training leaves no trace on a home page.
-
-**Service:** Análisis & Transformación IA — *primary*. The offering explicitly includes
-"capacitación del equipo en desarrollo asistido con IA".
 
 ---
 
@@ -116,9 +116,6 @@ meeting notes. The point is that the system where work is tracked becomes a syst
 - *Reported* — is there a single task manager the whole team actually uses? Is any of it
   automated (refinement, triage, estimation), or is every ticket hand-written?
 - *Measured* — none.
-
-**Service:** AI Project Manager — *primary*. "Automatización de flujos de desarrollo" and
-"orquestación de agentes autónomos" are literally this point.
 
 ---
 
@@ -144,9 +141,6 @@ accountable party for the code that reaches production.**
 - *Measured* — none reliable. A `generator` meta tag or a framework hint says a scaffold was
   used, not who is accountable for it.
 
-**Service:** Análisis & Transformación IA — *primary*. "Implementación del flujo AI-First" is
-the delivery of this point.
-
 ---
 
 ## 5. Iterative, modular automation
@@ -165,9 +159,6 @@ decomposition means a human accountable for a diff too large to actually review.
 - *Reported* — is work broken into steps small enough to be verified separately, or does a
   feature arrive as one large change? Is there a plan before the code?
 - *Measured (weak)* — public commit history granularity, where a repository is available.
-
-**Service:** AI Project Manager — *primary*. It is the offering that sells workflow
-orchestration and development-flow automation.
 
 ---
 
@@ -188,10 +179,6 @@ the implementation, tends to encode the bug as expected behaviour.
   known? Are edge cases written deliberately or discovered in production?
 - *Measured* — none. Testing is invisible from outside.
 
-**Service:** ⚠ **no clean fit — see [Where the canon exceeds the catalogue](#where-the-canon-exceeds-the-catalogue).**
-The nearest is Análisis & Transformación IA (an AI-First flow includes its tests), but no
-service on the site sells quality engineering or testing.
-
 ---
 
 ## 7. Code review as the first filter
@@ -209,10 +196,6 @@ The gain is not speed, it is *reviewer attention reallocated*.
   unreviewed?** Is any part of that review automated?
 - *Measured (weak)* — for a public repository, branch protection is visible. For a private
   one, nothing.
-
-**Service:** Automatización DevOps con IA — *primary, partial fit*. PR automation runs in the
-CI pipeline the service sells, but the service copy never mentions code review. Recorded in
-[Where the canon exceeds the catalogue](#where-the-canon-exceeds-the-catalogue).
 
 ---
 
@@ -236,9 +219,6 @@ restore service) are the natural quantification of this point. They are a *signa
   platform (Vercel, Netlify, Cloudflare) implies some pipeline exists. Suggestive, not
   conclusive.
 
-**Service:** Automatización DevOps con IA — *primary*. Exact match: "pipelines CI/CD
-asistidos por IA", "automatización de despliegues y rollback", "observabilidad y alertado".
-
 ---
 
 ## 9. Living documentation and historical context
@@ -260,10 +240,6 @@ without the second is a folder nobody reads.
   repository exists: are there ADRs or versioned documentation living next to the code?**
   Documentation in a wiki drifts; documentation in the repository is reviewed with the diff
   that changes it.
-
-**Service:** AI Project Manager — *primary, partial fit*. The RAG/vector-store half is an LLM
-integration the service sells; the documentation-generation half belongs to CTO as a Service.
-Recorded below.
 
 ---
 
@@ -315,25 +291,22 @@ one covers.
   finding on its own. Also: a `generator` tag exposing an outdated CMS version is a
   supply-chain signal visible from outside.
 
-**Service:** CTO as a Service — *primary* (governance, due diligence, technical
-accountability), with the pipeline-scanning half delivered by Automatización DevOps con IA.
-
 ---
 
 ## Sequential and transversal, at a glance
 
-| # | Point | Nature | Primary service | Strongest signal |
-|---|---|---|---|---|
-| 1 | Structured planning and deep context | Sequential | CTO as a Service | Reported |
-| 2 | Continuous team training | **Transversal** | Análisis & Transformación IA | Reported |
-| 3 | Intelligent work management | Sequential | AI Project Manager | Reported |
-| 4 | AI-assisted development (accountability) | Sequential | Análisis & Transformación IA | Reported |
-| 5 | Iterative, modular automation (decomposition) | Sequential | AI Project Manager | Reported |
-| 6 | AI-guided testing (test-first) | Sequential | ⚠ none — nearest Análisis & Transformación IA | Reported |
-| 7 | Code review as the first filter | Sequential | Automatización DevOps con IA *(partial)* | Reported |
-| 8 | CI/CD and predictive DevOps | Sequential | Automatización DevOps con IA | Reported + measured (weak) |
-| 9 | Living documentation and historical context | Sequential | AI Project Manager *(partial)* | Reported + measured (weak) |
-| 10 | Governance of data, secrets and dependencies | **Transversal** | CTO as a Service | Reported + **measured** |
+| # | Point | Nature | Strongest signal |
+|---|---|---|---|
+| 1 | Structured planning and deep context | Sequential | Reported |
+| 2 | Continuous team training | **Transversal** | Reported |
+| 3 | Intelligent work management | Sequential | Reported |
+| 4 | AI-assisted development (accountability) | Sequential | Reported |
+| 5 | Iterative, modular automation (decomposition) | Sequential | Reported |
+| 6 | AI-guided testing (test-first) | Sequential | Reported |
+| 7 | Code review as the first filter | Sequential | Reported |
+| 8 | CI/CD and predictive DevOps | Sequential | Reported + measured (weak) |
+| 9 | Living documentation and historical context | Sequential | Reported + measured (weak) |
+| 10 | Governance of data, secrets and dependencies | **Transversal** | Reported + **measured** |
 
 Dependency order among the sequential eight: **1 → 3 → 4 → 5 → 6 → 7 → 8**, with 9 usable at
 any point after 1 and most valuable once 7 exists (reviews are where decisions get recorded).
@@ -372,7 +345,9 @@ The chat flow currently asks **five** practice questions — `delivery`, `bugs`,
 needs reported signals for ten points, and five of them have no question behind them today.
 
 Two ways forward, and the choice belongs to whoever implements COD-42: extend the flow (more
-questions, higher abandonment), or accept `no evaluado` on the unasked points. **Inventing a
+questions, higher abandonment), or accept `no evaluado` on the unasked points. The second
+option costs the report nothing: an unasked point is a part of the flow the client has not
+raised, which is a subject to open with them rather than a gap to apologise for. **Inventing a
 state for an unasked question is not one of the options.**
 
 ## Tri-state, and the honesty rule
@@ -385,37 +360,70 @@ Every point resolves to exactly one of three states:
 | `parcial` | Evidence it exists partially or without a gate | A reported answer describing something incomplete |
 | `no evaluado` | No evidence either way | Nothing was measured and nothing was asked |
 
-`no evaluado` is a first-class outcome, not a fallback for laziness. A report that says "not
-assessed — we did not ask" is more credible than one that infers a weakness from silence, and
-it is the only defence against the structural risk of a fixed ten-point canon: **being obliged
-to say something about every point, whether or not there is anything to say.** That risk is
-named and accepted in ADR 0008.
+The tri-state exists for **factual honesty**: the report states what was observed and never
+invents a diagnosis for what was not. `no evaluado` is a first-class outcome — a report that
+says "not assessed, we did not ask" is more credible than one that infers a weakness from
+silence.
+
+**How to read an absence.** An uncovered point is not a hole in the diagnosis. It is the
+clearest indication available that the point is **not part of how the client works today**, and
+that is exactly what has to be put in front of them. An uncovered point is therefore a
+recommendation with *more* commercial value, not less: it names a part of the flow they are not
+contemplating. Several points coming back `no evaluado` from a five-question chat is the
+expected and useful result, not a defect of the design.
+
+What stays forbidden is the jump from silence to accusation. "You have no tests" when nobody
+asked is a fabrication. "Nothing in the conversation covered a gated test suite, and building
+one is part of the flow we prepare" is the same information stated truthfully — and it is the
+sentence that sells.
 
 Rules for the generator:
 
 - No signal → `no evaluado`. Never `parcial` as a hedge.
 - A measured signal outranks a reported one where both exist.
-- The absence of evidence is never phrased as the presence of a problem.
-- A recommendation attaches to a point's primary service, and only to a service the site
-  actually sells.
+- An absence is stated as a part of the flow not yet built, never as an observed defect.
+- Every recommendation converges on the single engagement described in
+  [The single commercial objective](#the-single-commercial-objective). The report never quotes
+  ten separate purchases.
 
-## Where the canon exceeds the catalogue
+## The single commercial objective
 
-Three points do not map cleanly onto the four services in `src/i18n/translations.ts`. This is
-recorded rather than smoothed over, because a canon whose recommendations cannot be bought is
-a product finding, not a documentation problem.
+The report does not sell ten things. It sells **one**: the preparation of a complete AI-assisted
+workflow for developing apps, websites and software services. That engagement has three parts:
 
-| Point | Fit | What is missing from the catalogue |
-|---|---|---|
-| **6 — AI-guided testing** | **None** | No service sells quality engineering, test strategy or QA automation. It is the most actionable diagnosis in the canon (a missing test suite is concrete, cheap to state, and expensive to ignore) and there is nothing to sell against it. The nearest offering, Análisis & Transformación IA, sells an AI-First flow that implies tests without naming them. |
-| **7 — Code review as the first filter** | Partial | Automatización DevOps con IA sells CI/CD pipelines, which is where a review agent runs, but neither that service nor any other mentions code review or PR automation. |
-| **9 — Living documentation** | Partial | Split across two services: the RAG/vector-store half fits AI Project Manager, the documentation-generation half fits CTO as a Service. Neither sells it as such. |
+- **Team training** — the people who will drive the tools.
+- **Environment preparation** — the tooling, pipelines and guardrails the flow runs on.
+- **Quality-criteria training and control** — what "good" means, and the gates that enforce it.
 
-**Finding to route to product:** the canon recommends testing, review automation and living
-documentation, and the site sells none of the three by name. Either the service copy grows to
-cover them, or the report recommends work Code29 does not visibly offer — and a diagnosis that
-ends in an unavailable recommendation is a worse lead than no diagnosis. Tracked outside this
-document; not resolved here.
+The ten points are the **instrument that leads to that engagement** and its roadmap once
+contracted. They say which parts of the flow the client already has, which they have never
+considered, and therefore in what order the preparation has to happen. They are not ten
+purchasable items and must never be presented as a menu.
+
+Consequences for the generator:
+
+- Findings are framed as stages of one flow, not as ten independent recommendations.
+- A point with no evidence is a stage the client has not built — a reason the engagement is
+  needed, not a line item to quote separately.
+- The report closes on the single proposal. Per-point detail exists to justify it, never to
+  replace it.
+
+Because the canon is an analysis instrument and not a catalogue, a point with no matching
+service entry in `src/i18n/translations.ts` is **not** a problem: the four service pages are
+how the offering is presented on the site, while the canon is how the client's project is
+examined. The two are not required to line up point by point.
+
+## The deliverable is a PDF
+
+The declared objective of the flow is a **PDF the lead can keep, forward and read without a
+browser**. It is the artefact the whole conversation exists to produce, and the canon is its
+table of contents: premise, the ten points in order, what was observed for each, and the single
+proposal they lead to.
+
+**Not implemented.** Today `render_report_email()` in `backend/app/services/mailer.py` delivers
+the report as plain text in an email — the normalised summary plus the full transcript. The PDF
+deliverable is pending work, tracked in Linear. Nothing in this section describes something
+that exists.
 
 ## Implementation status
 
@@ -424,6 +432,8 @@ document; not resolved here.
 `security_dependencies`, `observability`) in `backend/app/services/report.py`, and the report
 generated from it — stub or Gemini — has five axes, not ten points. The canon replaces that
 structure when COD-42 is implemented; see ADR 0008 for the consequence on ADR 0006.
+
+The PDF deliverable is likewise pending — the report is delivered today as email text.
 
 ## References
 
