@@ -176,9 +176,12 @@ export function createConversation({ api }: ConversationOptions) {
   async function deliverReport(): Promise<void> {
     if (busy || delivered) return
 
-    // The server decides completeness. Asking earlier would be asking for a
-    // report about facts it has not accepted.
-    if (!complete || !envelope || !accessToken) return
+    // Not `complete`: that flag was computed by the server on the previous turn,
+    // before the token existed, so verifying the address last would leave it
+    // false for ever and the report would never be asked for. `missing` is the
+    // server's own answer about what it still needs, and confirmCode removes
+    // 'email' from it — so an empty list plus a token means deliverable.
+    if (!envelope || !accessToken || missing.length > 0) return
 
     busy = true
     error = null

@@ -368,9 +368,11 @@ describe('report delivery', () => {
     takeConversationTurn: vi.fn().mockResolvedValue({
       reply: 'listo',
       envelope: 'env-1',
-      complete: true,
+      // The server cannot call a conversation complete while the address is
+      // unverified: it only sees a token once the visitor has confirmed one.
+      complete: false,
       exhausted: false,
-      missing: [],
+      missing: ['email'],
     }),
     requestVerificationCode: vi.fn().mockResolvedValue(undefined),
     confirmVerificationCode: vi.fn().mockResolvedValue('token-abc'),
@@ -397,7 +399,7 @@ describe('report delivery', () => {
         envelope: 'env-1',
         complete: false,
         exhausted: false,
-        missing: ['company'],
+        missing: ['company', 'email'],
       }),
     })
     const chat = createConversation({ api } as never)

@@ -42,16 +42,18 @@ async function stubBackend(page: Page, stub: BackendStub = {}) {
 
     if (url.includes('/conversation/turn')) {
       turns += 1
-      const complete = turns >= completeAfter
+      const factsHeld = turns >= completeAfter
       return route.fulfill({
         status: stub.turnStatus ?? 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          reply: complete ? 'Con esto tengo suficiente.' : '¿En qué empresa trabajas?',
+          reply: factsHeld ? 'Solo me falta tu email.' : '¿En qué empresa trabajas?',
           envelope: `env-${turns}`,
-          complete,
+          // Never complete here: the address is still unverified at this point,
+          // which is exactly what the real endpoint reports.
+          complete: false,
           exhausted: false,
-          missing: complete ? [] : ['company', 'email'],
+          missing: factsHeld ? ['email'] : ['company', 'email'],
         }),
       })
     }
@@ -83,6 +85,25 @@ const composer = (page: Page) => page.locator('#contact textarea, #contact input
 async function say(page: Page, text: string) {
   await composer(page).fill(text)
   await page.locator('#contact button[type="submit"]').first().click()
+}
+
+/**
+ * Walks the verification thread. Fails if it is not there: it is not optional.
+ *
+ * The thread's buttons are `type="button"`, not submit — the composer owns the
+ * only submit in the section. Clicking the wrong one silently does nothing,
+ * which is exactly how this test passed while requesting no code at all.
+ */
+async function verifyEmail(page: Page, address = 'ada@example.com') {
+  const email = page.locator('#conversation-email')
+  await expect(email, 'the verification thread should appear once email is the last gap').toBeVisible()
+  await email.fill(address)
+  await page.locator('#contact button', { hasText: /send code|enviar código/i }).click()
+
+  const code = page.locator('#conversation-code')
+  await expect(code, 'the code field should appear once a code was requested').toBeVisible()
+  await code.fill('123456')
+  await page.locator('#contact button', { hasText: /confirm|confirmar/i }).click()
 }
 
 test.beforeEach(async ({ page }) => {
@@ -118,23 +139,16 @@ test.describe('conversational contact', () => {
     expect(calls.filter((url) => url.includes('/conversation/turn'))).toHaveLength(0)
   })
 
-  test('asks for the report once the conversation completes and the email is verified', async ({
-    page,
-  }) => {
+  test('asks for the report once the email is verified', async ({ page }) => {
     const calls = await stubBackend(page, { completeAfter: 1 })
     await page.goto('/')
 
     await say(page, 'soy Ada de Analytical Engines, ae.example, somos tres')
 
-    // The email thread appears; verifying it is what unlocks the report.
-    const emailField = page.locator('#contact input[type="email"]')
-    if (await emailField.count()) {
-      await emailField.fill('ada@example.com')
-      await page.locator('#contact button', { hasText: /enviar|send|código|code/i }).first().click()
-      const codeField = page.locator('#contact input[inputmode="numeric"], #contact input[autocomplete="one-time-code"]')
-      await codeField.first().fill('123456')
-      await page.locator('#contact button', { hasText: /confirmar|confirm|verificar|verify/i }).first().click()
-    }
+    // Verifying the address is the last missing fact, and therefore what
+    // unlocks the report. No conditional: if this thread does not appear, the
+    // flow is broken and the test must say so.
+    await verifyEmail(page)
 
     await expect
       .poll(() => calls.filter((url) => url.includes('/contact/report')).length, { timeout: 10000 })
@@ -146,9 +160,10 @@ test.describe('conversational contact', () => {
     await page.goto('/')
 
     await say(page, 'soy Ada de AE')
+    await verifyEmail(page)
 
-    // Whatever the UI does, it must not claim the report is on its way.
-    await expect(page.locator('#contact')).not.toContainText(/informe en camino|report on its way/i)
+    // The request was made and refused: the visitor must not be told otherwise.
+    await expect(page.locator('#contact [role="alert"]')).toBeVisible()
   })
 
   test('an expired conversation lets the visitor start again', async ({ page }) => {
