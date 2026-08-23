@@ -209,7 +209,7 @@ def get_report_generator(
             raise ReportDeliveryUnavailable(
                 "REPORT_GENERATOR=gemini requires GEMINI_API_KEY to be set"
             )
-        return GroundedCanonGenerator(api_key=key)
+        return GroundedCanonGenerator(api_key=key, grounding=settings.gemini_grounding)
 
     raise ReportDeliveryUnavailable(
         f"Unknown REPORT_GENERATOR value: {settings.report_generator!r}. "

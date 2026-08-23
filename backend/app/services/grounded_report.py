@@ -162,11 +162,17 @@ class GroundedCanonGenerator:
         model: str = "",
         transport: httpx.AsyncBaseTransport | None = None,
         degrade_without_grounding: bool = True,
+        grounding: bool = False,
     ) -> None:
         self._api_key = api_key
         self._model = (model or DEFAULT_GEMINI_MODEL).strip()
         self._transport = transport
         self._degrade = degrade_without_grounding
+        # Off by default: Search grounding is entitlement-gated, so on an account
+        # without a paid tier every grounded call returns 429 while the same call
+        # without it returns 200. Attempting it spends a round trip to learn what
+        # we already know. Enable it with GEMINI_GROUNDING once billing is on.
+        self._grounding = grounding
 
     @property
     def endpoint(self) -> str:
@@ -191,14 +197,18 @@ class GroundedCanonGenerator:
         """
         facts = _facts_payload(contact_name=contact_name, company=company, team=team, site=site)
 
-        grounded = True
-        try:
-            document = await self._call(facts=facts, locale=locale, grounded=True)
-        except GroundingUnavailable:
-            if not self._degrade:
-                raise
-            grounded = False
+        grounded = self._grounding
+
+        if not self._grounding:
             document = await self._call(facts=facts, locale=locale, grounded=False)
+        else:
+            try:
+                document = await self._call(facts=facts, locale=locale, grounded=True)
+            except GroundingUnavailable:
+                if not self._degrade:
+                    raise
+                grounded = False
+                document = await self._call(facts=facts, locale=locale, grounded=False)
 
         reported, cited = group_claims(document)
 
