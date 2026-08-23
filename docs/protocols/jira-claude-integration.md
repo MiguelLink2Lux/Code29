@@ -1,8 +1,15 @@
-# Code29 — Jira ↔ Claude Code Integration
+> **Type:** Protocol — **Status:** Deprecated
 
-> **Version:** 1.0 | **Date:** 2026-04-11 | **Status:** Active
+# Code29 — Jira ↔ Claude Code Integration (deprecated)
 
-This document defines the conventions for using the Atlassian MCP within Claude Code on the Code29 project.
+> **Version:** 1.0 | **Date:** 2026-04-11 | **Deprecated:** 2026-08-04
+>
+> **Jira was retired on 2026-08-04.** Nothing below is an active instruction — it is kept only as a
+> historical record of how tasks were tracked before the migration, and to make legacy `C29-*` keys
+> found in older docs readable. The active protocol is
+> [Linear ↔ Claude Code Integration](linear-claude-integration.md).
+
+This document defined the conventions for using the Atlassian MCP within Claude Code on the Code29 project.
 
 ---
 
@@ -102,5 +109,6 @@ When referencing a Jira ticket in text (docs, PR descriptions, comments):
 
 ## References
 
-- SDD + Jira integration: [docs/protocols/sdd-workflow.md](sdd-workflow.md)
+- Active replacement: [docs/protocols/linear-claude-integration.md](linear-claude-integration.md)
+- SDD integration: [docs/protocols/sdd-workflow.md](sdd-workflow.md)
 - Agent map: [docs/protocols/ai-agents.md](ai-agents.md)

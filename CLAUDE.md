@@ -9,7 +9,7 @@
 
 1. **Propose a plan** before touching any file — describe the approach, affected files, and risks
 2. **Wait for explicit approval** before writing any code
-3. **Track tasks** with Jira (project C29 — see [Jira integration](docs/protocols/jira-claude-integration.md))
+3. **Track tasks** with Linear (workspace `linear.app/code29`, team Code29, issue prefix `COD` — see [Linear integration](docs/protocols/linear-claude-integration.md))
 4. **Execute task by task** — mark each done before moving to the next
 5. **Propose the commit** (message + files) and wait for approval before running it
 
