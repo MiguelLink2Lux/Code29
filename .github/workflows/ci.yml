@@ -1,0 +1,106 @@
+name: CI
+
+# Every gate that guards this repo, on every pull request. Nothing verified a PR
+# before this existed: a merge once landed an invalid package.json on main and
+# broke every npm command, and a later merge reverted a payload contract without
+# a single test failing.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A PR that gets a new push does not need the previous run finished.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 20 on purpose: @astrojs/vercel v7 reads the local process.version to
+      # pick the function runtime, so the runner's version is what verify:runtime
+      # asserts. .nvmrc is the single source for it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Assert the emitted Vercel runtime
+        run: npm run verify:runtime
+
+      - name: Assert the build artifacts
+        run: npm run verify:assets
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      # The browsers are cached but their OS dependencies are not.
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - name: Upload the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+          # pyproject pins >=3.12,<3.13; being explicit beats relying on
+          # whatever the runner image happens to ship.
+          python-version: '3.12'
+
+      # --frozen fails if uv.lock disagrees with pyproject.toml, which is the
+      # drift a hand-resolved merge conflict produces.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check
+
+      - name: Tests
+        run: uv run pytest
