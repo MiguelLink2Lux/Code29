@@ -7,7 +7,8 @@
 Four independent gates, each answering a question the others cannot. Every gate runs
 **locally before a push and again in CI on every pull request** (`.github/workflows/ci.yml`,
 jobs `Frontend` and `Backend`), so the sequence below is both the release checklist and the
-pipeline.
+pipeline. A fifth gate — dependency vulnerabilities — runs outside this pipeline; see
+[[decisions/0010-snyk-dependency-scanning]].
 
 | Level | Runner | Cases | Command | Answers |
 |-------|--------|-------|---------|---------|
@@ -152,6 +153,9 @@ entrypoint stops serving the same app object as local uvicorn and pytest.
 - **CI verifies, it never deploys.** Deployment is Vercel's Git integration: a merge to
   `main` publishes production. The consequence is that CI is only a real gate while `main`
   is protected — an unprotected direct push publishes without passing any of this.
+- **Dependencies are scanned outside this pipeline.** Snyk produces no GitHub check, so a
+  vulnerable dependency does not fail a pull request — see
+  [[decisions/0010-snyk-dependency-scanning]].
 - **Separate artifact config over a unit-test tag.** Tagging would still load the suite in
   the watch loop and fail confusingly with no build present. A second config makes the
   prerequisite explicit in the command name.

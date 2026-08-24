@@ -17,6 +17,7 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 | Hosting | Vercel |
 | Tests | Vitest (unit + build artifacts) · Playwright (e2e) · pytest (backend) — run locally and again in CI, see [testing strategy](docs/architecture/testing-strategy.md) |
 | CI | GitHub Actions (`.github/workflows/ci.yml`) — jobs `Frontend` and `Backend` on every pull request. It verifies; it never deploys |
+| Dependency security | Snyk, connected through its web integration — npm + pip manifests. Produces no GitHub check, so it does **not** block a merge ([ADR 0010](docs/architecture/decisions/0010-snyk-dependency-scanning.md)) |
 
 ---
 

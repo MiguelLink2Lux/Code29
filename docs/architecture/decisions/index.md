@@ -13,6 +13,7 @@ Chronological log of significant architecture decisions (MADR format).
 | [[0007-gemini-over-rest]] | Talk to Gemini over the REST API instead of the Genkit SDK | Accepted |
 | [[0008-improvement-canon]] | Ten fixed improvement points as the structure of the workflow report | Accepted (partially supersedes 0006) |
 | [[0009-conversational-contact-agent]] | A conversational agent replaces the guided questionnaire, and an agent verifies the report | Accepted (partially supersedes 0006) |
+| [[0010-snyk-dependency-scanning]] | Snyk scans dependencies for known vulnerabilities, outside the PR pipeline | Accepted |
 
 The **location** decided by 0005 — the AI layer embedded in the FastAPI backend — still
 stands; only the **mechanism** (the Genkit Python SDK) was replaced by a direct REST call
