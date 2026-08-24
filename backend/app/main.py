@@ -120,5 +120,9 @@ app = create_app()
 # catches what no real route matched: it reports the path the function actually
 # received. Delete once the routing cause is known.
 @app.api_route("/{full_path:path}", methods=["GET"])
-def _echo_received_path(full_path: str) -> dict[str, str]:
-    return {"seen_path": full_path}
+def _echo_received_path(full_path: str, request: Request) -> dict[str, object]:
+    return {
+        "seen_path": full_path,
+        "query": str(request.url.query),
+        "headers": {k: v for k, v in request.headers.items() if k.lower().startswith("x-")},
+    }
