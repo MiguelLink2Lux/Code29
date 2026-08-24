@@ -57,6 +57,13 @@ def restore_rewritten_path(scope: Scope) -> Scope:
 
 
 async def app(scope: Scope, receive: Receive, send: Send) -> None:
+    # TEMPORARY probe: proves whether Vercel runs this callable at all.
+    if scope.get("type") == "http" and b"__shimcheck" in scope.get("query_string", b""):
+        await send({"type": "http.response.start", "status": 200,
+                    "headers": [(b"content-type", b"application/json")]})
+        await send({"type": "http.response.body", "body": b'{"shim":"running"}'})
+        return
+
     await _app(restore_rewritten_path(scope), receive, send)
 
 
