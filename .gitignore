@@ -52,3 +52,9 @@ test-results/
 *.lcov
 # Agent worktrees (created by Claude Code subagents)
 .claude/worktrees/
+
+# Obsidian — share graph colours and app settings, not local UI state
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+docs/.obsidian/workspace.json
+docs/.obsidian/workspace-mobile.json

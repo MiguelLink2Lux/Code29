@@ -1,0 +1,65 @@
+{
+  "collapse-filter": false,
+  "search": "-path:node_modules -path:.claude -path:.astro -path:test-results -path:playwright-report -path:.vercel",
+  "showTags": true,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:index.md",
+      "color": {
+        "a": 1,
+        "rgb": 61695
+      }
+    },
+    {
+      "query": "path:docs/architecture/decisions",
+      "color": {
+        "a": 1,
+        "rgb": 10289407
+      }
+    },
+    {
+      "query": "path:docs/architecture",
+      "color": {
+        "a": 1,
+        "rgb": 14417151
+      }
+    },
+    {
+      "query": "path:docs/protocols",
+      "color": {
+        "a": 1,
+        "rgb": 16756736
+      }
+    },
+    {
+      "query": "path:docs/requirements",
+      "color": {
+        "a": 1,
+        "rgb": 65437
+      }
+    },
+    {
+      "query": "path:README.md OR path:CLAUDE.md",
+      "color": {
+        "a": 1,
+        "rgb": 10131609
+      }
+    }
+  ],
+  "collapse-display": false,
+  "showArrow": true,
+  "textFadeMultiplier": -0.5,
+  "nodeSizeMultiplier": 1.2,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": false,
+  "centerStrength": 0.4,
+  "repelStrength": 12,
+  "linkStrength": 0.8,
+  "linkDistance": 220,
+  "scale": 0.85,
+  "close": false
+}
