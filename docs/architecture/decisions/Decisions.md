@@ -1,4 +1,7 @@
-# Architecture Decision Records — Index
+> **Type:** Index (MOC) — **Scope:** Architecture decisions — **Status:** Active
+> **Part of:** [[Architecture]]
+
+# Decisions — Architecture Decision Records
 
 Chronological log of significant architecture decisions (MADR format).
 
@@ -39,6 +42,7 @@ off — see §7 of 0009.
 
 ## References
 
+- [[Architecture]] — parent hub
 - [[tech-stack-decision]]
 - [[contact-chat-v1]]
 - [[improvement-canon]]

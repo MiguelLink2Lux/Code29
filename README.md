@@ -362,7 +362,7 @@ cd backend
 | [Testing strategy](docs/architecture/testing-strategy.md) | The four test levels and what each one catches |
 | [Contact chat](docs/architecture/contact-chat-v1.md) | The phased design of the contact flow and what shipped |
 | [Improvement canon](docs/architecture/improvement-canon.md) | The ten points that guide the project analysis and shape the deliverable PDF, their observable signals, and the single engagement they lead to. Live — it is the structure of the report a visitor receives |
-| [ADR index](docs/architecture/decisions/index.md) | Architecture decision records |
+| [ADR index](docs/architecture/decisions/Decisions.md) | Architecture decision records |
 | [SDD workflow](docs/protocols/sdd-workflow.md) | Spec-driven development protocol |
 
 ---
