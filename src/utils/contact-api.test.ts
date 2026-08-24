@@ -129,3 +129,87 @@ describe('requestReport', () => {
     })
   })
 })
+
+describe('takeConversationTurn', () => {
+  const turnPayload = {
+    reply: '¿En qué empresa trabajas?',
+    envelope: 'envelope-1',
+    complete: false,
+    exhausted: false,
+    missing: ['company', 'website', 'team', 'email'],
+  }
+
+  it('posts the message and omits the envelope on the first turn', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(json(turnPayload))
+    const api = createContactApi({ baseUrl: 'https://api.test', fetchImpl: fetchSpy })
+
+    await api.takeConversationTurn('hola')
+
+    const [url, init] = fetchSpy.mock.calls[0]
+    expect(url).toBe('https://api.test/api/v1/contact/conversation/turn')
+    expect(JSON.parse(init.body)).toEqual({ message: 'hola' })
+  })
+
+  it('returns the whole turn result, not just the reply', async () => {
+    const api = createContactApi({
+      baseUrl: 'https://api.test',
+      fetchImpl: vi.fn().mockResolvedValue(json(turnPayload)),
+    })
+
+    expect(await api.takeConversationTurn('hola')).toEqual(turnPayload)
+  })
+
+  it('sends back the envelope it was given, so the server needs no store', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(json(turnPayload))
+    const api = createContactApi({ baseUrl: 'https://api.test', fetchImpl: fetchSpy })
+
+    await api.takeConversationTurn('AE', 'envelope-0')
+
+    expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toEqual({
+      message: 'AE',
+      envelope: 'envelope-0',
+    })
+  })
+
+  it('sends the access token as a credential, never in the body', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(json(turnPayload))
+    const api = createContactApi({ baseUrl: 'https://api.test', fetchImpl: fetchSpy })
+
+    await api.takeConversationTurn('listo', 'envelope-0', 'token-abc')
+
+    const [, init] = fetchSpy.mock.calls[0]
+    expect(init.headers.Authorization).toBe('Bearer token-abc')
+    expect(init.body).not.toContain('token-abc')
+  })
+
+  it('surfaces an expired conversation as 401, distinct from anything else', async () => {
+    const api = createContactApi({
+      baseUrl: 'https://api.test',
+      fetchImpl: vi.fn().mockResolvedValue(json({ detail: 'no longer valid' }, 401)),
+    })
+
+    await expect(api.takeConversationTurn('x', 'stale')).rejects.toMatchObject({
+      name: 'ContactApiError',
+      status: 401,
+    })
+  })
+
+  it('surfaces an over-long message as 413', async () => {
+    const api = createContactApi({
+      baseUrl: 'https://api.test',
+      fetchImpl: vi.fn().mockResolvedValue(json({ detail: 'too long' }, 413)),
+    })
+
+    await expect(api.takeConversationTurn('x')).rejects.toMatchObject({ status: 413 })
+  })
+
+  it('rejects a malformed answer rather than inventing a turn', async () => {
+    // A reply with no envelope would leave the next turn unable to continue.
+    const api = createContactApi({
+      baseUrl: 'https://api.test',
+      fetchImpl: vi.fn().mockResolvedValue(json({ reply: 'sin sobre' })),
+    })
+
+    await expect(api.takeConversationTurn('hola')).rejects.toBeInstanceOf(ContactApiError)
+  })
+})

@@ -113,6 +113,58 @@ export function createContactApi(options: ContactApiOptions = {}) {
     async requestReport(request: ReportRequest, accessToken: string): Promise<void> {
       await post('/api/v1/contact/report', request, accessToken)
     },
+
+    /**
+     * Advance the conversation by one turn.
+     *
+     * The envelope is the whole server-side state: it comes back signed and must
+     * be returned as-is on the next turn. The access token is a credential and
+     * travels in the header — it is what makes the conversation completable.
+     */
+    async takeConversationTurn(
+      message: string,
+      envelope?: string,
+      accessToken?: string,
+    ): Promise<ConversationTurn> {
+      const body: { message: string; envelope?: string } = { message }
+
+      // Omitted rather than sent as null on the first turn: the backend treats
+      // an absent envelope as "start a conversation".
+      if (envelope) body.envelope = envelope
+
+      const payload = await post('/api/v1/contact/conversation/turn', body, accessToken)
+
+      return parseTurn(payload)
+    },
+  }
+}
+
+export interface ConversationTurn {
+  reply: string
+  envelope: string
+  complete: boolean
+  exhausted: boolean
+  missing: string[]
+}
+
+/** A turn without an envelope cannot be continued, so it is refused outright. */
+function parseTurn(payload: unknown): ConversationTurn {
+  if (!payload || typeof payload !== 'object') {
+    throw new ContactApiError('The backend returned no turn', 502)
+  }
+
+  const turn = payload as Record<string, unknown>
+
+  if (typeof turn.envelope !== 'string' || !turn.envelope) {
+    throw new ContactApiError('The backend answered without a conversation envelope', 502)
+  }
+
+  return {
+    reply: typeof turn.reply === 'string' ? turn.reply : '',
+    envelope: turn.envelope,
+    complete: turn.complete === true,
+    exhausted: turn.exhausted === true,
+    missing: Array.isArray(turn.missing) ? turn.missing.map(String) : [],
   }
 }
 
