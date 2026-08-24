@@ -1,4 +1,5 @@
 > **Type:** Protocol — **Status:** Active
+> **Part of:** [[Protocols]]
 
 # Code29 — Linear ↔ Claude Code Integration
 

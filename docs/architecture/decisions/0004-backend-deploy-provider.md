@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-08-21
+> **Part of:** [[Decisions]]
 
 # ADR 0004 — Deploy the FastAPI backend on Vercel as a second project
 

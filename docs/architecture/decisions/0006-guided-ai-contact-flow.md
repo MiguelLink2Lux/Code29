@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted (step flow superseded by 0009; report structure by 0008) — **Date:** 2026-08-22
+> **Part of:** [[Decisions]]
 
 # ADR 0006 — Guided AI contact flow with stateless email verification
 

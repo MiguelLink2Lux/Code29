@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-08-24
+> **Part of:** [[Decisions]]
 
 # ADR 0010 — Snyk scans dependencies for known vulnerabilities, outside the PR pipeline
 

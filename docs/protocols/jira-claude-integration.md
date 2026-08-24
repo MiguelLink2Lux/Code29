@@ -1,4 +1,5 @@
 > **Type:** Protocol — **Status:** Deprecated
+> **Part of:** [[Protocols]]
 
 # Code29 — Jira ↔ Claude Code Integration (deprecated)
 

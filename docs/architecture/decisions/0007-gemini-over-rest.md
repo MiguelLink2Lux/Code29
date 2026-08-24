@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-08-22
+> **Part of:** [[Decisions]]
 
 # ADR 0007 — Talk to Gemini over the REST API instead of the Genkit SDK
 

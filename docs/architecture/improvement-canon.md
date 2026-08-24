@@ -1,4 +1,5 @@
 > **Type:** Architecture — **Scope:** Contact-chat workflow report — **Status:** Active
+> **Part of:** [[Architecture]]
 
 # The Improvement Canon — ten points of an AI-First SDLC
 

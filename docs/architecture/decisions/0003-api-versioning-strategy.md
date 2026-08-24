@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-06-19
+> **Part of:** [[Decisions]]
 
 # ADR 0003 — URL path API versioning (`/api/v1`)
 

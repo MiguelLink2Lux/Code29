@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted (partially superseded by 0007) — **Date:** 2026-08-19
+> **Part of:** [[Decisions]]
 
 # ADR 0005 — Genkit on Python, embedded in the FastAPI backend
 

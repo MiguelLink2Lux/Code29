@@ -1,6 +1,7 @@
 # Code29 — SDD Workflow
 
 > **Version:** 1.0 | **Date:** 2026-04-11 | **Status:** Active
+> **Part of:** [[Protocols]]
 
 Spec-Driven Development (SDD) is the structured planning methodology for Code29. It ensures every significant change is designed before it is implemented.
 
