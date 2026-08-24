@@ -1,6 +1,26 @@
-> **Type:** Architecture — **Scope:** Contact chat — **Status:** Active (Phase 3 in progress)
+> **Type:** Architecture — **Scope:** Contact chat — **Status:** Historical — the phased design is fulfilled and exceeded (see [[decisions/0009-conversational-contact-agent]])
 
 # Design: Contact Chat v1
+
+> **Read this first.** The three phases below are **done**, and the design has since been taken
+> further than it planned. Two of its decisions no longer describe the system:
+>
+> - **"Chat guiado, no chat libre"** (the Phase 1 decision table) is **reversed** by
+>   [[decisions/0009-conversational-contact-agent]]. A model now conducts the conversation. The
+>   argument recorded there — free chat "produce datos pobres" — is answered, not ignored: the
+>   data-quality guarantee moves from the step structure to typed per-turn extraction, a
+>   server-side completeness predicate, and the rule that an explicit refusal is data while
+>   silence is not. Read §2 of 0009 before reusing this table.
+> - **The Phase 1 serverless endpoint and delivery adapter** are deleted. The FastAPI backend is
+>   the only email sender.
+>
+> This document is kept as the record of how the section was originally reasoned about, and for
+> the "Phase 3 — as implemented" table below, which is still the fastest way to see where the
+> shipped shape diverged from the plan.
+>
+> **What is live today:** the conversational agent of
+> [[decisions/0009-conversational-contact-agent]], live since 2026-08-24. The eleven-step
+> questionnaire this document planned was served until then and has now been deleted.
 
 ## Enfoque tecnico
 
@@ -13,6 +33,7 @@ Sustituir el placeholder actual de contacto por una isla Vue que renderice un ch
 | 1 | Salir rapido | Chat guiado sin IA, campos obligatorios, validacion incremental, estados loading/success/error y entrega por Resend |
 | 2 | Mejorar cualificacion | Preguntas ramificadas, recuperacion de sesion, metadatos estructurados y eventos de analitica |
 | 3 | Introducir IA | Backend FastAPI, orquestacion IA, respuestas en streaming y analisis enriquecido del lead — **implementada** (generador IA en stub hasta que exista `GEMINI_API_KEY`), ver [[decisions/0006-guided-ai-contact-flow]] |
+| — | **Mas alla del plan** | El plan terminaba en la Fase 3. Lo que vino despues no estaba previsto aqui: informe estructurado sobre el canon de diez puntos ([[decisions/0008-improvement-canon]]) y agente conversacional con extraccion tipada y verificacion de afirmaciones ([[decisions/0009-conversational-contact-agent]]). Backend implementado; interfaz de chat en vuelo, cutover pendiente |
 
 ## Decisiones de arquitectura
 
@@ -28,7 +49,7 @@ Sustituir el placeholder actual de contacto por una isla Vue que renderice un ch
 | Opcion | Tradeoff | Decision |
 |------|------|------|
 | Flujo determinista configurable | UX predecible, validacion simple, migracion limpia | **Elegida para Fase 1** |
-| Chat abierto sin IA | Parece conversacional, pero produce datos pobres | Descartada |
+| Chat abierto sin IA | Parece conversacional, pero produce datos pobres | Descartada — **decision invertida** en [[decisions/0009-conversational-contact-agent]], donde el chat lo conduce un modelo y la garantia de calidad del dato pasa a la extraccion tipada por turno |
 
 ### Decision: separar flujo y envio
 
@@ -103,10 +124,11 @@ La Fase 1 sale sobre la seccion actual de contacto sin migracion de backend. La 
 
 Both questions this document closed with are now answered by the implementation:
 
-- **Is an in-progress chat kept across a refresh?** Yes. `src/utils/contact-chat.ts` persists
-  answers under the `contact-chat` key in **`sessionStorage`, deliberately not
-  `localStorage`** — a reload keeps the conversation, and closing the tab destroys the lead's
-  data. The access token is never persisted at all.
+- **Is an in-progress chat kept across a refresh?** Yes. The answer outlived the
+  questionnaire: `src/utils/contact-conversation.ts` persists the conversation under the
+  `contact-conversation` key in **`sessionStorage`, deliberately not `localStorage`** — a
+  reload keeps the conversation, and closing the tab destroys the lead's data. The access
+  token is never persisted at all.
 - **Summary, transcript, or both?** Both. `render_report_email()` in
   `backend/app/services/mailer.py` sends the normalised summary *and* the full transcript,
   together with the consent statement the visitor granted.
@@ -140,9 +162,11 @@ Endpoints serving the flow, all under `/api/v1`:
 | `POST /contact/verification/confirm` | Exchange the code for a signed access token |
 | `POST /contact/site-analysis` | Fetch the lead's home page behind the SSRF guard (token required) |
 | `POST /contact/report` | Generate and deliver the report (token required; it names the recipient) |
+| `POST /contact/conversation/turn` | Advance the conversational flow by one turn — the 0009 path. Implemented and tested; no interface talks to it yet |
 
 ## References
 
+- [[decisions/0009-conversational-contact-agent]] — the conversational agent that supersedes this document's guided-chat decision
 - [[decisions/0008-improvement-canon]] — the ten-point canon that replaces the five-axis report structure
 - [[improvement-canon]] — the canon as the project-analysis guide and the roadmap of the deliverable PDF (COD-42, not implemented)
 - [[decisions/0006-guided-ai-contact-flow]] — Phase 3 decisions, risks and privacy posture

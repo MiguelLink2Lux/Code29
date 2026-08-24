@@ -1,18 +1,35 @@
-> **Type:** Architecture · ADR — **Status:** Accepted (report structure partially superseded by 0008) — **Date:** 2026-08-22
+> **Type:** Architecture · ADR — **Status:** Accepted (step flow superseded by 0009; report structure by 0008) — **Date:** 2026-08-22
 
 # ADR 0006 — Guided AI contact flow with stateless email verification
 
-- **Status:** Accepted — **partially superseded by** [[0008-improvement-canon]]
+- **Status:** Accepted — **partially superseded by** [[0008-improvement-canon]] and [[0009-conversational-contact-agent]]
 - **Date:** 2026-08-22
 - **Deciders:** Miguel Navarro Mantas
 
-> **Scope of the supersession.** [[0008-improvement-canon]] replaces **the structure of the
-> report's diagnosis only**: the five `DiagnosisAxis` members become the ten fixed points of
-> [[improvement-canon]], each with an observable signal and a primary service. Everything else
-> decided here stands unchanged — the fixed step flow and its order as an authorisation rule,
-> stateless verification, the Turnstile gate, the SSRF-guarded site analysis, the
-> facts-not-instructions contract with the model, and the privacy posture. Where this ADR says
-> "four structured diagnosis axes" or "five axes", read the canon instead.
+> **Scope of the supersession — exactly two parts of this ADR, by two later ADRs.**
+>
+> 1. **The report's diagnosis structure**, by [[0008-improvement-canon]]: the five
+>    `DiagnosisAxis` members become the ten fixed points of [[improvement-canon]], each with an
+>    observable signal. Where this ADR says "four structured diagnosis axes" or "five axes",
+>    read the canon instead.
+> 2. **The fixed eleven-step flow**, by [[0009-conversational-contact-agent]]: the ordered step
+>    list below is no longer the flow, and neither is "the order is an authorisation rule" —
+>    there is no order. 0009 restates that property as a server-side completeness predicate that
+>    requires the verified address from the access token, and relocates the data-quality
+>    guarantee from the structure to typed per-turn extraction.
+>
+> **Everything else here stands unchanged and current:** stateless email verification by HMAC,
+> Turnstile as the anti-abuse gate failing closed, the SSRF-guarded site analysis with its named
+> open risks, the absence of a datastore with the costs that follow, and the privacy posture.
+> The facts-not-instructions contract also stands for the *generation* stage — but 0009 adds a
+> second, conversational model role that **does** read visitor text, so read §5 of 0009 before
+> assuming injection is still closed by construction.
+>
+> **No longer live.** On 2026-08-24 (PR #29, `462e927`) the eleven-step questionnaire described
+> here was replaced by the conversational agent of [[0009-conversational-contact-agent]] and its
+> component deleted. Read the step flow below as history; everything else in this ADR — HMAC
+> verification, Turnstile failing closed, the SSRF guard, the absence of a datastore — is still
+> in force.
 
 ## Context and Problem Statement
 
@@ -186,5 +203,6 @@ believes a model wrote it is worse than failing loudly.
 - [[0004-backend-deploy-provider]] — the stateless serverless host that forces these choices
 - [[testing-strategy]] — the four gates covering the flow
 - [[0008-improvement-canon]] — the ten-point canon that supersedes this ADR's report structure
+- [[0009-conversational-contact-agent]] — the conversational agent that supersedes this ADR's step flow
 - [[improvement-canon]] — the canon itself: points, signals, service mapping
 - [[index]] — ADR index

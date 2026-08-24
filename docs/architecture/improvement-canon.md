@@ -215,9 +215,12 @@ restore service) are the natural quantification of this point. They are a *signa
 - *Reported* — **is there CI? Is deployment automated? Is rollback automated, or is it a
   human under pressure at 2am?** How is a regression detected — by monitoring or by a
   customer? DORA figures, if the lead has them.
-- *Measured* — `server` and `framework_hint` headers hint at the hosting model; a managed
-  platform (Vercel, Netlify, Cloudflare) implies some pipeline exists. Suggestive, not
-  conclusive.
+- *Measured* — **none.** `server` and `framework_hint` reveal the hosting model, and a managed
+  platform (Vercel, Netlify, Cloudflare) makes *some* pipeline likely — but "likely" is not
+  evidence, and this is exactly the inference that produced a false report: the live run used
+  "Framework detected: Next.js" to mark this point `cubierto`. `measured_evidence_for()` routes
+  **nothing** here. Those fields are context about their stack, available to the report as
+  background, never as a verdict on this point.
 
 ---
 
@@ -235,11 +238,13 @@ without the second is a folder nobody reads.
 **Signal**
 
 - *Reported* — is there a retrieval layer (vector store / RAG) the agents actually query?
-- *Measured* — `robots_txt_present`, `sitemap_present`, a docs subdomain, an `openapi.json`:
-  weak evidence that documentation is treated as an artefact. **Better signal, where a public
-  repository exists: are there ADRs or versioned documentation living next to the code?**
-  Documentation in a wiki drifts; documentation in the repository is reviewed with the diff
-  that changes it.
+- *Measured* — **none.** `robots_txt_present` and `sitemap_present` say a site is crawlable,
+  which is not a statement about documentation; a docs subdomain or an `openapi.json` would be
+  better, and neither is in `SiteSignals`. `measured_evidence_for()` routes nothing here.
+  **The signal that would count, where a public repository exists: are there ADRs or versioned
+  documentation living next to the code?** Documentation in a wiki drifts; documentation in the
+  repository is reviewed with the diff that changes it. Reaching it needs a repository fetch we
+  do not do — so this point is decided on reported evidence alone.
 
 ---
 
@@ -288,8 +293,11 @@ one covers.
   `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`,
   `Referrer-Policy`): the only externally verifiable governance evidence there is. Present
   headers mean someone configured them deliberately; a site on plain HTTP in 2026 is a
-  finding on its own. Also: a `generator` tag exposing an outdated CMS version is a
-  supply-chain signal visible from outside.
+  finding on its own. This is the **only** point that receives measured evidence, and it
+  receives it as `parcial` — configured headers are a hint about security posture, not proof
+  that secret management and dependency scanning exist. A `generator` tag exposing an outdated
+  CMS version is a supply-chain signal visible from outside, but it is not routed here either:
+  it is context.
 
 ---
 
@@ -304,9 +312,9 @@ one covers.
 | 5 | Iterative, modular automation (decomposition) | Sequential | Reported |
 | 6 | AI-guided testing (test-first) | Sequential | Reported |
 | 7 | Code review as the first filter | Sequential | Reported |
-| 8 | CI/CD and predictive DevOps | Sequential | Reported + measured (weak) |
-| 9 | Living documentation and historical context | Sequential | Reported + measured (weak) |
-| 10 | Governance of data, secrets and dependencies | **Transversal** | Reported + **measured** |
+| 8 | CI/CD and predictive DevOps | Sequential | Reported only |
+| 9 | Living documentation and historical context | Sequential | Reported only |
+| 10 | Governance of data, secrets and dependencies | **Transversal** | Reported + **measured** (`parcial` only) |
 
 Dependency order among the sequential eight: **1 → 3 → 4 → 5 → 6 → 7 → 8**, with 9 usable at
 any point after 1 and most valuable once 7 exists (reviews are where decisions get recorded).
@@ -314,10 +322,15 @@ any point after 1 and most valuable once 7 exists (reviews are where decisions g
 
 ## Signals: measured versus reported
 
-Only two points have a genuinely **measured** signal — 8 (weakly, from hosting hints) and 10
-(properly, from HTTPS and security headers). Point 9 gets weak measured evidence from
-`robots.txt` / `sitemap.xml`. Everything else is **reported**, and reported signals are
-self-declared: they describe what a lead believes about their process.
+**Exactly one point has a measured signal:** 10, from HTTPS and the security headers, and even
+there the state it can reach is `parcial`. Every other point — 1 through 9 — is decided on
+**reported** evidence alone, and reported signals are self-declared: they describe what a lead
+believes about their process.
+
+*(Corrected 2026-08-23. This paragraph previously credited point 8 with a weak measured signal
+from hosting hints and point 9 with one from `robots.txt` / `sitemap.xml`. Neither is routed to
+a point, and treating them as though they were is what produced a false verdict in the first
+live run — see the table below.)*
 
 Two consequences for the generator:
 
@@ -334,21 +347,63 @@ collects: `https`, `security_headers`, `redirect_hops`, `status_code`, `title`,
 `open_graph_present`, `generator`, `framework_hint`, `server`, `html_bytes`, `script_count`,
 `stylesheet_count`, `image_count`, `robots_txt_present`, `sitemap_present`.
 
-These measure a **home page**, not an engineering organisation. They are strong evidence for
-point 10 and circumstantial for 8 and 9. They say nothing about points 1–7, and no amount of
-HTML parsing will change that.
+These measure a **home page**, not an engineering organisation, and only a few of them
+evidence a canon point at all.
 
-### The conversational gap
+*(Corrected 2026-08-23. This paragraph previously read "strong evidence for point 10 and
+circumstantial for 8 and 9". Both halves were wrong, and the second half was the dangerous
+one — the live run acted on it, using "Framework detected: Next.js" as grounds for marking
+point 8 **cubierto** and "HTTPS enabled" as the diagnosis for point 9. A sourced claim
+attached to the wrong point is still a false statement about the lead. See §6 of
+[[0009-conversational-contact-agent]].)*
 
-The chat flow currently asks **five** practice questions — `delivery`, `bugs`, `deploys`,
-`security`, `observability` — matching the five `DiagnosisAxis` members. A ten-point canon
-needs reported signals for ten points, and five of them have no question behind them today.
+What `measured_evidence_for()` in `backend/app/services/evidence.py` actually routes:
 
-Two ways forward, and the choice belongs to whoever implements COD-42: extend the flow (more
-questions, higher abandonment), or accept `no evaluado` on the unasked points. The second
-option costs the report nothing: an unasked point is a part of the flow the client has not
-raised, which is a subject to open with them rather than a gap to apologise for. **Inventing a
-state for an unasked question is not one of the options.**
+| Point | Measured evidence | State it can reach |
+|---|---|---|
+| 10 — Gobernanza de datos, secretos y dependencias | `https`, `security_headers`, `missing_security_headers` | `parcial` only — never `cubierto` |
+| 8 — CI/CD y DevOps predictivo | **none** | — |
+| 9 — Documentación viva y contexto histórico | **none** | — |
+| 1–7 | **none** | — |
+
+Two rules that follow, both test-pinned in `backend/tests/test_evidence_sources.py`:
+
+1. **Only the security signals reach a point, and only point 10, and only as `parcial`.** A
+   present HSTS header is a hint about security posture, not proof that secret management and
+   dependency scanning exist. `test_security_signals_never_resolve_a_point_as_covered`.
+2. **Every other field is context, not evidence.** `framework_hint`, `generator`, `server`,
+   `robots_txt_present`, `sitemap_present`, page weight and asset counts describe the lead's
+   stack; none of them says anything about how the team works. Nothing on a home page proves a
+   pipeline exists or that documentation lives beside the code, so points 8 and 9 get no
+   measured evidence at all — `test_cicd_gets_no_measured_evidence_from_a_home_page`,
+   `test_living_documentation_gets_no_measured_evidence_either`.
+
+The raw pool is still available via `measured_evidence()` for callers that want report context,
+but resolving a point must go through `measured_evidence_for()`. And an unreadable page yields
+nothing for any point: reporting "no HTTPS" because our own fetch failed would turn our failure
+into a finding about the lead.
+
+The consequence to accept rather than paper over: **measured evidence is thin.** It is the part
+a lead cannot dispute and the part this document says to lead with, and it currently touches one
+point out of ten. Widening it needs new signals that genuinely evidence more points — not a
+looser mapping.
+
+### The conversational gap — resolved
+
+The questionnaire asked **five** practice questions — `delivery`, `bugs`, `deploys`, `security`,
+`observability` — matching the five `DiagnosisAxis` members, so five canon points had no
+question behind them. This section used to leave the resolution open to COD-42: extend the flow,
+or accept `no evaluado`.
+
+**It was resolved by taking neither option.**
+[[0009-conversational-contact-agent]] replaces the fixed flow with a model-conducted
+conversation, so the reported signals are no longer capped by a step list. The reason a
+twenty-step form was rejected is recorded there: closed options over a ten-point canon force the
+visitor to self-diagnose against a vocabulary nobody gave them.
+
+What is unchanged: **inventing a state for an unasked question is still not an option**, and an
+unraised point is still a part of the flow the client has not built rather than a gap to
+apologise for.
 
 ## Tri-state, and the honesty rule
 
@@ -356,8 +411,8 @@ Every point resolves to exactly one of three states:
 
 | State | Meaning | Requires |
 |---|---|---|
-| `cubierto` | Evidence the practice exists | A measured signal, or a clear reported answer |
-| `parcial` | Evidence it exists partially or without a gate | A reported answer describing something incomplete |
+| `cubierto` | Evidence the practice exists | A clear reported answer, or a full measured signal (no measured signal is full today — see below) |
+| `parcial` | Evidence it exists partially or without a gate | A reported answer describing something incomplete, or any of the measured security signals |
 | `no evaluado` | No evidence either way | Nothing was measured and nothing was asked |
 
 The tri-state exists for **factual honesty**: the report states what was observed and never
@@ -369,8 +424,8 @@ silence.
 clearest indication available that the point is **not part of how the client works today**, and
 that is exactly what has to be put in front of them. An uncovered point is therefore a
 recommendation with *more* commercial value, not less: it names a part of the flow they are not
-contemplating. Several points coming back `no evaluado` from a five-question chat is the
-expected and useful result, not a defect of the design.
+contemplating. Several points coming back `no evaluado` from one
+conversation is the expected and useful result, not a defect of the design.
 
 What stays forbidden is the jump from silence to accusation. "You have no tests" when nobody
 asked is a fabrication. "Nothing in the conversation covered a gated test suite, and building
@@ -381,6 +436,9 @@ Rules for the generator:
 
 - No signal → `no evaluado`. Never `parcial` as a hedge.
 - A measured signal outranks a reported one where both exist.
+- **A signal counts only for the point it actually evidences.** A true, correctly sourced fact
+  filed under the wrong point is still a false statement about the lead. `parcial` evidence
+  stays `parcial` however trustworthy its source.
 - An absence is stated as a part of the flow not yet built, never as an observed defect.
 - Every recommendation converges on the single engagement described in
   [The single commercial objective](#the-single-commercial-objective). The report never quotes
@@ -427,18 +485,32 @@ that exists.
 
 ## Implementation status
 
-**Nothing in this document is implemented.** COD-42 is in Backlog. The backend today has
-`DiagnosisAxis` with five members (`ai_development`, `ai_quality`, `delivery_automation`,
-`security_dependencies`, `observability`) in `backend/app/services/report.py`, and the report
-generated from it — stub or Gemini — has five axes, not ten points. The canon replaces that
-structure when COD-42 is implemented; see ADR 0008 for the consequence on ADR 0006.
+*(Updated 2026-08-23. This section previously read "Nothing in this document is implemented".)*
 
-The PDF deliverable is likewise pending — the report is delivered today as email text.
+**The canon is implemented in the backend.** `backend/app/services/canon.py` holds the ten
+points as a model with a test pinning membership and order, `canon_report.py` builds the
+ten-section report, `evidence.py` is the boundary where model claims become attributable
+evidence or get dropped, and `grounded_report.py` is the generator. Landed in phases A–D of the
+`contact-chat-agent` cycle (COD-42); see [[0009-conversational-contact-agent]].
+
+What is **not** done, stated so nobody reads more into the above than is there:
+
+- **The canon report is what a visitor gets**, live since 2026-08-24. The five-axis
+  `DiagnosisAxis` in `backend/app/services/report.py` is off the delivery path; the type still
+  exists and is still tested, but no report is built from it.
+- **Search grounding has never succeeded.** It is blocked by a paid-tier entitlement, so every
+  real run degrades to `ungrounded` and discards every `cited` claim — see §7 of
+  [[0009-conversational-contact-agent]].
+- **Measured evidence resolves one point.** Only the governance point, and only as `partial`.
+  Points 8 and 9 get no measured evidence at all, because nothing on a home page proves a
+  pipeline or living documentation exists.
+- **The PDF deliverable is pending.** The report is delivered today as email text.
 
 ## References
 
 - [[0008-improvement-canon]] — why these ten points and not others
-- [[0006-guided-ai-contact-flow]] — the flow that collects the reported signals; its report structure is superseded by 0008
+- [[0009-conversational-contact-agent]] — the conversational agent and the verifying generator that implement this canon
+- [[0006-guided-ai-contact-flow]] — the questionnaire; its report structure is superseded by 0008 and its step flow by 0009
 - [[0007-gemini-over-rest]] — how the report is generated, and why model output is validated against enums
 - [[contact-chat-v1]] — the phased design of the contact flow
 - [[linear-claude-integration]] — Linear is the task manager; Jira was retired 2026-08-04

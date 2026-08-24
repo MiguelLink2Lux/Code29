@@ -4,24 +4,26 @@
 
 ## Overview
 
-Four independent gates, each answering a question the others cannot. **There is no CI:**
-every gate runs locally, so the sequence below is the release checklist, not a pipeline
-description.
+Four independent gates, each answering a question the others cannot. Every gate runs
+**locally before a push and again in CI on every pull request** (`.github/workflows/ci.yml`,
+jobs `Frontend` and `Backend`), so the sequence below is both the release checklist and the
+pipeline.
 
 | Level | Runner | Cases | Command | Answers |
 |-------|--------|-------|---------|---------|
-| Unit | Vitest (jsdom) | 89 | `npm test` | Does the logic in `src/utils/` and the chat island behave? |
+| Unit | Vitest (jsdom) | 110 | `npm test` | Does the logic in `src/utils/`, `src/i18n/` and the chat island behave? |
 | Build artifacts | Vitest (separate config) | 13 | `npm run build && npm run verify:assets` | Did the build *emit* the files we claim to ship? |
-| End-to-end | Playwright (Chromium) | 32 in 5 specs | `npm run test:e2e` | Does a real browser see the intended behaviour? |
-| Backend | pytest | 309 | `cd backend && uv run pytest` | Does the API boot, respond, refuse correctly and stay deploy-consistent? |
+| End-to-end | Playwright (Chromium) | 29 in 5 specs | `npm run test:e2e` | Does a real browser see the intended behaviour? |
+| Backend | pytest | 502 | `cd backend && uv run pytest` | Does the API boot, respond, refuse correctly and stay deploy-consistent? |
 
 ## Components
 
 ### Unit — `src/utils/*.test.ts`
 
-Colocated with the code they cover: `contact-api` (12), `contact-chat-flow` (12),
-`contact-chat` (18), `cookie-consent` (4), `env-example` (3), `i18n` (7), `seo` (15), plus
-the chat island itself in `src/components/contact/ContactChat.test.ts` (11). Fast, no build, no browser.
+Colocated with the code they cover: `analytics` (10), `contact-api` (13),
+`contact-conversation` (35), `cookie-consent` (4), `env-example` (3), `i18n` (7), `seo` (15),
+plus `src/i18n/services.test.ts` (6) and the chat island itself in
+`src/components/contact/ContactConversation.test.ts` (17). Fast, no build, no browser.
 This is the only gate cheap enough to run on every save (`npm run test:watch`).
 
 `env-example.test.ts` is not a logic test but a **drift gate**: it scans `src/` for the
@@ -59,7 +61,7 @@ succeeds, the browser renders fine — and every shared link previews blank.
 |------|-------|--------|
 | `landing.spec.ts` | 5 | All MVP sections render, single `h1`, absolute `og:image`, assets serve without a 404, `robots.txt` declares a line matching `^https?://\S+/sitemap-index\.xml$` — the URL is deliberately **not** followed, since it carries the production origin and the dev server does not answer there |
 | `consent.spec.ts` | 6 | Banner on first visit, **no analytics request before consent**, granular persistence, reject path, survives reload, footer reopens preferences |
-| `contact-chat.spec.ts` | 10 | The guided flow end to end: step order, per-step validation, the verification-code exchange, an in-progress chat surviving a reload, error surfacing, and report delivery |
+| `contact-conversation.spec.ts` | 7 | The conversational flow end to end: the agent conducting the exchange, the verification-code round trip, an in-progress conversation surviving a reload, error surfacing, and report delivery |
 | `i18n.spec.ts` | 4 | One click switches copy and `html[lang]`, two clicks return, choice survives reload, URL never changes |
 | `legal-and-routing.spec.ts` | 7 | Legal routes readable, legacy Spanish redirects, unknown route renders 404 (parameterized over the route tables) |
 
@@ -67,7 +69,7 @@ Case counts are as **collected** (`npx playwright test --list`), so parameterize
 report more cases than they declare `test()` calls.
 
 Four non-obvious properties of the harness — the first two in `playwright.config.ts` →
-`webServer.env`, the last two in `contact-chat.spec.ts` itself:
+`webServer.env`, the last two in `contact-conversation.spec.ts` itself:
 
 1. **`PUBLIC_GA4_ID` is set to a dummy id** (`G-E2ETESTID`). Without a GA4 id the
    analytics snippet renders nothing at all, so every "no analytics before consent"
@@ -98,19 +100,35 @@ nothing. A deleted spec must break the command, not quietly shrink coverage.
 
 ### Backend — `backend/tests/`
 
-309 collected cases across 21 modules — many are `pytest.mark.parametrize` expansions, so
+**502 collected cases across 30 modules** — many are `pytest.mark.parametrize` expansions, so
 the collected total is well above the number of `def test_` lines.
 
 | Area | Modules |
 |---|---|
-| Contact flow | `test_contact_verification_api` (11), `test_verification_tokens` (17), `test_turnstile` (8), `test_contact_settings` (8) |
-| Report | `test_report` (22), `test_contact_report_endpoint` (18), `test_mailer` (12), `test_report_gemini` (21), `test_report_contract` (9), `test_report_locale` (9) |
-| Site analysis | `test_url_guard` (20), `test_site_fetch` (15), `test_site_signals` (19), `test_site_analysis_endpoint` (12) |
+| Contact flow | `test_contact_verification_api` (16), `test_verification_tokens` (17), `test_turnstile` (8), `test_contact_settings` (11) |
+| Conversation | `test_conversation_envelope` (36), `test_conversation_turn_api` (18), `test_extraction` (19), `test_report_from_conversation` (10) |
+| Canon report | `test_canon` (21), `test_canon_report` (22), `test_evidence_sources` (32), `test_grounded_generator` (21) |
+| Report (five-axis, off the delivery path) | `test_report` (24), `test_contact_report_endpoint` (18), `test_mailer` (12), `test_report_gemini` (21), `test_report_contract` (9), `test_report_locale` (12) |
+| Cutover | `test_cutover_wiring` (9) |
+| Site analysis | `test_url_guard` (64), `test_site_fetch` (18), `test_site_signals` (27), `test_site_analysis_endpoint` (23) |
 | Platform | `test_config` (4), `test_cors` (5), `test_health` (5), `test_wiring` (4) |
-| Deploy consistency | `test_requirements_manifest` (4), `test_vercel_config` (4), `test_vercel_entrypoint` (3) |
+| Deploy consistency | `test_requirements_manifest` (6), `test_vercel_config` (4), `test_vercel_entrypoint` (3) |
 
-(Counts above are declared test functions; parameterization is what lifts the collected total
-to 309.)
+(Counts above are as collected, `uv run pytest --collect-only -q`; parameterization is what
+lifts several modules well above their number of `def test_` lines.)
+
+The **conversation** and **canon report** groups arrived with [[decisions/0009-conversational-contact-agent]]
+and carry two assertions that are security controls rather than feature coverage:
+`test_grounded_generator` asserts the generation stage **never receives the transcript** (an
+injection string passed as `transcript` does not appear in the request body), and
+`test_conversation_envelope` asserts `ConversationFacts` has no `transcript`, `messages` or
+`history` field at all. `test_evidence_sources` is the largest single module because it pins the
+routing rule the live API run forced: a **sourced claim attached to the wrong canon point is
+still a falsehood**, so it asserts point by point which measured signals may resolve which
+point — and that points 8 and 9 get none.
+
+The five-axis report group is still present and still passing because it is still what serves
+visitors: the 0009 cutover has not happened.
 
 The report group covers both generators behind the same port: `test_report_gemini` drives the
 Gemini connector against a **mock transport** — the real Generative Language API is never
@@ -126,10 +144,14 @@ entrypoint stops serving the same app object as local uvicorn and pytest.
 
 ## Decisions & Rationale
 
-- **No CI.** Accepted consequence: nothing enforces the gates but the developer running
-  them. The mitigations are the two assertion scripts (`assert-e2e-specs.mjs`,
-  `assert-vercel-runtime.mjs`), which convert "someone should have checked" into a
+- **The gates run twice: locally, then in CI.** `.github/workflows/ci.yml` re-runs every
+  gate on each pull request, so "it passed on my machine" is no longer the only evidence.
+  Two assertion scripts (`assert-e2e-specs.mjs`, `assert-vercel-runtime.mjs`) carry the
+  checks a test suite cannot express, converting "someone should have checked" into a
   non-zero exit code.
+- **CI verifies, it never deploys.** Deployment is Vercel's Git integration: a merge to
+  `main` publishes production. The consequence is that CI is only a real gate while `main`
+  is protected — an unprotected direct push publishes without passing any of this.
 - **Separate artifact config over a unit-test tag.** Tagging would still load the suite in
   the watch loop and fail confusingly with no build present. A second config makes the
   prerequisite explicit in the command name.
@@ -153,5 +175,6 @@ cd backend && uv run pytest                 # backend
 - [[i18n]]
 - [[decisions/0004-backend-deploy-provider]]
 - [[decisions/0006-guided-ai-contact-flow]]
+- [[decisions/0009-conversational-contact-agent]] — the conversation and canon-report groups, and the two role-separation assertions
 - [[contact-chat-v1]]
 - [[../protocols/sdd-workflow]]

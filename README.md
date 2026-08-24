@@ -15,7 +15,8 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 | Language | TypeScript 5.6 |
 | Backend | FastAPI · Python 3.12 (`>=3.12,<3.13`), managed with [uv](https://docs.astral.sh/uv/) |
 | Hosting | Vercel |
-| Tests | Vitest (unit + build artifacts) · Playwright (e2e) · pytest (backend). No CI — every gate runs locally, see [testing strategy](docs/architecture/testing-strategy.md) |
+| Tests | Vitest (unit + build artifacts) · Playwright (e2e) · pytest (backend) — run locally and again in CI, see [testing strategy](docs/architecture/testing-strategy.md) |
+| CI | GitHub Actions (`.github/workflows/ci.yml`) — jobs `Frontend` and `Backend` on every pull request. It verifies; it never deploys |
 
 ---
 
@@ -38,8 +39,8 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 │   ├── layouts/          BaseLayout · LegalLayout · StatusLayout
 │   ├── i18n/             translations.ts — single source of truth for all copy (ES/EN)
 │   ├── utils/            analytics · cookie-consent · i18n
-│   │                     contact-chat-flow.ts — the ten fixed steps, declarative
-│   │                     contact-chat.ts — client state, sessionStorage persistence
+│   │                     contact-conversation.ts — client conversation state,
+│   │                     sessionStorage persistence, signed-envelope round trip
 │   │                     contact-api.ts — the only caller of the backend
 │   │                     turnstile-client.ts — Turnstile widget wrapper
 │   │                     seo.ts — single source of truth for the site origin
@@ -63,14 +64,19 @@ Visual identity: *"The Neon Architect"* — terminal aesthetic, neon accents, no
 │   │   │                 mailer.py · report.py — deterministic stub generator
 │   │   │                 report_copy.py — ES/EN template copy
 │   │   │                 report_gemini.py — Gemini over the REST API (ADR 0007)
+│   │   │                 conversation.py — signed conversation envelope (ADR 0009)
+│   │   │                 extraction.py — typed per-turn fact extraction
+│   │   │                 canon.py · canon_report.py — the ten-point canon report
+│   │   │                 evidence.py — claim attribution boundary
+│   │   │                 grounded_report.py — verifying generator, degrades loudly
 │   │   │                 site_analysis.py · url_guard.py — SSRF boundary
 │   │   └── core/         config.py · report_settings.py — env-driven Settings
 │   ├── api/index.py      Vercel entrypoint — `from app.main import app`
 │   ├── scripts/          gen-requirements.sh — regenerates requirements.txt
-│   └── tests/            21 modules, 309 collected cases — see testing strategy
+│   └── tests/            30 modules, 502 collected cases — see testing strategy
 ├── tests/
 │   ├── artifacts/        Assertions on the real build output (13 cases)
-│   └── e2e/              Playwright specs — 5 files, 32 cases
+│   └── e2e/              Playwright specs — 5 files, 29 cases
 ├── vitest.config.ts              Unit gate
 ├── vitest.artifacts.config.ts    Build-artifact gate (needs `npm run build`)
 ├── .env.example                  Frontend variable template — asserted by the unit gate
@@ -112,7 +118,7 @@ uv run uvicorn app.main:app --reload    # interactive docs at /docs
 | `npm run dev` | Astro dev server |
 | `npm run build` | Production build |
 | `npm run preview` | Preview the build locally |
-| `npm test` | Unit tests (`vitest run`) — 89 cases |
+| `npm test` | Unit tests (`vitest run`) — 110 cases |
 | `npm run test:watch` | Unit tests in watch mode |
 | `npm run test:e2e` | End-to-end tests. Runs `scripts/assert-e2e-specs.mjs` first, then `playwright test` — **fails if `tests/e2e/` holds fewer than 4 spec files**, so a deleted spec breaks the gate instead of quietly shrinking coverage. The floor is still 4 while the suite holds 5 — raising it is a one-line change in the script. |
 | `npm run verify:assets` | Build-artifact assertions (`vitest run --config vitest.artifacts.config.ts`) — 13 cases over the **real** output in `.vercel/output/static`. Requires `npm run build` first. |
@@ -139,6 +145,7 @@ Full breakdown of the four test levels: [Testing strategy](docs/architecture/tes
 | `GET` | `/api/v1/health` | Backend liveness — returns `{"status": "ok"}`. Dependency-free: no DB, no external calls. |
 | `POST` | `/api/v1/contact/verification/request` | Verifies the Turnstile challenge, then emails a 6-digit code. The code is never in the response. |
 | `POST` | `/api/v1/contact/verification/confirm` | Exchanges a valid code for a signed access token (30 min) that authorises the expensive steps. |
+| `POST` | `/api/v1/contact/conversation/turn` | Advances the conversation one turn. State travels as a signed envelope in the request and response — the serverless host keeps nothing. |
 | `POST` | `/api/v1/contact/site-analysis` | Token required. Fetches the lead's home page behind the SSRF guard and returns measured signals. |
 | `POST` | `/api/v1/contact/report` | Token required. Generates the workflow report and emails it. The recipient comes from the token, never from the body. |
 
@@ -147,19 +154,28 @@ There is **no `/api/contact`** any more: the Astro serverless route, `ContactFor
 
 ### Contact flow
 
-One path, ten fixed steps, in this order:
+A model conducts the conversation. There is no step list: it asks until it holds five facts —
+name, company, verified email, website and how the team works — and will not close before it
+has them.
 
-```
-name → company → email → code → delivery → bugs → deploys → security → website → consent
-```
+What replaced the step order is a **server-side completeness predicate**: everything expensive
+— the outbound fetch of the visitor's site, the AI draft, the email — is refused until the
+access token proves the address was verified, so nothing runs for a visitor who has not proven
+control of the address. Verification is stateless (an HMAC-derived code, a signed token; no datastore), Cloudflare
+Turnstile gates every outbound email, and conversation state travels as a signed envelope
+rather than a session.
 
-The order is an **authorisation rule, not a UX preference**: everything expensive — the
-outbound fetch of the visitor's site, the AI draft, the email — sits after `code`, so nothing
-runs for a visitor who has not proven control of the address. Verification is stateless (an
-HMAC-derived code, a signed token; no datastore), Cloudflare Turnstile gates every outbound
-email, and the AI only *drafts* the report from validated facts — it never sees free text.
+**Two model roles that never merge.** The *conversation* model reads visitor text and returns
+only a typed extraction plus the next question; the *generation* model builds the report from
+validated facts and **never sees the transcript** — asserted, not intended, in
+`test_grounded_generator` and `test_conversation_envelope`. The report is structured on the
+ten-point [improvement canon](docs/architecture/improvement-canon.md) and every claim carries
+its source.
+
 Full rationale, privacy posture and the open risks: [ADR
-0006](docs/architecture/decisions/0006-guided-ai-contact-flow.md).
+0009](docs/architecture/decisions/0009-conversational-contact-agent.md). What still stands from
+the questionnaire it replaced — HMAC verification, Turnstile failing closed, the SSRF guard —
+is in [ADR 0006](docs/architecture/decisions/0006-guided-ai-contact-flow.md).
 
 ### Route redirects
 
@@ -329,6 +345,7 @@ cd backend
 | 1 | **Landing v1** — 7 sections, GDPR cookie consent with granular categories persisted in `localStorage`, legal pages, centralized ES/EN i18n with a client-side switcher that does not change the URL. The Phase 1 contact form has since been **replaced** by the guided flow below. | ✅ Complete |
 | 2 | **FastAPI backend** — health endpoint, env-driven config, CORS. No database, no auth. Deploys on Vercel as a second project ([ADR 0004](docs/architecture/decisions/0004-backend-deploy-provider.md)). | ✅ Complete |
 | 3 | **AI services** — the guided contact flow: stateless email verification, Turnstile gate, SSRF-guarded site analysis, generated workflow report by email ([ADR 0006](docs/architecture/decisions/0006-guided-ai-contact-flow.md)). **The report generator is still a deterministic stub** until `GEMINI_API_KEY` is provisioned. The Gemini connector is written and tested but never run against the real model; it talks to the API over REST because the Genkit dependency set does not fit Vercel's function size limit ([ADR 0007](docs/architecture/decisions/0007-gemini-over-rest.md), [ADR 0004 → Measured bundle size](docs/architecture/decisions/0004-backend-deploy-provider.md)). | 🟡 Connector ready, unverified |
+| 4 | **Conversational contact agent** — the questionnaire is replaced by a chatbot that conducts the conversation, and the report is structured on the ten-point improvement canon with an agent that attributes every claim ([ADR 0009](docs/architecture/decisions/0009-conversational-contact-agent.md), [ADR 0008](docs/architecture/decisions/0008-improvement-canon.md)). Cut over on 2026-08-24 (PR #29): signed conversation envelope, typed per-turn extraction, canon report, evidence attribution, and the questionnaire deleted rather than left dormant. Search grounding is gated by a paid-tier entitlement and ships **off**, so a report is built on measured and reported evidence only — and says so. | ✅ Live |
 
 ---
 
@@ -343,7 +360,7 @@ cd backend
 | [SEO & discoverability](docs/architecture/seo-and-discoverability.md) | Site origin, canonical/OG tags, robots.txt, sitemap |
 | [Testing strategy](docs/architecture/testing-strategy.md) | The four test levels and what each one catches |
 | [Contact chat](docs/architecture/contact-chat-v1.md) | The phased design of the contact flow and what shipped |
-| [Improvement canon](docs/architecture/improvement-canon.md) | The ten points that guide the project analysis and shape the deliverable PDF, their observable signals, and the single engagement they lead to (COD-42, not implemented) |
+| [Improvement canon](docs/architecture/improvement-canon.md) | The ten points that guide the project analysis and shape the deliverable PDF, their observable signals, and the single engagement they lead to. Live — it is the structure of the report a visitor receives |
 | [ADR index](docs/architecture/decisions/index.md) | Architecture decision records |
 | [SDD workflow](docs/protocols/sdd-workflow.md) | Spec-driven development protocol |
 
