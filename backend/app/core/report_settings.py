@@ -27,6 +27,12 @@ class ReportDeliveryUnavailable(Exception):
 
 class ReportDeliverySettings(BaseSettings):
     report_generator: str = "stub"
+    #: Search grounding is entitlement-gated: without a paid tier every grounded
+    #: request returns 429 while the same request without it returns 200. Off by
+    #: default so we do not spend a round trip learning that. Turn it on once
+    #: billing is enabled; the report then carries "grounded" in its generator
+    #: name, and cited claims survive validation instead of being discarded.
+    gemini_grounding: bool = False
     gemini_api_key: SecretStr = SecretStr("")
     resend_api_key: SecretStr = SecretStr("")
     contact_from_email: str = ""

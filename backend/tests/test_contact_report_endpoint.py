@@ -24,27 +24,34 @@ from app.api.v1.contact_report import (
 )
 from app.core.report_settings import ReportDeliverySettings, get_report_delivery_settings
 from app.main import create_app
+from app.services.canon_report import TemplateCanonGenerator
 from app.services.mailer import MailDeliveryError, NullMailer
-from app.services.report import SiteSignals, TemplateReportGenerator
+from app.services.report import SiteSignals
 from app.services.tokens_port import InvalidVerificationToken
 
 VERIFIED_EMAIL = "ada@example.com"
 GOOD_TOKEN = "good-token"
 
+# The conversational payload: facts come from the signed envelope, never the
+# body (see ADR 0009). Sealed with the same secret the test settings configure.
+def _envelope() -> str:
+    from app.services.conversation import ConversationFacts, seal_envelope
+
+    return seal_envelope(
+        ConversationFacts(
+            contact_name="Ada Lovelace",
+            company="ACME Logistics",
+            website="https://acme.example",
+            team="6-15 personas, deploys manuales los viernes",
+        ),
+        turns=5,
+        secret="x" * 32,
+    )
+
+
 PAYLOAD = {
-    "contact_name": "Ada Lovelace",
-    "company": "ACME Logistics",
+    "envelope": _envelope(),
     "locale": "es",
-    "workflow": {
-        "practices": ["code_review"],
-        "team_size": "6-15",
-        "notes": "Deploys are manual and happen on Fridays.",
-    },
-    "site_url": "https://acme.example",
-    "transcript": [
-        {"step_id": "name", "answer": "Ada Lovelace"},
-        {"step_id": "workflow", "answer": "Manual deploys"},
-    ],
     "consent": {"privacy_accepted": True, "report_accepted": True},
 }
 
@@ -82,7 +89,7 @@ def client(mailer: NullMailer) -> Iterator[TestClient]:
     app.dependency_overrides[get_settings] = lambda: CONFIGURED
     app.dependency_overrides[get_token_verifier] = lambda: stub_verifier
     app.dependency_overrides[get_mailer] = lambda: mailer
-    app.dependency_overrides[get_report_generator] = TemplateReportGenerator
+    app.dependency_overrides[get_report_generator] = TemplateCanonGenerator
     app.dependency_overrides[get_site_analyzer] = lambda: unavailable_site
 
     with TestClient(app) as test_client:
@@ -200,9 +207,11 @@ class TestDelivery:
         post(client)
         body = mailer.sent[0].text
 
-        assert "Manual deploys" in body
-        assert "CONSENT AND PROVENANCE" in body
-        assert "Generated at (UTC):" in body
+        # The canon email carries the ten points, the proposal and provenance.
+        # The transcript no longer travels: the facts are what was validated.
+        assert "ACME Logistics" in body
+        assert "Generado (UTC):" in body
+        assert "1." in body and "10." in body
 
     def test_the_response_confirms_without_resending_the_whole_report(
         self, client: TestClient
@@ -210,7 +219,8 @@ class TestDelivery:
         payload = post(client).json()
 
         assert payload["delivered"] is True
-        assert payload["recommendation_count"] > 0
+        # Ten sections, always: the fixed canon is what makes reports comparable.
+        assert payload["recommendation_count"] == 10
         assert "ACME Logistics" in payload["title"]
 
 
@@ -219,7 +229,7 @@ class TestFailureContainment:
         self, client: TestClient, mailer: NullMailer
     ) -> None:
         class Exploding:
-            async def generate(self, facts: object) -> object:
+            async def generate(self, **kwargs: object) -> object:
                 raise RuntimeError("model exploded")
 
         client.app.dependency_overrides[get_report_generator] = Exploding  # type: ignore[attr-defined]

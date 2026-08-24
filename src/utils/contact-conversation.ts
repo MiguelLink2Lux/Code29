@@ -126,6 +126,8 @@ export function createConversation({ api }: ConversationOptions) {
   // personal data. Neither is written to storage.
   let accessToken: string | null = null
   let pendingEmail: string | null = null
+  //: True only once the backend confirms the report was generated and emailed.
+  let delivered = false
 
   const persist = () =>
     writePersisted({ messages, envelope, complete, exhausted, missing })
@@ -158,6 +160,44 @@ export function createConversation({ api }: ConversationOptions) {
     get emailVerified() {
       return accessToken !== null
     },
+    get delivered() {
+      return delivered
+    },
+  }
+
+  /**
+   * Asks the backend for the report. Without this the whole conversation
+   * gathers facts and delivers nothing, which is worse than the questionnaire
+   * it replaces.
+   *
+   * Only the envelope and the token travel: the facts live inside the
+   * envelope's signature, so the client cannot claim someone else's company.
+   */
+  async function deliverReport(): Promise<void> {
+    if (busy || delivered) return
+
+    // Not `complete`: that flag was computed by the server on the previous turn,
+    // before the token existed, so verifying the address last would leave it
+    // false for ever and the report would never be asked for. `missing` is the
+    // server's own answer about what it still needs, and confirmCode removes
+    // 'email' from it — so an empty list plus a token means deliverable.
+    if (!envelope || !accessToken || missing.length > 0) return
+
+    busy = true
+    error = null
+
+    try {
+      await api.requestConversationReport(envelope, accessToken)
+      delivered = true
+    } catch (failure) {
+      // Never mark it delivered on failure: telling a visitor their report is
+      // on the way when it is not is the one outcome with no recovery.
+      error = describe(failure)
+      delivered = false
+    } finally {
+      busy = false
+      persist()
+    }
   }
 
   async function send(text: string): Promise<void> {
@@ -267,7 +307,7 @@ export function createConversation({ api }: ConversationOptions) {
     clearPersisted()
   }
 
-  return { state, send, requestCode, confirmCode, reset }
+  return { state, send, requestCode, confirmCode, deliverReport, reset }
 }
 
 export type Conversation = ReturnType<typeof createConversation>
