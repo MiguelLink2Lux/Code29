@@ -4,6 +4,7 @@
 > **Date:** 2026-04-11
 > **Status:** Approved — C29-8 closed
 > **Original document:** `informe_tecnico_landing_cto.md`
+> **Part of:** [[Architecture]]
 
 ---
 
@@ -186,7 +187,7 @@ This architecture allows:
 
 - PRD: [docs/requirements/PRD.md](../requirements/PRD.md)
 - Design system: [docs/architecture/design.md](design.md)
-- Architecture decisions: [decisions/index.md](decisions/index.md) (ADR 0001–0003)
+- Architecture decisions: [decisions/Decisions.md](decisions/Decisions.md) (ADR 0001–0003)
 - Agent map: [docs/protocols/ai-agents.md](../protocols/ai-agents.md)
 - Implementation plan: [docs/architecture/sdd-landing-v1.md](sdd-landing-v1.md)
 - Legacy Jira keys (Jira retired 2026-08-04, kept as history): C29-8, C29-9, C29-10, C29-11 — all closed

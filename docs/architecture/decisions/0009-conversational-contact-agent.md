@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-08-23
+> **Part of:** [[Decisions]]
 
 # ADR 0009 — A conversational agent replaces the guided questionnaire, and an agent verifies the report
 

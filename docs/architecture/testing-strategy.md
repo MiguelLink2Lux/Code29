@@ -1,4 +1,5 @@
 > **Type:** Architecture — **Scope:** Testing strategy — **Status:** Active
+> **Part of:** [[Architecture]]
 
 # Testing Strategy
 

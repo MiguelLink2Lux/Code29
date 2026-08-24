@@ -1,4 +1,5 @@
 > **Type:** Architecture — **Scope:** SEO & discoverability — **Status:** Active
+> **Part of:** [[Architecture]]
 
 # SEO and Discoverability
 

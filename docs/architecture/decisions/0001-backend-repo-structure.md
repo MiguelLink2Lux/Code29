@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-06-19
+> **Part of:** [[Decisions]]
 
 # ADR 0001 — Backend lives in a monorepo `backend/` folder
 

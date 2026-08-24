@@ -1,6 +1,7 @@
 # Code29 — AI Agent Map
 
 > Last updated: 2026-04-11
+> **Part of:** [[Protocols]]
 
 This document defines the AI agents (Claude Code skills) active in the Code29 project, their responsibilities, trigger conditions, and handoff protocols.
 

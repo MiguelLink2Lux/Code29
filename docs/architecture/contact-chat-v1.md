@@ -1,4 +1,5 @@
 > **Type:** Architecture — **Scope:** Contact chat — **Status:** Historical — the phased design is fulfilled and exceeded (see [[decisions/0009-conversational-contact-agent]])
+> **Part of:** [[Architecture]]
 
 # Design: Contact Chat v1
 

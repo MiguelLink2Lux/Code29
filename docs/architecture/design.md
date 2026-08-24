@@ -1,5 +1,7 @@
 # Design — Source & Decisions
 
+> **Part of:** [[Architecture]]
+
 ## Source of Truth
 
 The UI design lives in **Google Stitch**, accessible via the `stitch` MCP server.

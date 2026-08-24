@@ -3,6 +3,7 @@
 > **Status:** In Progress — Phase 1 ✅ Phase 2 ✅ | Next: Phase 3 (Cookie Consent)
 > **Epic range:** C29-16 → C29-22 (legacy Jira keys — Jira retired 2026-08-04; new work is tracked in Linear as `COD-*`)
 > **SDD artifacts:** Engram project Code29, topic keys `sdd/landing-v1/*`
+> **Part of:** [[Architecture]]
 
 ## Implementation Order
 

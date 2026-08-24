@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-06-19
+> **Part of:** [[Decisions]]
 
 # ADR 0002 — FastAPI (+ Pydantic) as the backend framework
 

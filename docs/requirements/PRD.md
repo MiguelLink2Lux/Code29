@@ -4,6 +4,7 @@
 > **Date:** 2026-04-11  
 > **Owner:** Miguel Navarro Mantas  
 > **Status:** Approved — pending implementation
+> **Part of:** [[Requirements]]
 
 ---
 

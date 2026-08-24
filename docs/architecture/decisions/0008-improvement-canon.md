@@ -1,4 +1,5 @@
 > **Type:** Architecture · ADR — **Status:** Accepted — **Date:** 2026-08-23
+> **Part of:** [[Decisions]]
 
 # ADR 0008 — Ten fixed improvement points as the structure of the workflow report
 
