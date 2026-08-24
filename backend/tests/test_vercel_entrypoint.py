@@ -49,6 +49,13 @@ class TestRestoreRewrittenPath:
 
 
 class TestThroughTheEntrypoint:
+    """Through the object Vercel actually serves — the app, middleware included.
+
+    The first attempt exported a plain ASGI callable instead, which the runtime
+    ignored: it serves the application object it finds in the module. These go
+    through `api.index.app` for that reason.
+    """
+
     def test_the_rewritten_request_reaches_the_real_endpoint(self) -> None:
         client = TestClient(app)
 

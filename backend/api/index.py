@@ -1,26 +1,31 @@
 """Vercel serverless entrypoint for the FastAPI backend.
 
-Vercel's Python runtime imports this module and serves the module-level ASGI
-callable named `app`. The application itself is built once by the factory in
-`app.main`, so local uvicorn, the test suite and the deployed function all run
-the exact same object.
+Vercel's Python runtime imports this module and serves the application object it
+finds here. The application itself is built by the factory in `app.main`, so
+local uvicorn, the test suite and the deployed function all run the same object.
 
 The one thing that happens here is undoing a rewrite. `vercel.json` sends every
-request to this function, and that rewrite is not transparent: the function
-receives the literal path `/api/index`, never the path the caller asked for, so
-FastAPI answered 404 to everything — `/docs` included — while serving the same
-routes locally. The query string *is* preserved, so the rewrite carries the
-original path in `__vpath` and `restore_rewritten_path` puts it back into the
-ASGI scope before the application sees the request.
+request to this function, and that rewrite is not transparent: measured on a
+live deployment, the function receives the literal path `/api/index` whatever
+was asked, so FastAPI answered 404 to all of its routes — `/docs` included —
+while serving them locally. The query string does survive, so the rewrite
+carries the original path in `__vpath` and the middleware below puts it back
+into the ASGI scope before the router sees the request.
 
-Both halves must change together: the parameter name here and in `vercel.json`.
+It has to be a middleware, not a wrapping callable: the runtime serves the
+application object it finds in this module and ignores a plain ASGI function,
+which is how the first attempt failed silently. Adding it here rather than in
+the factory keeps uvicorn and the tests on the untouched application.
+
+Both halves must change together: `PATH_PARAM` here and the `destination` in
+`vercel.json`. `tests/test_vercel_config.py` asserts they agree.
 """
 
 from collections.abc import Awaitable, Callable, MutableMapping
 from typing import Any
 from urllib.parse import parse_qs, urlencode
 
-from app.main import app as _app
+from app.main import app
 
 # Must match the `destination` in vercel.json. Double-underscored so it cannot
 # be confused with a caller's own parameter.
@@ -34,8 +39,8 @@ Send = Callable[[MutableMapping[str, Any]], Awaitable[None]]
 def restore_rewritten_path(scope: Scope) -> Scope:
     """Return a scope whose path is the one the caller asked for.
 
-    Untouched when the parameter is absent, so running under uvicorn — where no
-    rewrite happened — behaves exactly as before.
+    Returned untouched when the parameter is absent, so running under uvicorn —
+    where nothing rewrote anything — behaves exactly as before.
     """
     if scope.get("type") != "http":
         return scope
@@ -56,15 +61,16 @@ def restore_rewritten_path(scope: Scope) -> Scope:
     return restored
 
 
-async def app(scope: Scope, receive: Receive, send: Send) -> None:
-    # TEMPORARY probe: proves whether Vercel runs this callable at all.
-    if scope.get("type") == "http" and b"__shimcheck" in scope.get("query_string", b""):
-        await send({"type": "http.response.start", "status": 200,
-                    "headers": [(b"content-type", b"application/json")]})
-        await send({"type": "http.response.body", "body": b'{"shim":"running"}'})
-        return
+class RestoreRewrittenPathMiddleware:
+    """Outermost middleware: the path is fixed before anything else reads it."""
 
-    await _app(restore_rewritten_path(scope), receive, send)
+    def __init__(self, app: Callable[[Scope, Receive, Send], Awaitable[None]]) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        await self.app(restore_rewritten_path(scope), receive, send)
 
 
-__all__ = ["app", "restore_rewritten_path"]
+app.add_middleware(RestoreRewrittenPathMiddleware)
+
+__all__ = ["PATH_PARAM", "app", "restore_rewritten_path", "RestoreRewrittenPathMiddleware"]

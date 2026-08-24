@@ -113,9 +113,3 @@ def _build_extractor(settings: Settings) -> FactExtractor:
 # Module-level instance for `uvicorn app.main:app`. Import is side-effect-free
 # (only reads env via cached settings; no I/O or network).
 app = create_app()
-
-
-# TEMPORARY — still measuring the Vercel rewrite. Remove before merge.
-@app.api_route("/{full_path:path}", methods=["GET"])
-def _echo_received_path(full_path: str, request: Request) -> dict[str, object]:
-    return {"seen_path": full_path, "query": str(request.url.query)}
