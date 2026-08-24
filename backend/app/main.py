@@ -113,16 +113,3 @@ def _build_extractor(settings: Settings) -> FactExtractor:
 # Module-level instance for `uvicorn app.main:app`. Import is side-effect-free
 # (only reads env via cached settings; no I/O or network).
 app = create_app()
-
-
-# TEMPORARY — diagnostics for the Vercel routing issue (all routes answer 404 in
-# production while the same app serves them locally). Registered last, so it only
-# catches what no real route matched: it reports the path the function actually
-# received. Delete once the routing cause is known.
-@app.api_route("/{full_path:path}", methods=["GET"])
-def _echo_received_path(full_path: str, request: Request) -> dict[str, object]:
-    return {
-        "seen_path": full_path,
-        "query": str(request.url.query),
-        "headers": {k: v for k, v in request.headers.items() if k.lower().startswith("x-")},
-    }
