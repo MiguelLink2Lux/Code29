@@ -439,3 +439,78 @@ describe('report delivery', () => {
     expect(chat.state.delivered).toBe(true)
   })
 })
+
+describe('the opening', () => {
+  it('starts the thread with a greeting, so the visitor is answering and not initiating', () => {
+    const chat = createConversation({
+      api: stubApi(),
+      openings: ['Hola, soy el asistente. ¿Cómo te llamas?'],
+    })
+
+    expect(chat.state.messages).toEqual([
+      { role: 'bot', text: 'Hola, soy el asistente. ¿Cómo te llamas?' },
+    ])
+  })
+
+  it('rotates between the openings it was given', () => {
+    const openings = ['uno', 'dos', 'tres']
+    const picked = new Set<string>()
+
+    for (let index = 0; index < openings.length; index += 1) {
+      sessionStorage.clear()
+      const chat = createConversation({ api: stubApi(), openings, pickOpening: () => index })
+      picked.add(chat.state.messages[0].text)
+    }
+
+    expect(picked).toEqual(new Set(openings))
+  })
+
+  it('keeps the same opening across a reload: a greeting that changes mid-session reads as a new bot', async () => {
+    const openings = ['uno', 'dos', 'tres']
+    const first = createConversation({ api: stubApi(), openings, pickOpening: () => 0 })
+    await first.send('hola')
+
+    // A different pick on purpose: the restored thread must ignore it.
+    const restored = createConversation({ api: stubApi(), openings, pickOpening: () => 2 })
+
+    expect(restored.state.messages[0].text).toBe('uno')
+  })
+})
+
+describe('ephemeral messages never reach storage', () => {
+  it('keeps the verified address out of sessionStorage', async () => {
+    const chat = createConversation({ api: stubApi() })
+
+    await chat.send('hola')
+    await chat.requestCode('ada@example.com', 'turnstile-token')
+    await chat.confirmCode('123456')
+
+    // The whole store, not just the transcript: the address must not be
+    // anywhere, under any key.
+    const stored = JSON.stringify(sessionStorage)
+
+    expect(stored).not.toContain('ada@example.com')
+    expect(stored).not.toContain('123456')
+    expect(stored).not.toContain('token-abc')
+  })
+
+  it('still shows the address in the thread, so the conversation reads as one', async () => {
+    const chat = createConversation({ api: stubApi() })
+
+    await chat.send('hola')
+    await chat.requestCode('ada@example.com', 'turnstile-token')
+
+    expect(chat.state.messages.some((m) => m.text.includes('ada@example.com'))).toBe(true)
+  })
+
+  it('drops the ephemeral exchange when the thread is restored', async () => {
+    const chat = createConversation({ api: stubApi() })
+    await chat.send('hola')
+    await chat.requestCode('ada@example.com', 'turnstile-token')
+
+    const restored = createConversation({ api: stubApi() })
+
+    expect(restored.state.messages.some((m) => m.text.includes('ada@example.com'))).toBe(false)
+    expect(restored.state.messages.some((m) => m.text === 'hola')).toBe(true)
+  })
+})

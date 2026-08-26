@@ -646,16 +646,29 @@ export const translations = {
   },
   contactConversation: {
     es: {
-      intro:
-        'Cuéntame en qué estáis trabajando. Te haré unas pocas preguntas y te envío por email un informe con la hoja de ruta para vuestro flujo de desarrollo.',
+      // Openings rotate per conversation. Every one of them must say the same
+      // three things — who is asking, that there will be questions, and that the
+      // point is the report — because a greeting that omits the purpose turns the
+      // questions that follow into an interrogation.
+      openings: [
+        'Hola, soy el asistente de CODE29. Te haré unas pocas preguntas sobre cómo trabajáis y con eso te preparo un informe con la hoja de ruta de vuestro flujo de desarrollo. ¿Cómo te llamas?',
+        'Buenas. Antes de nada: esto es una conversación corta, no un formulario. Con lo que me cuentes te preparo un informe a medida sobre vuestro flujo de desarrollo. Empecemos por lo fácil, ¿cómo te llamas?',
+        'Soy el asistente de CODE29. Mi trabajo aquí es entender cómo desarrolláis para escribirte un informe con lo que mejoraría. Serán cuatro o cinco preguntas. ¿Con quién hablo?',
+        'Hola. Voy a hacerte unas preguntas sobre vuestro día a día de desarrollo y a cambio te mando un informe con la hoja de ruta que sacaría de ellas. ¿Cómo te llamas?',
+        'Hola, soy el asistente de CODE29. Cuanto mejor entienda cómo trabajáis, más útil será el informe que te envíe al final. Empecemos: ¿cómo te llamas?',
+      ],
       placeholder: 'Escribe tu respuesta…',
+      typing: 'CODE29 está escribiendo…',
       send: 'Enviar',
       sending: 'Enviando…',
       you: 'Tú',
       assistant: 'CODE29',
       threadLabel: 'Conversación',
       verify: {
-        prompt: 'Para enviarte el informe necesito verificar tu email.',
+        // Said by the bot, inside the thread: the address is one more thing it
+        // needs to do its job, not a field that interrupts the conversation.
+        ask: '¿A qué email te envío el informe? Te mandaré un código para comprobar que es tuyo.',
+        askCode: 'Te acabo de enviar un código. Escríbelo aquí y seguimos.',
         emailLabel: 'Email',
         emailPlaceholder: 'tu@empresa.com',
         request: 'Enviar código',
@@ -663,7 +676,7 @@ export const translations = {
         codePlaceholder: '000000',
         codeHint: 'Caduca en 10 minutos. Revisa el spam si no aparece.',
         confirm: 'Confirmar',
-        verified: 'Email verificado.',
+        verified: 'Perfecto, email verificado.',
       },
       done: {
         title: 'Informe en camino',
@@ -685,16 +698,23 @@ export const translations = {
       },
     },
     en: {
-      intro:
-        'Tell me what you are working on. I will ask a few questions and email you a report with the roadmap for your development workflow.',
+      openings: [
+        'Hi, I am the CODE29 assistant. I will ask you a few questions about how your team works, and from those I will put together a report with a roadmap for your development workflow. What is your name?',
+        'Hello. First things first: this is a short conversation, not a form. From what you tell me I will write you a report tailored to your development workflow. Let us start easy — what is your name?',
+        'I am the CODE29 assistant. My job here is to understand how you build, so I can write you a report on what I would improve. Four or five questions. Who am I speaking with?',
+        'Hi. I am going to ask about your day-to-day development, and in return I will send you a report with the roadmap I draw from it. What is your name?',
+        'Hi, I am the CODE29 assistant. The better I understand how you work, the more useful the report I send you at the end. Let us begin: what is your name?',
+      ],
       placeholder: 'Type your answer…',
+      typing: 'CODE29 is typing…',
       send: 'Send',
       sending: 'Sending…',
       you: 'You',
       assistant: 'CODE29',
       threadLabel: 'Conversation',
       verify: {
-        prompt: 'To send you the report I need to verify your email.',
+        ask: 'Where should I send the report? I will mail you a code to check the address is yours.',
+        askCode: 'I have just sent you a code. Type it here and we carry on.',
         emailLabel: 'Email',
         emailPlaceholder: 'you@company.com',
         request: 'Send code',
@@ -702,7 +722,7 @@ export const translations = {
         codePlaceholder: '000000',
         codeHint: 'It expires in 10 minutes. Check your spam folder if it does not arrive.',
         confirm: 'Confirm',
-        verified: 'Email verified.',
+        verified: 'Great, your email is verified.',
       },
       done: {
         title: 'Report on its way',

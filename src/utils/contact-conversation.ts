@@ -25,6 +25,16 @@ export type MessageRole = 'visitor' | 'bot'
 export interface ConversationMessage {
   role: MessageRole
   text: string
+  /**
+   * Shown in the thread, never written to storage.
+   *
+   * The verification exchange reads as part of the conversation — the visitor
+   * types their address into the same composer as everything else — but the
+   * address is personal data and the code is a credential. Marking the message
+   * is what keeps them out of `sessionStorage`; filtering by content would let
+   * through anything written in an unexpected shape.
+   */
+  ephemeral?: boolean
 }
 
 /**
@@ -109,12 +119,31 @@ function describe(error: unknown): ConversationError {
 
 interface ConversationOptions {
   api: ContactApi
+  /**
+   * Greetings to open with, one picked per conversation. They rotate so the
+   * chat does not read as a recording, and the chosen one is persisted with the
+   * thread: a greeting that changes on reload reads as a different bot.
+   */
+  openings?: string[]
+  /** Index picker, injectable so tests are deterministic. */
+  pickOpening?: (count: number) => number
 }
 
-export function createConversation({ api }: ConversationOptions) {
+export function createConversation({
+  api,
+  openings = [],
+  pickOpening = (count) => Math.floor(Math.random() * count),
+}: ConversationOptions) {
   const restored = readPersisted()
 
   const messages: ConversationMessage[] = restored?.messages ?? []
+
+  // Only on a fresh conversation: the bot speaks first, so the visitor answers
+  // rather than facing an empty box and having to work out what to write.
+  if (!messages.length && openings.length) {
+    const index = Math.min(Math.max(pickOpening(openings.length), 0), openings.length - 1)
+    messages.push({ role: 'bot', text: openings[index] })
+  }
   let envelope = restored?.envelope
   let complete = restored?.complete ?? false
   let exhausted = restored?.exhausted ?? false
@@ -130,7 +159,19 @@ export function createConversation({ api }: ConversationOptions) {
   let delivered = false
 
   const persist = () =>
-    writePersisted({ messages, envelope, complete, exhausted, missing })
+    writePersisted({
+      // The single place the rule is applied, so no caller can forget it.
+      messages: messages.filter((message) => !message.ephemeral),
+      envelope,
+      complete,
+      exhausted,
+      missing,
+    })
+
+  /** Adds a message to the thread that must never survive a reload. */
+  function pushEphemeral(role: MessageRole, text: string): void {
+    messages.push({ role, text, ephemeral: true })
+  }
 
   const state: ConversationState = {
     get messages() {
@@ -261,6 +302,9 @@ export function createConversation({ api }: ConversationOptions) {
     try {
       await api.requestVerificationCode(address, turnstileToken)
       pendingEmail = address
+      // In the thread, because the visitor typed it into the conversation —
+      // but ephemeral, because it is the one piece of personal data here.
+      pushEphemeral('visitor', address)
     } catch (failure) {
       // 403 is the human check, not a bad address: telling the visitor their
       // email is wrong would send them in circles.
@@ -284,6 +328,7 @@ export function createConversation({ api }: ConversationOptions) {
     try {
       accessToken = await api.confirmVerificationCode(pendingEmail, code)
       missing = missing.filter((item) => item !== 'email')
+      pushEphemeral('visitor', code.trim())
       persist()
     } catch (failure) {
       error =
@@ -307,7 +352,7 @@ export function createConversation({ api }: ConversationOptions) {
     clearPersisted()
   }
 
-  return { state, send, requestCode, confirmCode, deliverReport, reset }
+  return { state, send, requestCode, confirmCode, deliverReport, pushEphemeral, reset }
 }
 
 export type Conversation = ReturnType<typeof createConversation>

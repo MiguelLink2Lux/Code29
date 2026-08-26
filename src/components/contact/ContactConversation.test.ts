@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ContactConversation from '@/components/contact/ContactConversation.vue'
+import { translations } from '@/i18n/translations'
 import { ContactApiError } from '@/utils/contact-api'
 
 /**
@@ -40,13 +41,25 @@ function mount(api = stubApi(), turnstile = stubTurnstile()) {
  * for, the email field is a textbox too, and an ambiguous query would pick the
  * wrong one.
  */
-const composer = () => document.getElementById('conversation-input') as HTMLInputElement
+const composer = () => document.getElementById('conversation-input') as HTMLTextAreaElement
+
+/** The composer whatever it is currently asking for. */
+const activeComposer = () =>
+  document.querySelector('.conversation__input') as HTMLTextAreaElement
 
 async function say(text: string) {
-  const input = composer()
+  const input = activeComposer()
   await fireEvent.update(input, text)
   await fireEvent.submit(input.closest('form')!)
 }
+
+/**
+ * A backend that has everything except the address. The server reports `email`
+ * as missing from the first turn — it cannot know it otherwise — so it is only
+ * this shape, where nothing else is left, that makes the bot ask for it.
+ */
+const readyForEmail = () =>
+  stubApi({ takeConversationTurn: vi.fn().mockResolvedValue(turn({ missing: ['email'] })) })
 
 beforeEach(() => {
   sessionStorage.clear()
@@ -146,16 +159,26 @@ describe('failure states never look like success', () => {
 })
 
 describe('email verification, inside the conversation', () => {
-  it('asks for the address when the server says it is missing', async () => {
-    mount()
+  it('asks for the address once it is the only thing left', async () => {
+    mount(readyForEmail())
 
     await say('hola')
 
     await waitFor(() => expect(screen.getByLabelText(/email|correo/i)).toBeTruthy())
   })
 
+  it('does not ask for the address while there are still facts to gather', async () => {
+    // The plain stub still has company, website and team outstanding.
+    mount()
+
+    await say('hola')
+
+    await waitFor(() => expect(document.getElementById('conversation-input')).toBeTruthy())
+    expect(document.getElementById('conversation-email')).toBeNull()
+  })
+
   it('solves the human challenge before asking the backend for a code', async () => {
-    const { api, turnstile } = mount()
+    const { api, turnstile } = mount(readyForEmail())
     await say('hola')
 
     const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
@@ -169,7 +192,7 @@ describe('email verification, inside the conversation', () => {
   it('a missing Turnstile key reads as unavailable, not as a human failure', async () => {
     const { TurnstileNotConfigured } = await import('@/utils/turnstile-client')
     const turnstile = { getToken: vi.fn().mockRejectedValue(new TurnstileNotConfigured()) }
-    mount(stubApi(), turnstile)
+    mount(readyForEmail(), turnstile)
     await say('hola')
 
     const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
@@ -182,7 +205,7 @@ describe('email verification, inside the conversation', () => {
   })
 
   it('confirms the code and stops asking for the address', async () => {
-    const { api } = mount()
+    const { api } = mount(readyForEmail())
     await say('hola')
 
     const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
@@ -200,6 +223,7 @@ describe('email verification, inside the conversation', () => {
 
   it('a rejected code keeps the visitor unverified with an actionable message', async () => {
     const api = stubApi({
+      takeConversationTurn: vi.fn().mockResolvedValue(turn({ missing: ['email'] })),
       confirmVerificationCode: vi.fn().mockRejectedValue(new ContactApiError('bad', 400)),
     })
     mount(api)
@@ -254,5 +278,103 @@ describe('closing the conversation', () => {
     await say('ya está')
 
     await waitFor(() => expect(composer()).toBeNull())
+  })
+})
+
+describe('it reads as a conversation, not as a form', () => {
+  it('opens with the bot speaking first, so the visitor is answering', () => {
+    mount()
+
+    // The greeting is a message in the thread, not a paragraph beside it: an
+    // empty thread with an invitation above it is a form with a caption.
+    const first = document.querySelector('.conversation__message')
+    const said = first?.querySelector('.conversation__text')?.textContent ?? ''
+
+    expect(first?.className).toContain('conversation__message--bot')
+    // Whichever one the rotation picked. Asserting on the wording of a single
+    // opening would fail four times out of five.
+    expect(translations.contactConversation.es.openings).toContain(said)
+  })
+
+  it('every opening explains what the questions are for', () => {
+    // Guards the reason the openings exist. A greeting that does not name the
+    // report turns the questions that follow into an interrogation.
+    for (const opening of translations.contactConversation.es.openings) {
+      expect(opening).toMatch(/informe/i)
+    }
+
+    for (const opening of translations.contactConversation.en.openings) {
+      expect(opening).toMatch(/report/i)
+    }
+  })
+
+  it('asks for the address in the bot’s own voice, inside the thread', async () => {
+    mount(readyForEmail())
+
+    await say('hola')
+
+    await waitFor(() => {
+      const said = [...document.querySelectorAll('.conversation__message--bot')]
+        .map((node) => node.textContent ?? '')
+        .join(' ')
+
+      expect(said).toMatch(/a qué email|where should I send/i)
+    })
+  })
+
+  it('keeps one composer: the verification is not a second form', async () => {
+    mount(readyForEmail())
+
+    await say('hola')
+
+    await waitFor(() => expect(document.getElementById('conversation-email')).toBeTruthy())
+    expect(document.querySelectorAll('form')).toHaveLength(1)
+    expect(document.querySelectorAll('.conversation__input')).toHaveLength(1)
+  })
+
+  it('shows a typing indicator while the bot is thinking', async () => {
+    // A backend that never answers: the indicator must be up in the meantime.
+    const api = stubApi({ takeConversationTurn: vi.fn().mockReturnValue(new Promise(() => {})) })
+    mount(api)
+
+    await say('hola')
+
+    await waitFor(() =>
+      expect(document.querySelector('.conversation__message--typing')).toBeTruthy(),
+    )
+  })
+
+  it('sends on Enter and breaks the line on Shift+Enter', async () => {
+    const { api } = mount()
+    const input = activeComposer()
+
+    await fireEvent.update(input, 'hola')
+    await fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
+
+    expect(api.takeConversationTurn).not.toHaveBeenCalled()
+
+    await fireEvent.keyDown(input, { key: 'Enter' })
+
+    await waitFor(() => expect(api.takeConversationTurn).toHaveBeenCalledWith('hola', undefined, undefined))
+  })
+
+  it('never writes the address or the code to storage', async () => {
+    mount(readyForEmail())
+    await say('hola')
+
+    const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
+    await fireEvent.update(emailInput, 'ada@example.com')
+    await fireEvent.click(screen.getByRole('button', { name: /verificar|verify|enviar código/i }))
+
+    const codeInput = await waitFor(() => screen.getByLabelText(/código|code/i))
+    await fireEvent.update(codeInput, '123456')
+    await fireEvent.click(screen.getByRole('button', { name: /confirmar|confirm/i }))
+
+    await waitFor(() => {
+      const stored = JSON.stringify(sessionStorage)
+
+      expect(stored).not.toContain('ada@example.com')
+      expect(stored).not.toContain('123456')
+    })
   })
 })
