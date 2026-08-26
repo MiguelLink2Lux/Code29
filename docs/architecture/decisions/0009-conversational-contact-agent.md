@@ -185,6 +185,21 @@ The signed envelope carries **no email field**, and
 `ConversationFacts` has no `transcript`, `messages` or `history` either. The verified address
 lives in one place: the access token from [[0006-guided-ai-contact-flow]].
 
+The address is kept out of the **client** too, and that took a mechanism rather than care.
+When verification moved into the thread — the visitor types their address into the same
+composer as everything else — the address became a message, and messages are serialised
+whole into `sessionStorage`. So `ConversationMessage` carries an `ephemeral` flag and
+`persist()` filters on it: the address and the one-time code are shown in the thread and
+never written anywhere.
+
+The filter is on the **marker, not on the content**. Matching a pattern would miss an address
+typed in an unexpected shape, and the code has no recognisable form at all. A reload therefore
+drops that stretch of the exchange and keeps the rest, which is the correct reading: the
+verification no longer applies, because the token it produced was never persisted either.
+
+Pinned by `ContactConversation.test.ts` and by the end-to-end run, both of which read
+`sessionStorage` after verifying and assert the address is not in it.
+
 ### 5. Conversation state: a signed envelope, no store
 
 Rejected option 4 (keep the transcript) — it would need a store, and it would put visitor prose
@@ -294,6 +309,38 @@ The parser now surfaces the reason instead of guessing: an empty answer reports
 raises `model stopped early`. Reporting a malformed function call as "did not answer with JSON"
 sends an operator hunting for a parsing bug that does not exist.
 
+### 9. The interface has to read as a conversation, or the argument is lost
+
+§2 answers whether a model-led chat can hold data quality. It does not answer whether the
+visitor experiences one, and the two came apart in production: the flow was conversational
+and the interface was still a questionnaire. The thread opened empty and waited to be spoken
+to; verification appeared as a labelled block of fields beside the conversation; the bot asked
+without acknowledging what it had just been told. The context above says why that matters
+commercially — the first thing the product does is what the product calls obsolete — so the
+presentation is part of the decision, not decoration on top of it.
+
+Three rules came out of it, each one earned by a defect:
+
+**The bot speaks first, and says what the questions are for.** An empty thread with an
+invitation above it is a form with a caption. The openings rotate — several of them, one per
+conversation, chosen once and persisted with the thread — and every one names the report. A
+test asserts that: a greeting that omits the purpose turns the questions that follow into an
+interrogation.
+
+**One composer for the whole conversation.** It changes what it asks for — message, address,
+code — and the bot asks for each in its own voice, inside the thread. A second form beside the
+chat is the single clearest tell that the chat is a costume.
+
+**The address is asked for only when it is the last thing missing.** The endpoint reports
+`email` in `missing` from the very first turn, because it cannot know it any other way. Reading
+that literally demanded the address before the conversation had said anything — the exact
+questionnaire behaviour being replaced. The condition is `missing.length === 1`.
+
+The extraction instruction gained conduct rules to match: acknowledge what was just said before
+asking the next thing, never re-ask for a fact already held, and treat an explicit refusal as an
+answer rather than a gap. These sit alongside the extraction rules of §3 and never override
+them — the model's manners changed, its licence to invent did not.
+
 ## Consequences
 
 ### Good
@@ -354,5 +401,6 @@ not the five axes. See [[testing-strategy]].
 - [[improvement-canon]] — the canon itself: points, signals, honesty rules
 - [[0004-backend-deploy-provider]] — the stateless host that forces the signed envelope
 - [[contact-chat-v1]] — the phased design, now fulfilled and exceeded
+- [[deployment]] — the variables the conversation needs, and how to check a deployment is using them
 - [[testing-strategy]] — the gates covering the flow
 - [[index]] — ADR index
