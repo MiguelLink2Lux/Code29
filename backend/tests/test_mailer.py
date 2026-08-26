@@ -199,3 +199,66 @@ class TestResendMailer:
             )
 
         assert "ada@example.com" not in str(error.value)
+
+    def test_the_error_message_carries_the_reason_resend_gave(self) -> None:
+        """A 502 with no reason is a 502 nobody can act on.
+
+        Resend answers a refused send with a typed JSON body: `name` says which
+        rule was broken, `message` says how to fix it. Dropping it is what turned
+        a misconfigured sender into an opaque "could not send".
+        """
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                403,
+                json={
+                    "statusCode": 403,
+                    "name": "validation_error",
+                    "message": "The code29.dev domain is not verified.",
+                },
+            )
+
+        with pytest.raises(MailDeliveryError) as error:
+            asyncio.run(
+                self._mailer(handler).send(
+                    EmailMessage(to=["ada@example.com"], subject="s", text="t")
+                )
+            )
+
+        message = str(error.value)
+        assert "403" in message
+        assert "validation_error" in message
+        assert "The code29.dev domain is not verified." in message
+
+    def test_the_reason_never_carries_the_recipient_back(self) -> None:
+        """Resend echoes the payload in some errors, and the payload holds the address."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                422,
+                json={
+                    "name": "validation_error",
+                    "message": "Invalid `to` field: ada@example.com is not allowed.",
+                },
+            )
+
+        with pytest.raises(MailDeliveryError) as error:
+            asyncio.run(
+                self._mailer(handler).send(
+                    EmailMessage(to=["ada@example.com"], subject="s", text="t")
+                )
+            )
+
+        assert "ada@example.com" not in str(error.value)
+        assert "validation_error" in str(error.value)
+
+    def test_a_non_json_error_body_still_names_the_status(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(502, text="<html>gateway</html>")
+
+        with pytest.raises(MailDeliveryError, match="502"):
+            asyncio.run(
+                self._mailer(handler).send(
+                    EmailMessage(to=["ada@example.com"], subject="s", text="t")
+                )
+            )

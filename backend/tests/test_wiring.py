@@ -6,6 +6,7 @@ holding a perfectly valid token — which is exactly what a local run found afte
 the phases were merged. These tests assert the wiring itself.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.v1.site_analysis import (
@@ -13,7 +14,9 @@ from app.api.v1.site_analysis import (
     get_access_token_verifier,
 )
 from app.core.config import Settings
+from app.core.report_settings import get_report_delivery_settings
 from app.main import create_app
+from app.services.extraction import GeminiFactExtractor, StubFactExtractor
 from app.services.tokens import issue_access_token
 
 SECRET = "wiring-secret-of-at-least-32-characters!"
@@ -80,3 +83,38 @@ def test_an_unconfigured_deployment_still_refuses() -> None:
     )
 
     assert response.status_code in {401, 503}, response.text
+
+
+def test_the_gemini_extractor_is_wired_when_a_key_is_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A configured GEMINI_API_KEY must reach the conversation, not just the report.
+
+    `_build_extractor` guarded on `hasattr(settings, "gemini_api_key")`, and
+    `Settings` never declared that field — so the guard was permanently false and
+    every deployment conducted the conversation with the stub, key or no key.
+    """
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-test-key")
+    get_report_delivery_settings.cache_clear()
+
+    app = create_app(settings=configured())
+
+    assert isinstance(app.state.fact_extractor, GeminiFactExtractor), (
+        "a configured GEMINI_API_KEY must select the model extractor"
+    )
+
+    get_report_delivery_settings.cache_clear()
+
+
+def test_the_stub_extractor_is_wired_when_no_key_is_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No key is not an error: the conversation still runs, it just extracts less."""
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    get_report_delivery_settings.cache_clear()
+
+    app = create_app(settings=configured())
+
+    assert isinstance(app.state.fact_extractor, StubFactExtractor)
+
+    get_report_delivery_settings.cache_clear()

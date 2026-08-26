@@ -188,6 +188,7 @@ chat that asks in Spanish — was emailed an English report from the default gen
 - [[0004-backend-deploy-provider]] — the bundle ceiling that forced this, and the Cloud Run option it parked
 - [[0006-guided-ai-contact-flow]] — the flow that consumes the report
 - [[0002-fastapi-as-backend-framework]] — the backend hosting the AI layer
+- [[deployment]] — where `GEMINI_API_KEY` is declared and how to check a deployment is using it
 - [[tech-stack-decision]] — overall architecture and phases
 - [[index]] — ADR index
 - https://ai.google.dev/api/generate-content — Generative Language API reference
