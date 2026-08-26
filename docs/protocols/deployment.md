@@ -72,10 +72,17 @@ report generator and the conversation extractor read it from there. Do not add t
 Required checks failing exits non-zero; optional ones report as `warn` because they depend on
 configuration only the owner can complete. What the contact-flow checks mean:
 
+The frontend checks read the **compiled value** out of the shipped bundle, never the absence of
+a fallback. An earlier version searched for `localhost:8000`, which is the default inside
+`resolveApiBaseUrl` and is therefore in the bundle whether it is used or not: a correctly
+configured deployment reported as broken, and the check happened to be right the first time
+only because the variable was genuinely missing.
+
 | Check | Red means |
 |---|---|
-| `PUBLIC_API_BASE_URL reached the build` | The bundle still contains `localhost:8000` — set it on the frontend project and redeploy |
+| `PUBLIC_API_BASE_URL reached the build` | The bundle carries no absolute origin, or one pointing at localhost — set it on the frontend project and redeploy without the build cache |
 | `PUBLIC_TURNSTILE_SITE_KEY reached the build` | No site key compiled in; every code request will answer "unavailable" |
+| `Turnstile runs on a real key, not the test one` | Cloudflare's always-passing key is live in production — see the section below |
 | `the conversation is model-driven` | The stub is answering: `GEMINI_API_KEY` is absent or the model rejected the request |
 | `contact flow is configured` (503) | Backend variables still missing |
 | `the mail provider accepts our sends` (502) | The flow is configured and **Resend refused**. The reason is in the backend logs |
