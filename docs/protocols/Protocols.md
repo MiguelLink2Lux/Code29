@@ -13,6 +13,7 @@ agents operate on the code.
 | [[sdd-workflow]] | Spec-Driven Development — when it is mandatory, and the phases of a cycle | Active |
 | [[linear-claude-integration]] | Task tracking in Linear (workspace `linear.app/code29`, team Code29, prefix `COD`) | Active |
 | [[ai-agents]] | Map of the agents and skills that operate on this repo, and what each one owns | Active |
+| [[deployment]] | Where each project runs, which variables it needs, and how a deploy is verified from outside | Active |
 | [[jira-claude-integration]] | The Jira integration that Linear replaced | Deprecated — Jira retired 2026-08-04, kept as history |
 
 ## References
