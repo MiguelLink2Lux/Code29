@@ -29,6 +29,9 @@ if (!SITE) {
 // as warnings there so a local run does not look broken.
 const IS_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1)/.test(SITE)
 
+//: Cloudflare's always-passing site key. Fine on a preview, never in production.
+const TURNSTILE_TEST_SITE_KEY = '1x00000000000000000000AA'
+
 const results = []
 const record = (name, ok, detail, required = true) =>
   results.push({ name, ok, detail, required })
@@ -153,22 +156,46 @@ async function checkContactIslandEnv(html) {
     return record('contact island bundle found', false, 'no shipped chunk renders the chat')
   }
 
+  // Assert the compiled VALUE, not the absence of a default. `localhost:8000`
+  // is the fallback in resolveApiBaseUrl and is therefore always in the bundle,
+  // used or not — searching for it reported a correctly configured deployment
+  // as broken.
+  const configuredApi = island.match(/PUBLIC_API_BASE_URL:"(https?:\/\/[^"]+)"/)?.[1] ?? ''
+  const pointsAtLocalhost = /localhost|127\.0\.0\.1/.test(configuredApi)
+
   record(
     'PUBLIC_API_BASE_URL reached the build',
-    !island.includes('localhost:8000'),
-    island.includes('localhost:8000')
-      ? 'the chat ships pointing at localhost — set it on the frontend project'
-      : 'absolute backend origin compiled in',
+    Boolean(configuredApi) && !pointsAtLocalhost,
+    configuredApi
+      ? pointsAtLocalhost
+        ? `the chat ships pointing at ${configuredApi}`
+        : configuredApi
+      : 'not compiled in — set it on the frontend project and redeploy without the build cache',
     !IS_LOCAL,
   )
 
+  const siteKey = island.match(/PUBLIC_TURNSTILE_SITE_KEY:"([^"]*)"/)?.[1] ?? ''
+
   record(
     'PUBLIC_TURNSTILE_SITE_KEY reached the build',
-    !island.includes('TURNSTILE_SITE_KEY is not configured') ||
-      /0x4[A-Za-z0-9_-]{10,}|1x00000000000000000000AA/.test(island),
-    'without it every code request answers "service unavailable"',
+    Boolean(siteKey),
+    siteKey || 'without it every code request answers "service unavailable"',
     !IS_LOCAL,
   )
+
+  // Cloudflare's test pair approves every token by design. It is the right
+  // thing on a preview — those live on *.vercel.app, a hostname no widget can
+  // claim — and an open door in production, where this challenge is the only
+  // limit on an endpoint that mails a code to any address it is given.
+  if (siteKey && !IS_LOCAL) {
+    record(
+      'Turnstile runs on a real key, not the test one',
+      siteKey !== TURNSTILE_TEST_SITE_KEY,
+      siteKey === TURNSTILE_TEST_SITE_KEY
+        ? 'the test key is live: any token passes the human check'
+        : 'a real widget key is compiled in',
+    )
+  }
 }
 
 async function checkBackend() {
