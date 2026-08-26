@@ -20,10 +20,15 @@ After every production deploy, and before declaring any contact-flow work done.
 | Project | Root directory | Serves | Origin |
 |---|---|---|---|
 | Frontend | `.` | Astro landing + the contact island | `https://code29.dev` |
-| Backend | `backend/` | FastAPI, `/api/v1/*` | `https://code29-api.vercel.app` |
+| Backend | `backend/` | FastAPI, `/api/v1/*` | `https://api.code29.dev` |
 
 Both deploy by Git integration: a merge to `main` publishes production, a PR publishes a
 preview. There is no deploy workflow in GitHub Actions and none is needed.
+
+The backend answers on its own domain, `api.code29.dev`, rather than on the project's
+`*.vercel.app` origin. The reason is that the frontend compiles the value in: a bundle that
+names a Vercel project URL has to be rebuilt if that project is ever renamed or replaced,
+whereas a domain we own can be repointed.
 
 `backend/vercel.json` carries no rewrite, deliberately. A catch-all rewrite to `/api/index`
 is not transparent: the function then receives that literal path for every request and
@@ -38,7 +43,7 @@ by reading the shipped chunk.
 
 | Variable | Value | Symptom when missing |
 |---|---|---|
-| `PUBLIC_API_BASE_URL` | `https://code29-api.vercel.app` | The chat calls `http://localhost:8000` from the visitor's browser |
+| `PUBLIC_API_BASE_URL` | `https://api.code29.dev` | The chat calls `http://localhost:8000` from the visitor's browser |
 | `PUBLIC_TURNSTILE_SITE_KEY` | public half of the Turnstile key | `TurnstileNotConfigured` → the chat says "el servicio no está disponible" |
 | `PUBLIC_SITE_URL` | `https://code29.dev` | Canonical URLs and `og:image` fall back to the default origin |
 
@@ -51,7 +56,7 @@ design rather than half-working.
 | `RESEND_API_KEY` | Sends the verification code and the report |
 | `CONTACT_FROM_EMAIL` | Verified sender. **Must belong to the verified domain** |
 | `CONTACT_TO_EMAIL` | Mailbox that receives the owner copy of every lead |
-| `TURNSTILE_SECRET_KEY` | Private half of the human check |
+| `TURNSTILE_SECRET_KEY` | Private half of the human check. Pairs with `PUBLIC_TURNSTILE_SITE_KEY` on the frontend: both halves come from **one** Cloudflare widget, and a real site key with a test secret verifies nothing |
 | `GEMINI_API_KEY` | Optional. Present → a model conducts the conversation; absent → the deterministic stub does |
 | `REPORT_GENERATOR` | `stub` or `gemini`. `gemini` without a key refuses rather than emailing a template as if a model wrote it |
 
@@ -62,7 +67,7 @@ report generator and the conversation extractor read it from there. Do not add t
 
 ## Verification
 
-    node scripts/verify-deployment.mjs --site https://code29.dev --api https://code29-api.vercel.app
+    node scripts/verify-deployment.mjs --site https://code29.dev --api https://api.code29.dev
 
 Required checks failing exits non-zero; optional ones report as `warn` because they depend on
 configuration only the owner can complete. What the contact-flow checks mean:
@@ -86,6 +91,27 @@ address is personal data.
 Usual causes, in the order worth checking: `CONTACT_FROM_EMAIL` outside the verified domain ·
 an API key scoped to a different domain · the account still in sandbox, which only delivers
 to the account's own address.
+
+## Turnstile: never ship the test keys to production
+
+Cloudflare publishes a key pair that approves every token by design — site key
+`1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`. They are the right
+thing in Preview and Development, because a preview lives on `*.vercel.app` and that hostname
+cannot be claimed in a Turnstile widget.
+
+In Production they are an open door. `/contact/verification/request` mails a code to any address
+the caller names, and with no store there is no per-address limit, so this challenge is the only
+thing standing between that endpoint and being an email amplifier — which costs the domain its
+sending reputation, not just money.
+
+How to tell from outside, in one request: post a made-up token.
+
+    curl -X POST https://api.code29.dev/api/v1/contact/verification/request \
+      -H 'Content-Type: application/json' \
+      -d '{"email":"nobody@example.com","turnstileToken":"dummy"}'
+
+**403 means the gate is real.** Anything else — 502, 200 — means the token was accepted, and the
+test secret is live.
 
 ## References
 
