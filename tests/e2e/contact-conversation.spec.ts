@@ -88,11 +88,11 @@ async function say(page: Page, text: string) {
 }
 
 /**
- * Walks the verification thread. Fails if it is not there: it is not optional.
+ * Walks the verification exchange. Fails if it is not there: it is not optional.
  *
- * The thread's buttons are `type="button"`, not submit — the composer owns the
- * only submit in the section. Clicking the wrong one silently does nothing,
- * which is exactly how this test passed while requesting no code at all.
+ * There is one composer for the whole conversation, and it changes what it asks
+ * for — so the same submit button reads "enviar código" and then "confirmar".
+ * The ids are what identify the mode; the button text is what the visitor sees.
  */
 async function verifyEmail(page: Page, address = 'ada@example.com') {
   const email = page.locator('#conversation-email')
@@ -111,6 +111,18 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('conversational contact', () => {
+  test('the bot speaks first, and says what the questions are for', async ({ page }) => {
+    await stubBackend(page)
+    await page.goto('/')
+
+    // An empty thread waiting for the visitor to start is what a form looks
+    // like. The greeting must be a message, and it must name the report.
+    const opening = page.locator('#contact .conversation__message--bot').first()
+
+    await expect(opening).toBeVisible()
+    await expect(opening).toContainText(/informe|report/i)
+  })
+
   test('replaces the questionnaire in the contact section', async ({ page }) => {
     await stubBackend(page)
     await page.goto('/')

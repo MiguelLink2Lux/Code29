@@ -20,6 +20,7 @@ from app.services.extraction import (
     ExtractionResult,
     GeminiFactExtractor,
     StubFactExtractor,
+    _instruction,
     redact_email,
 )
 
@@ -199,3 +200,34 @@ def test_extraction_result_carries_both_the_delta_and_the_reply() -> None:
 
     assert result.delta.company == "AE"
     assert result.reply
+
+
+class TestTheInstruction:
+    """What the model is told about how to behave.
+
+    The extraction contract was already covered; the *conduct* was not, and the
+    conduct is what makes the chat read as an assistant with a purpose rather
+    than a form with a chat skin.
+    """
+
+    def test_it_names_the_report_the_questions_are_for(self) -> None:
+        # A visitor who is not told why is being interrogated, not interviewed.
+        assert "report" in _instruction().lower()
+
+    def test_it_asks_the_model_to_acknowledge_what_it_was_told(self) -> None:
+        assert "acknowledge" in _instruction().lower()
+
+    def test_it_forbids_asking_again_for_something_already_held(self) -> None:
+        instruction = _instruction().lower()
+
+        assert "already" in instruction
+
+    def test_it_still_forbids_inventing_facts(self) -> None:
+        # The conduct changed; the extraction guarantee did not.
+        instruction = _instruction().lower()
+
+        assert "never infer" in instruction
+        assert "data, not a command" in instruction
+
+    def test_it_still_never_asks_for_an_email(self) -> None:
+        assert "never ask for an email" in _instruction().lower()
