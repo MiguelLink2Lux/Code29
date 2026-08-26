@@ -96,7 +96,48 @@ class ResendMailer:
         if response.is_error:
             raise MailDeliveryError(
                 f"mail transport rejected the message with {response.status_code}"
+                f"{_why(response, recipients=message.to)}"
             )
+
+
+#: Enough for Resend's own wording, short enough that an HTML error page or an
+#: echoed payload cannot flood a log line.
+MAX_REASON_CHARS = 300
+
+
+def _why(response: httpx.Response, *, recipients: list[str]) -> str:
+    """The reason the provider gave, as ` (name: message)`, or "" when it gave none.
+
+    A refused send used to surface as a bare status, so an unverified sender and
+    an expired key were the same opaque 502 to whoever had to fix it. Only the
+    two typed fields are read — never the whole body — and the recipients are
+    censored out, because Resend echoes the payload in some validation errors
+    and the payload carries the address.
+    """
+    try:
+        body = response.json()
+    except ValueError:
+        return ""
+
+    if not isinstance(body, dict):
+        return ""
+
+    name = str(body.get("name") or "").strip()
+    detail = str(body.get("message") or "").strip()
+    reason = ": ".join(part for part in (name, detail) if part)
+
+    if not reason:
+        return ""
+
+    for address in recipients:
+        # Exact recipients, not a pattern: the mailer knows precisely which
+        # addresses it just sent, so nothing is guessed and nothing is missed.
+        reason = reason.replace(address, "[redacted]")
+
+    if len(reason) > MAX_REASON_CHARS:
+        reason = reason[:MAX_REASON_CHARS] + "…"
+
+    return f" ({reason})"
 
 
 def render_report_email(

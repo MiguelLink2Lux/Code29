@@ -13,7 +13,7 @@ from app.api.v1.site_analysis import (
     get_access_token_verifier,
 )
 from app.core.config import Settings, get_settings
-from app.core.report_settings import ReportDeliveryUnavailable
+from app.core.report_settings import ReportDeliveryUnavailable, get_report_delivery_settings
 from app.services.extraction import FactExtractor, GeminiFactExtractor, StubFactExtractor
 from app.services.mailer import Mailer, ResendMailer
 from app.services.tokens import InvalidToken, verify_access_token
@@ -83,7 +83,7 @@ def create_app(
 
     # The deterministic stub is the default: with no model key the conversation
     # still works, it just extracts less. A 503 per turn would be worse.
-    app.state.fact_extractor = fact_extractor or _build_extractor(settings)
+    app.state.fact_extractor = fact_extractor or _build_extractor()
 
     app.include_router(api_v1)
 
@@ -104,8 +104,15 @@ def create_app(
     return app
 
 
-def _build_extractor(settings: Settings) -> FactExtractor:
-    key = settings.gemini_api_key.get_secret_value() if hasattr(settings, "gemini_api_key") else ""
+def _build_extractor() -> FactExtractor:
+    """Pick the extractor from the one place GEMINI_API_KEY is declared.
+
+    `ReportDeliverySettings` is canonical for the model key. This used to read it
+    off `Settings`, guarded by a `hasattr` — and `Settings` never declared the
+    field, so the guard was permanently false and every deployment held the
+    conversation with the stub, key or no key.
+    """
+    key = get_report_delivery_settings().gemini_api_key.get_secret_value()
 
     return GeminiFactExtractor(api_key=key) if key else StubFactExtractor()
 

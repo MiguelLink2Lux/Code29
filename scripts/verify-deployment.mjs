@@ -57,9 +57,17 @@ async function checkFrontend() {
   )
   record('all landing sections render', missingSections.length === 0, missingSections.join(', '))
 
-  // The chat replaced the form: neither may be missing nor duplicated.
-  record('guided chat is mounted', html.includes('contact-chat'), 'looked for .contact-chat')
+  // The chat replaced the form: neither may be missing nor duplicated. The class
+  // is `conversation`, not `contact-chat` — the questionnaire's name went away
+  // with it, and this check kept looking for it long after the cutover.
+  record(
+    'conversational chat is mounted',
+    html.includes('class="conversation"'),
+    'looked for .conversation',
+  )
   record('classic form is gone', !html.includes('name="fullName"'), 'looked for the old input')
+
+  await checkContactIslandEnv(html)
 
   const ogImage = html.match(/property="og:image" content="([^"]+)"/)?.[1] ?? ''
   record('og:image is absolute', /^https?:\/\//.test(ogImage), ogImage || 'not found')
@@ -122,6 +130,47 @@ async function checkFrontend() {
   record('unknown route returns 404', notFound?.status === 404, `HTTP ${notFound?.status}`)
 }
 
+/**
+ * The contact island is compiled with its environment inlined, so a missing
+ * PUBLIC_* variable is invisible in the HTML and only shows up as a broken chat.
+ * These two checks read the shipped bundle instead of trusting the dashboard.
+ *
+ * Both failures were live on 2026-08-26: the chat called http://localhost:8000
+ * and reported "service unavailable" because no Turnstile key was compiled in.
+ */
+async function checkContactIslandEnv(html) {
+  const scripts = [...html.matchAll(/\/_astro\/[A-Za-z0-9._-]+\.js/g)].map((m) => m[0])
+  const bundles = []
+
+  for (const path of new Set(scripts)) {
+    const { response } = await fetchSafe(`${SITE}${path}`)
+    if (response?.ok) bundles.push(await response.text())
+  }
+
+  const island = bundles.find((code) => code.includes('conversation__thread'))
+
+  if (!island) {
+    return record('contact island bundle found', false, 'no shipped chunk renders the chat')
+  }
+
+  record(
+    'PUBLIC_API_BASE_URL reached the build',
+    !island.includes('localhost:8000'),
+    island.includes('localhost:8000')
+      ? 'the chat ships pointing at localhost — set it on the frontend project'
+      : 'absolute backend origin compiled in',
+    !IS_LOCAL,
+  )
+
+  record(
+    'PUBLIC_TURNSTILE_SITE_KEY reached the build',
+    !island.includes('TURNSTILE_SITE_KEY is not configured') ||
+      /0x4[A-Za-z0-9_-]{10,}|1x00000000000000000000AA/.test(island),
+    'without it every code request answers "service unavailable"',
+    !IS_LOCAL,
+  )
+}
+
 async function checkBackend() {
   if (!API) {
     record('backend checks', true, 'skipped: no --api given', false)
@@ -156,6 +205,25 @@ async function checkBackend() {
     `HTTP ${unauth?.status}`,
   )
 
+  // Whether a model or the deterministic stub conducts the chat. The stub cannot
+  // read a name out of a sentence, so it still reports contact_name as missing —
+  // which is exactly what a deployment with no working GEMINI_API_KEY looks like.
+  const { response: turn } = await fetchSafe(`${API}/api/v1/contact/conversation/turn`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: SITE },
+    body: JSON.stringify({ message: 'Hola, me llamo Miguel y trabajo en Link2Lux' }),
+  })
+  const turnBody = await turn?.json().catch(() => null)
+  const extracted = Array.isArray(turnBody?.missing) && !turnBody.missing.includes('contact_name')
+  record(
+    'the conversation is model-driven',
+    extracted,
+    extracted
+      ? 'the name was extracted from a sentence'
+      : 'the stub is answering — GEMINI_API_KEY is missing or rejected',
+    false,
+  )
+
   // 503 here means the contact flow is not configured yet — expected before the
   // env vars land, a failure afterwards.
   const { response: verify } = await fetchSafe(`${API}/api/v1/contact/verification/request`, {
@@ -170,6 +238,12 @@ async function checkBackend() {
     configured ? `HTTP ${verify?.status}` : 'HTTP 503 — env vars still missing',
     false,
   )
+
+  // 502 is a different failure from 503 and needs saying so: the flow IS
+  // configured, and the mail provider refused the send.
+  if (verify?.status === 502) {
+    record('the mail provider accepts our sends', false, 'HTTP 502 — check the backend logs')
+  }
 }
 
 await checkFrontend()

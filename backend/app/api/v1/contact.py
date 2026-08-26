@@ -13,12 +13,16 @@ which addresses exist. No address is ever written to a log.
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field
 
 from app.services.mailer import EmailMessage, MailDeliveryError, Mailer
 from app.services.tokens import derive_code, issue_access_token, verify_code
 from app.services.turnstile import TurnstileUnavailable, TurnstileVerifier
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contact", tags=["contact"])
 
@@ -99,6 +103,11 @@ async def request_verification(payload: VerificationRequest, request: Request) -
             )
         )
     except MailDeliveryError as error:
+        # The visitor gets the uniform message; the operator gets the reason.
+        # Without this line a refused send is indistinguishable from an expired
+        # key in the only place anyone can look, which is the platform log. The
+        # error already has the recipient censored out of it (see mailer._why).
+        logger.warning("verification email refused: %s", error)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Could not send the verification email. Try again shortly.",
