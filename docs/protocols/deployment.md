@@ -82,7 +82,8 @@ only because the variable was genuinely missing.
 |---|---|
 | `PUBLIC_API_BASE_URL reached the build` | The bundle carries no absolute origin, or one pointing at localhost — set it on the frontend project and redeploy without the build cache |
 | `PUBLIC_TURNSTILE_SITE_KEY reached the build` | No site key compiled in; every code request will answer "unavailable" |
-| `Turnstile runs on a real key, not the test one` | Cloudflare's always-passing key is live in production — see the section below |
+| `Turnstile runs on a real key, not the test one` | Cloudflare's always-passing **site** key is compiled into the frontend bundle — see the section below |
+| `an invented Turnstile token is refused` | The backend accepted a token that was never issued. The **secret** is the test one, and the gate is open |
 | `the conversation is model-driven` | The stub is answering: `GEMINI_API_KEY` is absent or the model rejected the request |
 | `contact flow is configured` (503) | Backend variables still missing |
 | `the mail provider accepts our sends` (502) | The flow is configured and **Resend refused**. The reason is in the backend logs |
@@ -111,18 +112,33 @@ the caller names, and with no store there is no per-address limit, so this chall
 thing standing between that endpoint and being an email amplifier — which costs the domain its
 sending reputation, not just money.
 
+**The backend refuses the pairing itself.** With `APP_ENV=production`, a `TURNSTILE_SECRET_KEY`
+equal to Cloudflare's test secret counts as an *absent* one: `contact_flow_enabled` is false and
+every contact endpoint answers 503 before reaching the mailer. This is deliberate — a deployment
+that cannot verify a human must not send mail — and it means **the flow stays down until the real
+secret is uploaded**. The variable at fault is named in the platform log, never in the response,
+which must not tell an anonymous caller how the deployment is misconfigured.
+
+This guard is not a substitute for the real widget. It only converts a silent open door into a
+loud closed one; the flow does not work again until the dashboard is fixed. See
+[[turnstile-test-key-in-production]].
+
 How to tell from outside, in one request: post a made-up token.
 
     curl -X POST https://api.code29.dev/api/v1/contact/verification/request \
       -H 'Content-Type: application/json' \
       -d '{"email":"nobody@example.com","turnstileToken":"dummy"}'
 
-**403 means the gate is real.** Anything else — 502, 200 — means the token was accepted, and the
-test secret is live.
+| Answer | What it means |
+|---|---|
+| **403** | The gate is real: a live widget secret rejected the token. This is the healthy answer |
+| **503** | The gate is closed but not working: the test secret is still set, or a variable is missing. Check the backend log for the name |
+| **200 / 502** | **The token was accepted.** The gate is open — 502 only means the mail provider happened to refuse the send it was already making |
 
 ## References
 
 - [[Protocols]] — parent hub
 - [[0004-backend-deploy-provider]] — why two projects
 - [[gemini-extractor-never-wired]] — the defect this verification now catches
+- [[turnstile-test-key-in-production]] — the open gate this section exists to prevent
 - [[0009-conversational-contact-agent]] — what the contact flow does

@@ -17,6 +17,7 @@ is the durable half: what was actually wrong, and what now prevents it.
 | [[sourced-but-irrelevant-evidence]] | Canon report — evidence routing | Fixed | 2026-08-23 |
 | [[improvement-canon-measured-signal-drift]] | Documentation drift | Fixed | 2026-08-23 |
 | [[gemini-extractor-never-wired]] | Contact conversation — extractor wiring | Fixed | 2026-08-26 |
+| [[turnstile-test-key-in-production]] | Contact verification — anti-abuse gate | Fixed | 2026-08-27 |
 
 ## Convention
 
