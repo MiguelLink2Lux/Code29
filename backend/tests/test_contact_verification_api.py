@@ -15,6 +15,7 @@ from app.core.config import Settings
 from app.main import create_app
 from app.services.mailer import NullMailer
 from app.services.tokens import derive_code, verify_access_token
+from app.services.turnstile import TEST_SECRET_KEY as TURNSTILE_TEST_SECRET_KEY
 
 SECRET = "x" * 40
 EMAIL = "ada@example.com"
@@ -81,6 +82,22 @@ class TestRequestCode:
         client.post(REQUEST_URL, json={"email": EMAIL, "turnstileToken": "t"})
 
         assert derive_code(EMAIL, secret=SECRET) in mailer.sent[0].text
+
+    def test_the_test_secret_in_production_sends_nothing(self) -> None:
+        # COD-49: production ran on Cloudflare's always-passing secret, so an
+        # invented token reached the mailer. The endpoint must refuse before it.
+        settings = configured_settings(
+            app_env="production", turnstile_secret_key=TURNSTILE_TEST_SECRET_KEY
+        )
+        client, mailer = build_client(settings=settings, verifier=_Verifier(result=True))
+
+        response = client.post(REQUEST_URL, json={"email": EMAIL, "turnstileToken": "made-up"})
+
+        assert response.status_code == 503
+        assert mailer.sent == []
+        # The variable at fault belongs in the log, not in the answer: the
+        # response must not tell an anonymous caller how this deploy is broken.
+        assert "TURNSTILE_SECRET_KEY" not in response.text
 
     def test_a_failed_challenge_sends_nothing(self) -> None:
         client, mailer = build_client(verifier=_Verifier(result=False))

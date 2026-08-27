@@ -7,6 +7,7 @@ deploy log — not on the first visitor who tries to verify an address.
 import pytest
 
 from app.core.config import Settings
+from app.services.turnstile import TEST_SECRET_KEY as TURNSTILE_TEST_SECRET_KEY
 
 STRONG_SECRET = "a" * 32
 
@@ -66,6 +67,55 @@ class TestFlowReadiness:
 
         assert Settings(**values).contact_flow_enabled is False
 
+
+class TestTurnstileTestSecret:
+    """Cloudflare's test secret approves every token, so in production it is an
+    open gate wearing the clothes of a configured one. COD-49: it was live."""
+
+    def _values(self, **overrides: object) -> dict[str, object]:
+        values: dict[str, object] = {
+            "contact_token_secret": STRONG_SECRET,
+            "resend_api_key": "re_test",
+            "contact_from_email": "noreply@code29.dev",
+            "contact_to_email": "hola@code29.dev",
+            "turnstile_secret_key": TURNSTILE_TEST_SECRET_KEY,
+        }
+        values.update(overrides)
+        return values
+
+    def test_production_does_not_count_the_test_secret_as_configuration(self) -> None:
+        settings = Settings(app_env="production", **self._values())
+
+        assert settings.contact_flow_enabled is False
+        assert "test secret" in (settings.contact_flow_disabled_reason or "")
+
+    def test_the_reason_names_the_variable_at_fault(self) -> None:
+        settings = Settings(app_env="production", **self._values())
+
+        # An operator reading the 503 must learn which variable to change.
+        assert "TURNSTILE_SECRET_KEY" in (settings.contact_flow_disabled_reason or "")
+
+    def test_previews_and_local_work_keep_the_test_secret(self) -> None:
+        # Preview deployments live on *.vercel.app, a hostname no real widget can
+        # claim, so there the test pair is the only thing that works.
+        settings = Settings(app_env="development", **self._values())
+
+        assert settings.contact_flow_enabled is True
+        assert settings.contact_flow_disabled_reason is None
+
+    def test_a_real_secret_enables_the_flow_in_production(self) -> None:
+        settings = Settings(app_env="production", **self._values(turnstile_secret_key="0x_real"))
+
+        assert settings.contact_flow_enabled is True
+        assert settings.contact_flow_disabled_reason is None
+
+    def test_a_missing_variable_is_still_reported_by_name(self) -> None:
+        settings = Settings(**self._values(resend_api_key=""))
+
+        assert "RESEND_API_KEY" in (settings.contact_flow_disabled_reason or "")
+
+
+class TestSecretExposure:
     def test_secrets_are_not_exposed_by_the_string_representation(self) -> None:
         # A settings object reaching a log must not carry the API key with it.
         settings = Settings(contact_token_secret=STRONG_SECRET, resend_api_key="re_supersecret")

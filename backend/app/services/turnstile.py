@@ -15,6 +15,13 @@ from typing import Protocol, runtime_checkable
 VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 VERIFY_TIMEOUT_SECONDS = 5.0
 
+#: Cloudflare's always-passing secret. It approves every token by design, which
+#: is what a preview deployment wants — those live on `*.vercel.app`, a hostname
+#: no widget can claim — and what production must never run: here it would turn
+#: the only limit on an endpoint that mails a code to any address into a no-op.
+#: `Settings.contact_flow_enabled` reads this to refuse the pairing.
+TEST_SECRET_KEY = "1x0000000000000000000000000000000AA"
+
 
 class TurnstileUnavailable(Exception):
     """The challenge could not be evaluated. Callers must treat this as a refusal."""

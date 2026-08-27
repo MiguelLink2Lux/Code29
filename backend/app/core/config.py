@@ -5,6 +5,8 @@ from functools import lru_cache
 from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.services.turnstile import TEST_SECRET_KEY as TURNSTILE_TEST_SECRET_KEY
+
 MIN_SECRET_LENGTH = 32
 
 
@@ -36,17 +38,48 @@ class Settings(BaseSettings):
         return self.app_env.strip().lower() in {"production", "prod"}
 
     @property
+    def turnstile_runs_on_the_test_secret(self) -> bool:
+        """True when the configured secret is Cloudflare's always-passing one."""
+        return self.turnstile_secret_key.get_secret_value() == TURNSTILE_TEST_SECRET_KEY
+
+    @property
+    def contact_flow_disabled_reason(self) -> str | None:
+        """Why the flow is off, or None when it is on.
+
+        The endpoints answer 503 either way; this is what turns that 503 from
+        "something is missing" into a line an operator can act on.
+        """
+        missing = [
+            name
+            for name, value in (
+                ("CONTACT_TOKEN_SECRET", self.contact_token_secret.get_secret_value()),
+                ("RESEND_API_KEY", self.resend_api_key.get_secret_value()),
+                ("TURNSTILE_SECRET_KEY", self.turnstile_secret_key.get_secret_value()),
+                ("CONTACT_FROM_EMAIL", self.contact_from_email),
+                ("CONTACT_TO_EMAIL", self.contact_to_email),
+            )
+            if not value
+        ]
+        if missing:
+            return f"not configured: {', '.join(missing)}"
+
+        # A test secret is not a configured gate, it is an open one: Turnstile is
+        # the only thing standing between this endpoint and an email amplifier,
+        # and Cloudflare's test pair approves every token. Treating it as absent
+        # closes the door on a deployment whose dashboard still says otherwise.
+        if self.is_production and self.turnstile_runs_on_the_test_secret:
+            return (
+                "TURNSTILE_SECRET_KEY is Cloudflare's test secret, which approves "
+                "every token; production needs the secret of a real widget"
+            )
+
+        return None
+
+    @property
     def contact_flow_enabled(self) -> bool:
-        """True only when every dependency the guided contact flow needs is set."""
-        return all(
-            [
-                self.contact_token_secret.get_secret_value(),
-                self.resend_api_key.get_secret_value(),
-                self.turnstile_secret_key.get_secret_value(),
-                self.contact_from_email,
-                self.contact_to_email,
-            ]
-        )
+        """True only when every dependency the guided contact flow needs is set
+        and the human gate is a real one."""
+        return self.contact_flow_disabled_reason is None
 
     @property
     def _contact_flow_intended(self) -> bool:

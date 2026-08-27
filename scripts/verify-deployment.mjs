@@ -252,7 +252,8 @@ async function checkBackend() {
   )
 
   // 503 here means the contact flow is not configured yet — expected before the
-  // env vars land, a failure afterwards.
+  // env vars land, a failure afterwards. `probe` is deliberately not a real
+  // challenge token: a closed gate rejects it before any mail is attempted.
   const { response: verify } = await fetchSafe(`${API}/api/v1/contact/verification/request`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -264,6 +265,22 @@ async function checkBackend() {
     configured,
     configured ? `HTTP ${verify?.status}` : 'HTTP 503 — env vars still missing',
     false,
+  )
+
+  // The site-key check reads the frontend bundle; the backend secret is invisible
+  // from outside, and only this answer reveals it. An invented token that gets
+  // past the challenge means the gate is open: 202 mailed a code to an address
+  // the caller simply named, and 502 got as far as the mail provider — both are
+  // the amplifier COD-49 describes. Only a refusal (403, or 503 naming the
+  // variable) proves the door is shut.
+  const gateHeld = verify?.status === 403 || verify?.status === 503
+  record(
+    'an invented Turnstile token is refused',
+    gateHeld,
+    gateHeld
+      ? `HTTP ${verify?.status} — the challenge rejected it`
+      : `HTTP ${verify?.status} — the token passed: the backend runs on the test secret`,
+    !IS_LOCAL,
   )
 
   // 502 is a different failure from 503 and needs saying so: the flow IS
