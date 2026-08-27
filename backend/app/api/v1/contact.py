@@ -45,11 +45,18 @@ class AccessTokenResponse(BaseModel):
 
 
 def _require_configured_flow(request: Request) -> None:
-    if not request.app.state.settings.contact_flow_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="The contact flow is not configured on this deployment.",
-        )
+    reason = request.app.state.settings.contact_flow_disabled_reason
+    if reason is None:
+        return
+
+    # The reason names the variable at fault, so it goes to the platform log
+    # where the operator can act on it — never to the response, which would
+    # tell an anonymous caller exactly how this deployment is misconfigured.
+    logger.warning("contact flow refused a request: %s", reason)
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="The contact flow is not configured on this deployment.",
+    )
 
 
 def _signing_secret(request: Request) -> str:
