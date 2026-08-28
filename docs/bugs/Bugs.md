@@ -18,6 +18,7 @@ is the durable half: what was actually wrong, and what now prevents it.
 | [[improvement-canon-measured-signal-drift]] | Documentation drift | Fixed | 2026-08-23 |
 | [[gemini-extractor-never-wired]] | Contact conversation — extractor wiring | Fixed | 2026-08-26 |
 | [[turnstile-test-key-in-production]] | Contact verification — anti-abuse gate | Fixed | 2026-08-27 |
+| [[turnstile-widget-outside-the-dom]] | Contact verification — human check | Fixed | 2026-08-28 |
 
 ## Convention
 
