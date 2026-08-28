@@ -62,6 +62,10 @@ const sync = () => {
 const draft = ref('')
 const localError = ref<string | null>(null)
 const thread = ref<HTMLElement | null>(null)
+// Where Cloudflare mounts the challenge. It has to be a node that is actually in
+// the document: a detached one makes Turnstile lose track of its own widget, and
+// an interactive challenge rendered there would be unreachable for the visitor.
+const turnstileHost = ref<HTMLElement | null>(null)
 
 const messages = computed(() => {
   void tick.value
@@ -207,8 +211,16 @@ async function submitMessage(text: string): Promise<void> {
 }
 
 async function submitEmail(address: string): Promise<void> {
+  if (!turnstileHost.value) {
+    // The host is unconditional in the template, so this is a bug on our side,
+    // never something the visitor did.
+    localError.value = 'unavailable'
+    sync()
+    return
+  }
+
   try {
-    const token = await turnstile.getToken(document.createElement('div'))
+    const token = await turnstile.getToken(turnstileHost.value)
     await chat.requestCode(address, token)
     draft.value = ''
   } catch (error) {
@@ -348,6 +360,16 @@ onMounted(() => {
         {{ sendLabel }}
       </button>
     </form>
+
+    <!--
+      Always in the document, outside the v-if/v-else above: Turnstile needs a
+      mounted node to render into, and when the challenge turns interactive the
+      visitor has to be able to see and reach it.
+    -->
+    <div
+      ref="turnstileHost"
+      class="conversation__challenge"
+    />
 
     <p
       v-if="mode === 'code'"
@@ -522,6 +544,14 @@ onMounted(() => {
 .conversation__btn:disabled {
   opacity: 0.6;
   cursor: progress;
+}
+
+/* With appearance: interaction-only the host stays empty on most visits, so it
+   only claims space once Cloudflare actually puts a challenge in it. */
+.conversation__challenge:not(:empty) {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
 }
 
 .conversation__hint,

@@ -189,6 +189,24 @@ describe('email verification, inside the conversation', () => {
     expect(api.requestVerificationCode).toHaveBeenCalledWith('ada@example.com', 'turnstile-token')
   })
 
+  it('renders the challenge into a container that is in the document', async () => {
+    const { turnstile } = mount(readyForEmail())
+    await say('hola')
+
+    const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
+    await fireEvent.update(emailInput, 'ada@example.com')
+    await fireEvent.click(screen.getByRole('button', { name: /verificar|verify|enviar código/i }))
+
+    await waitFor(() => expect(turnstile.getToken).toHaveBeenCalled())
+
+    // A detached node makes Cloudflare log "Cannot find Widget …", and an
+    // interactive challenge rendered into it can never be reached — which is
+    // the whole point of asking for one.
+    const container = turnstile.getToken.mock.calls[0][0] as HTMLElement
+    expect(container).toBeInstanceOf(HTMLElement)
+    expect(container.isConnected).toBe(true)
+  })
+
   it('a missing Turnstile key reads as unavailable, not as a human failure', async () => {
     const { TurnstileNotConfigured } = await import('@/utils/turnstile-client')
     const turnstile = { getToken: vi.fn().mockRejectedValue(new TurnstileNotConfigured()) }
