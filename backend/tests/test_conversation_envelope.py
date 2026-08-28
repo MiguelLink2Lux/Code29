@@ -23,6 +23,7 @@ from app.services.conversation import (
     MAX_ENVELOPE_BYTES,
     MAX_MESSAGE_CHARS,
     MAX_TURNS,
+    REQUIRED_FACTS,
     ConversationFacts,
     EnvelopeTooLarge,
     derive_next_step,
@@ -378,3 +379,19 @@ class TestNextStep:
             "closing"
         )
         assert turns_exhausted(MAX_TURNS)
+
+    def test_the_budget_covers_a_worst_case_conversation_including_the_closing(self) -> None:
+        """The closing turn is new spending. Assert the budget absorbs it.
+
+        Worst realistic case: the visitor volunteers one fact per turn and never
+        two at once. That is the opening account of the business, then each of
+        the four facts, then the closing invitation. Verification costs no turn
+        here — it runs through its own endpoint.
+
+        Asserted rather than re-tuned: MAX_TURNS is a cost ceiling, and moving it
+        because a new step was added is how a ceiling stops meaning anything.
+        """
+        worst_case = 1 + len(REQUIRED_FACTS) + 1
+
+        assert worst_case <= MAX_TURNS
+        assert not turns_exhausted(worst_case)
