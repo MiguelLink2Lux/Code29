@@ -25,6 +25,7 @@ from app.services.conversation import (
     MAX_TURNS,
     ConversationFacts,
     EnvelopeTooLarge,
+    derive_next_step,
     is_complete,
     merge_facts,
     message_within_budget,
@@ -265,3 +266,115 @@ class TestNoPii:
         # stage is forbidden from seeing.
         for forbidden in ("transcript", "messages", "history"):
             assert forbidden not in ConversationFacts.model_fields
+
+
+class TestBlocked:
+    """A blocked conversation is blocked inside the signature, or not at all.
+
+    Zero tolerance is about the response, and the response is worth nothing if the
+    client can undo it. The flag therefore rides where the turn counter rides: a
+    client that edits it invalidates the HMAC and loses the whole envelope.
+
+    What this does NOT buy is worth stating, because it will be read as a defect
+    otherwise: the block is per **conversation**, not per visitor. Dropping the
+    envelope — reloading the tab — starts a clean one. The backend keeps no store
+    (ADR 0006), so nothing can remember a person. Signing stops tampering, never
+    restarting. That limit is specified behaviour, not an oversight.
+    """
+
+    def test_round_trips_blocked(self) -> None:
+        state = open_envelope(
+            seal_envelope(FACTS, turns=2, secret=SECRET, blocked=True), secret=SECRET
+        )
+
+        assert state.blocked is True
+
+    def test_a_conversation_is_open_unless_it_was_blocked(self) -> None:
+        state = open_envelope(seal_envelope(FACTS, turns=2, secret=SECRET), secret=SECRET)
+
+        assert state.blocked is False
+
+    def test_an_envelope_sealed_before_this_change_opens_unblocked(self) -> None:
+        # Frontend and backend are separate deployments and do not ship at the
+        # same instant. An in-flight envelope must degrade, not 500.
+        legacy = json.dumps(
+            {
+                "facts": FACTS.model_dump(exclude_none=True),
+                "turns": 2,
+                "exp": int(time.time() + 600),
+                "purpose": "contact-conversation",
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        from app.services.tokens import _sign
+
+        envelope = f"{_b64encode(legacy)}.{_b64encode(_sign(legacy, SECRET))}"
+
+        assert open_envelope(envelope, secret=SECRET).blocked is False
+
+    def test_flipping_the_flag_invalidates_the_envelope(self) -> None:
+        envelope = seal_envelope(FACTS, turns=2, secret=SECRET, blocked=True)
+        payload, signature = envelope.split(".")
+        raw = __import__("base64").urlsafe_b64decode(payload + "=" * (-len(payload) % 4))
+        forged = raw.replace(b'"blocked":true', b'"blocked":fals')
+
+        with pytest.raises(InvalidToken):
+            open_envelope(f"{_b64encode(forged)}.{signature}", secret=SECRET)
+
+
+class TestNextStep:
+    """The server owns the script order. Nobody else gets a vote.
+
+    This is the fix for the defect that made the chat ask for the email last: the
+    order was split across a server flag, a model prompt and a Vue computed, and
+    the three disagreed. One function, one authority, one truth table.
+    """
+
+    def test_the_address_is_asked_for_right_after_the_first_answer(self) -> None:
+        assert (
+            derive_next_step(ConversationFacts(), email_verified=False, turns=1, blocked=False)
+            == "email"
+        )
+
+    def test_the_opening_turn_asks_about_the_business_not_the_address(self) -> None:
+        assert (
+            derive_next_step(ConversationFacts(), email_verified=False, turns=0, blocked=False)
+            == "message"
+        )
+
+    def test_the_address_is_asked_for_even_when_everything_else_is_missing(self) -> None:
+        # The whole point: it is second, not last.
+        assert (
+            derive_next_step(
+                ConversationFacts(contact_name="Ada"), email_verified=False, turns=2, blocked=False
+            )
+            == "email"
+        )
+
+    def test_a_verified_visitor_is_never_asked_for_an_address_again(self) -> None:
+        for turns in range(1, MAX_TURNS):
+            assert derive_next_step(
+                ConversationFacts(), email_verified=True, turns=turns, blocked=False
+            ) not in ("email", "code")
+
+    def test_a_verified_visitor_with_facts_missing_keeps_talking(self) -> None:
+        assert (
+            derive_next_step(
+                ConversationFacts(contact_name="Ada"), email_verified=True, turns=3, blocked=False
+            )
+            == "message"
+        )
+
+    def test_everything_held_closes_with_an_invitation(self) -> None:
+        assert derive_next_step(FACTS, email_verified=True, turns=5, blocked=False) == "closing"
+
+    def test_blocked_beats_everything(self) -> None:
+        assert derive_next_step(FACTS, email_verified=True, turns=5, blocked=True) == "blocked"
+
+    def test_the_budget_beats_the_closing_invitation(self) -> None:
+        # A closing turn must never become a way to outlive MAX_TURNS.
+        assert derive_next_step(FACTS, email_verified=True, turns=MAX_TURNS, blocked=False) == (
+            "closing"
+        )
+        assert turns_exhausted(MAX_TURNS)
