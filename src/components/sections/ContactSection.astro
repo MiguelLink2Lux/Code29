@@ -28,35 +28,11 @@ const t = translations.contact[lang]
 <style>
   .contact {
     position: relative;
+    z-index: 1;
     padding: var(--space-16) var(--space-8);
-    background: var(--color-surface-1);
-    overflow: hidden;
-  }
-
-  .contact::before,
-  .contact::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .contact::before {
-    background:
-      radial-gradient(rgba(0, 240, 255, 0.24) 1px, transparent 1px) 0 0 / 22px 22px,
-      linear-gradient(115deg, transparent 42%, rgba(0, 240, 255, 0.08) 50%, transparent 58%) 140% 50% / 220% 220%;
-    mix-blend-mode: screen;
-    opacity: 0.28;
-    animation: contact-lower-band 8s ease-in-out infinite;
-  }
-
-  .contact::after {
-    background:
-      radial-gradient(circle at 18% 24%, rgba(0, 240, 255, 0.18), transparent 18%),
-      radial-gradient(circle at 78% 68%, rgba(157, 0, 255, 0.12), transparent 22%),
-      radial-gradient(circle at 62% 88%, rgba(0, 240, 255, 0.16), transparent 18%);
-    opacity: 0.72;
-    animation: contact-lower-glow 9s ease-in-out infinite;
+    /* No background and no decoration of its own: both belong to the closing
+       block in BaseLayout, which is what makes contact and footer read as one
+       surface instead of two. */
   }
 
   .contact__inner {
@@ -114,46 +90,6 @@ const t = translations.contact[lang]
     opacity: 0.4;
   }
 
-  @keyframes contact-lower-band {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0);
-      opacity: 0.18;
-      background-position:
-        0 0,
-        140% 50%;
-    }
-
-    35% {
-      transform: translate3d(12px, -8px, 0);
-      opacity: 0.34;
-      background-position:
-        10px -8px,
-        62% 44%;
-    }
-
-    65% {
-      transform: translate3d(-8px, 6px, 0);
-      opacity: 0.28;
-      background-position:
-        -6px 6px,
-        -8% 56%;
-    }
-  }
-
-  @keyframes contact-lower-glow {
-    0%,
-    100% {
-      transform: scale(0.96);
-      opacity: 0.46;
-    }
-
-    50% {
-      transform: scale(1.06) translate3d(-10px, -8px, 0);
-      opacity: 0.92;
-    }
-  }
-
   @media (max-width: 768px) {
     .contact {
       padding: var(--space-12) var(--space-4);
@@ -169,13 +105,6 @@ const t = translations.contact[lang]
 
     .contact__form-shell {
       padding: var(--space-3);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .contact::before,
-    .contact::after {
-      animation: none;
     }
   }
 </style>

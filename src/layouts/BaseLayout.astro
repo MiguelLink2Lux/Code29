@@ -89,10 +89,113 @@ const isHomePage = Astro.url.pathname === '/'
     <main>
       <slot />
     </main>
-    <Footer transparent={isHomePage} />
+    {
+      /*
+       * Contact and the footer read as one closing block. The decoration used
+       * to live twice — once in each — with divergent opacities and two
+       * unsynchronised animations, and the join between them showed. One layer,
+       * declared here, is what removes the seam.
+       *
+       * Only the home page gets it: an animated grid behind a legal text is
+       * noise, and only the home has anything to put in the slot.
+       */
+    }
+    {
+      isHomePage ? (
+        <div class="closing">
+          <slot name="closing" />
+          <Footer transparent />
+        </div>
+      ) : (
+        <Footer />
+      )
+    }
     <CookieBanner client:load />
   </body>
 </html>
+
+<style>
+  .closing {
+    position: relative;
+    background: var(--color-surface-1);
+    overflow: hidden;
+  }
+
+  /* The single decoration layer. Both children sit above it at z-index 1. */
+  .closing::before,
+  .closing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .closing::before {
+    background:
+      radial-gradient(rgba(0, 240, 255, 0.24) 1px, transparent 1px) 0 0 / 22px 22px,
+      linear-gradient(115deg, transparent 42%, rgba(0, 240, 255, 0.08) 50%, transparent 58%) 140% 50% /
+        220% 220%;
+    mix-blend-mode: screen;
+    opacity: 0.28;
+    animation: closing-band 8s ease-in-out infinite;
+  }
+
+  .closing::after {
+    background:
+      radial-gradient(circle at 18% 24%, rgba(0, 240, 255, 0.18), transparent 18%),
+      radial-gradient(circle at 78% 68%, rgba(157, 0, 255, 0.12), transparent 22%),
+      radial-gradient(circle at 62% 88%, rgba(0, 240, 255, 0.16), transparent 18%);
+    opacity: 0.72;
+    animation: closing-glow 9s ease-in-out infinite;
+  }
+
+  @keyframes closing-band {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0.18;
+      background-position:
+        0 0,
+        140% 50%;
+    }
+
+    35% {
+      transform: translate3d(10px, -6px, 0);
+      opacity: 0.32;
+      background-position:
+        10px -6px,
+        58% 46%;
+    }
+
+    65% {
+      transform: translate3d(-6px, 4px, 0);
+      opacity: 0.24;
+      background-position:
+        -6px 4px,
+        -8% 54%;
+    }
+  }
+
+  @keyframes closing-glow {
+    0%,
+    100% {
+      transform: scale(0.98);
+      opacity: 0.42;
+    }
+
+    50% {
+      transform: scale(1.04) translate3d(-6px, -4px, 0);
+      opacity: 0.78;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .closing::before,
+    .closing::after {
+      animation: none;
+    }
+  }
+</style>
 
 <style is:global>
   @import '../styles/tokens.css';
