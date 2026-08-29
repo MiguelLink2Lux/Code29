@@ -665,19 +665,13 @@ export const translations = {
       assistant: 'CODE29',
       threadLabel: 'Conversación',
       verify: {
-        // Said by the bot, inside the thread: the address is one more thing it
-        // needs to do its job, not a field that interrupts the conversation.
+        // The request for the address is NOT here: the model writes it,
+        // because the server tells it that this is the step. A canned
+        // sentence beside the model's own question is how one turn came to
+        // carry two.
         //
-        // Pools, not strings, and indexed by the conversation's own seed: these
-        // messages are ephemeral — they carry personal data and are never
-        // persisted — so they are re-rendered on every reload. A fixed string
-        // reads as a recording; a freshly random one reads as a different bot.
-        ask: [
-          '¿A qué email te envío el informe? Te mandaré un código para comprobar que es tuyo.',
-          'Para mandarte el informe necesito tu correo. Te enviaré un código para confirmarlo.',
-          '¿Dónde te lo envío? Dime tu email y te paso un código de verificación.',
-          'Antes de seguir: ¿a qué dirección te mando el informe? Te llegará un código.',
-        ],
+        // What remains is the confirmation that a code went out — the server
+        // never learns that happened, so nobody else can say it.
         askCode: [
           'Te acabo de enviar un código. Escríbelo aquí y seguimos.',
           'Ya va el código camino de tu bandeja. Pégalo aquí y continuamos.',
@@ -746,12 +740,13 @@ export const translations = {
       assistant: 'CODE29',
       threadLabel: 'Conversation',
       verify: {
-        ask: [
-          'Where should I send the report? I will mail you a code to check the address is yours.',
-          'To send you the report I need your email. I will mail a code to confirm it.',
-          'Where do I send it? Give me your address and I will send a verification code.',
-          'Before we go on: which address should the report go to? A code will follow.',
-        ],
+        // The request for the address is NOT here: the model writes it,
+        // because the server tells it that this is the step. A canned
+        // sentence beside the model's own question is how one turn came to
+        // carry two.
+        //
+        // What remains is the confirmation that a code went out — the server
+        // never learns that happened, so nobody else can say it.
         askCode: [
           'I have just sent you a code. Type it here and we carry on.',
           'The code is on its way to your inbox. Paste it here and we continue.',

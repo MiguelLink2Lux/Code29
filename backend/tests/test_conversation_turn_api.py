@@ -47,7 +47,11 @@ class _ScriptedExtractor:
         self.calls: list[str] = []
 
     async def extract(
-        self, message: str, held: ConversationFacts, lang: str = "es"
+        self,
+        message: str,
+        held: ConversationFacts,
+        lang: str = "es",
+        step: str = "message",
     ) -> ExtractionResult:
         self.calls.append(message)
         return self._result
@@ -157,7 +161,11 @@ class TestRefusals:
     def test_a_model_failure_does_not_leak_as_a_500(self) -> None:
         class _Broken:
             async def extract(
-        self, message: str, held: ConversationFacts, lang: str = "es"
+        self,
+        message: str,
+        held: ConversationFacts,
+        lang: str = "es",
+        step: str = "message",
     ) -> ExtractionResult:
                 from app.services.report_gemini import ModelUnavailable
 
@@ -279,7 +287,11 @@ class TestTheGuardStandsInFrontOfTheModel:
     def test_the_model_can_report_what_the_guard_missed(self) -> None:
         class _ReportsInjection:
             async def extract(
-                self, message: str, held: ConversationFacts, lang: str = "es"
+                self,
+                message: str,
+                held: ConversationFacts,
+                lang: str = "es",
+                step: str = "message",
             ) -> ExtractionResult:
                 return ExtractionResult(delta=ConversationFacts(), reply="…", injection=True)
 
@@ -325,7 +337,11 @@ class TestTheLanguageTravels:
 
         class _RecordsLang:
             async def extract(
-                self, message: str, held: ConversationFacts, lang: str = "es"
+                self,
+                message: str,
+                held: ConversationFacts,
+                lang: str = "es",
+                step: str = "message",
             ) -> ExtractionResult:
                 seen.append(lang)
                 return ExtractionResult(delta=ConversationFacts(), reply="…")
@@ -339,7 +355,11 @@ class TestTheLanguageTravels:
 
         class _RecordsLang:
             async def extract(
-                self, message: str, held: ConversationFacts, lang: str = "es"
+                self,
+                message: str,
+                held: ConversationFacts,
+                lang: str = "es",
+                step: str = "message",
             ) -> ExtractionResult:
                 seen.append(lang)
                 return ExtractionResult(delta=ConversationFacts(), reply="…")
@@ -352,3 +372,50 @@ class TestTheLanguageTravels:
 def client_post(extractor: object, payload: dict) -> dict:
     """One turn against a client built on `extractor`, returning the parsed body."""
     return build(extractor).post(URL, json=payload).json()
+
+
+class TestTheModelIsToldWhichStepItIs:
+    """The step reaches the model, so the bot asks for the address itself.
+
+    Without this the client filled the gap with a fixed sentence and the turn
+    carried two questions — the model's and the client's.
+    """
+
+    def test_the_first_answer_puts_the_model_on_the_address(self) -> None:
+        seen: list[str] = []
+
+        class _RecordsStep:
+            async def extract(
+                self,
+                message: str,
+                held: ConversationFacts,
+                lang: str = "es",
+                step: str = "message",
+            ) -> ExtractionResult:
+                seen.append(step)
+                return ExtractionResult(delta=ConversationFacts(), reply="…")
+
+        client_post(_RecordsStep(), {"message": "me llamo Miguel"})
+
+        assert seen == ["email"]
+
+    def test_a_verified_visitor_is_never_put_on_the_address(self) -> None:
+        seen: list[str] = []
+
+        class _RecordsStep:
+            async def extract(
+                self,
+                message: str,
+                held: ConversationFacts,
+                lang: str = "es",
+                step: str = "message",
+            ) -> ExtractionResult:
+                seen.append(step)
+                return ExtractionResult(delta=ConversationFacts(), reply="…")
+
+        token = issue_access_token(EMAIL, secret=SECRET)
+        build(_RecordsStep()).post(
+            URL, json={"message": "somos cuatro"}, headers={"Authorization": f"Bearer {token}"}
+        )
+
+        assert seen == ["message"]
