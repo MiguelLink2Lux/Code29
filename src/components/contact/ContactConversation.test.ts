@@ -67,6 +67,10 @@ const readyForEmail = () =>
 
 beforeEach(() => {
   sessionStorage.clear()
+  // Declared, not inherited: the component now takes the language from
+  // `getLang()`, which falls back to `navigator.language` — English in jsdom.
+  // These assertions are written against the Spanish copy, so they say so.
+  localStorage.setItem('lang', 'es')
 })
 
 describe('the thread', () => {
@@ -545,7 +549,10 @@ describe('an English visitor', () => {
   it('is asked for the address in English, not only prompted in it', async () => {
     // The instruction and the transport were proven separately; the surface the
     // visitor actually reads was not. This mounts it and looks.
-    document.documentElement.lang = 'en'
+    //
+    // Set through localStorage, not html[lang]: the DOM attribute was never the
+    // source of truth, it was a symptom the component used to read.
+    localStorage.setItem('lang', 'en')
 
     try {
       mount(readyForEmail())
@@ -560,7 +567,7 @@ describe('an English visitor', () => {
         expect(said).not.toMatch(/informe|correo|dirección/i)
       })
     } finally {
-      document.documentElement.lang = 'es'
+      localStorage.setItem('lang', 'es')
     }
   })
 })

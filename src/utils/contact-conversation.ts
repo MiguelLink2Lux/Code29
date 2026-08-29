@@ -248,9 +248,13 @@ export function createConversation({
 
   // Only on a fresh conversation: the bot speaks first, so the visitor answers
   // rather than facing an empty box and having to work out what to write.
+  // Which greeting was picked, kept so the same one can be re-rendered in
+  // another language without becoming a different greeting.
+  let openingIndex = 0
+
   if (!messages.length && openings.length) {
-    const index = Math.min(Math.max(pickOpening(openings.length), 0), openings.length - 1)
-    messages.push({ role: 'bot', text: openings[index] })
+    openingIndex = Math.min(Math.max(pickOpening(openings.length), 0), openings.length - 1)
+    messages.push({ role: 'bot', text: openings[openingIndex] })
   }
   let envelope = restored?.envelope
   let complete = restored?.complete ?? false
@@ -290,6 +294,25 @@ export function createConversation({
   // outlive a reload that happens before the visitor has said anything, and the
   // opening message is already chosen by then.
   persist()
+
+  /**
+   * Re-renders the greeting in another language, and only the greeting.
+   *
+   * The language is settled after mount — the site keeps it in localStorage and
+   * applies it client-side — while the greeting has to exist from the first
+   * paint. Rather than delay the greeting, it is replaced once, and only while
+   * nothing has happened yet: a conversation the visitor has already answered
+   * is theirs, and rewriting what the bot said in it would be a lie about what
+   * was said.
+   */
+  function retranslateOpening(pool: string[]): void {
+    const untouched = messages.length === 1 && messages[0].role === 'bot' && !envelope
+
+    if (!untouched || !pool.length) return
+
+    messages[0] = { role: 'bot', text: pool[Math.min(openingIndex, pool.length - 1)] }
+    persist()
+  }
 
   /** Adds a message to the thread that must never survive a reload. */
   function pushEphemeral(role: MessageRole, text: string): void {
@@ -545,7 +568,16 @@ export function createConversation({
     clearPersisted()
   }
 
-  return { state, send, requestCode, confirmCode, deliverReport, pushEphemeral, reset }
+  return {
+    state,
+    send,
+    requestCode,
+    confirmCode,
+    deliverReport,
+    pushEphemeral,
+    retranslateOpening,
+    reset,
+  }
 }
 
 export type Conversation = ReturnType<typeof createConversation>
