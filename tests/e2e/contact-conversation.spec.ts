@@ -206,6 +206,37 @@ test.describe('conversational contact', () => {
     ).toBeVisible()
   })
 
+  test('the closing invitation can actually be answered', async ({ page }) => {
+    // `complete` used to take the composer away, so the bot could invite one
+    // last thing and leave nowhere to say it.
+    await page.route('**/api/v1/contact/conversation/turn', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          reply: 'Te preparo el informe. ¿Algo más que quieras contarme?',
+          envelope: 'sealed.closing',
+          complete: true,
+          exhausted: false,
+          missing: [],
+          next_step: 'closing',
+          blocked: false,
+        }),
+      }),
+    )
+    await page.goto('/')
+
+    await say(page, 'somos tres y desplegamos a mano')
+    await expect(
+      page.locator('#conversation-input'),
+      'the composer must survive the invitation',
+    ).toBeVisible()
+
+    await say(page, 'además no tenemos tests')
+
+    await expect(page.locator('#conversation-input')).toBeHidden()
+  })
+
   test('an injection attempt ends the conversation', async ({ page }) => {
     // Against the stub, because what is under test is the client honouring a
     // blocked turn — the guard itself is covered in the backend suite. A stub

@@ -90,6 +90,16 @@ export interface ConversationState {
   /** The conversation was ended by the injection guard. */
   blocked: boolean
   /**
+   * The conversation is over and the composer should go.
+   *
+   * NOT the same as `complete`. Since this cycle `complete` means "enough facts
+   * to write the report", and the bot answers that by announcing the report and
+   * inviting one last thing — so the chat outlives completeness by exactly one
+   * message. It closes when that message is in, when the guard blocked it, or
+   * when the turn budget ran out.
+   */
+  closed: boolean
+  /**
    * Picks the variant of every rotating message, once per conversation.
    *
    * One seed rather than a stored pick per pool: the verification messages are
@@ -108,6 +118,8 @@ interface PersistedShape {
   exhausted: boolean
   missing: string[]
   blocked?: boolean
+  nextStep?: NextStep
+  closingAnswered?: boolean
   variantSeed?: number
 }
 
@@ -195,7 +207,10 @@ export function createConversation({
   let exhausted = restored?.exhausted ?? false
   let missing = restored?.missing ?? []
   let blocked = restored?.blocked ?? false
-  let nextStep: NextStep = blocked ? 'blocked' : 'message'
+  // Whether the closing invitation has already been answered. Persisted, or a
+  // reload would re-open a conversation that had ended.
+  let closingAnswered = restored?.closingAnswered ?? false
+  let nextStep: NextStep = restored?.nextStep ?? (blocked ? 'blocked' : 'message')
   const variantSeed = restored?.variantSeed ?? Math.floor(Math.random() * 1_000_000)
   let busy = false
   let error: ConversationError | null = null
@@ -216,6 +231,8 @@ export function createConversation({
       exhausted,
       missing,
       blocked,
+      nextStep,
+      closingAnswered,
       variantSeed,
     })
 
@@ -263,6 +280,9 @@ export function createConversation({
     get blocked() {
       return blocked
     },
+    get closed() {
+      return blocked || exhausted || (nextStep === 'closing' && closingAnswered)
+    },
     get variantSeed() {
       return variantSeed
     },
@@ -281,6 +301,11 @@ export function createConversation({
    */
   async function deliverReport(): Promise<void> {
     if (busy || delivered || blocked) return
+
+    // Held back while the bot is still waiting for one last thing. Sending the
+    // report on sufficiency would make the invitation a lie: whatever they add
+    // would arrive after the report it was meant to improve.
+    if (nextStep === 'closing' && !closingAnswered) return
 
     // Not `complete`: that flag was computed by the server on the previous turn,
     // before the token existed, so verifying the address last would leave it
@@ -315,6 +340,11 @@ export function createConversation({
     // sealed inside the envelope's signature — so this only spares a request we
     // already know ends in 403.
     if (blocked) return
+
+    // Whatever they send while the bot is waiting for "anything else" IS the
+    // answer to that invitation. Recorded before the turn, so the state is
+    // right even if the turn fails.
+    if (nextStep === 'closing') closingAnswered = true
 
     const message = text.trim()
 
@@ -424,6 +454,7 @@ export function createConversation({
     exhausted = false
     missing = []
     blocked = false
+    closingAnswered = false
     nextStep = 'message'
     error = null
     accessToken = null

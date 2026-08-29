@@ -91,10 +91,6 @@ const busy = computed(() => {
   void tick.value
   return chat.state.busy
 })
-const complete = computed(() => {
-  void tick.value
-  return chat.state.complete
-})
 const exhausted = computed(() => {
   void tick.value
   return chat.state.exhausted
@@ -107,6 +103,19 @@ const emailVerified = computed(() => {
 const blocked = computed(() => {
   void tick.value
   return chat.state.blocked
+})
+
+/**
+ * Whether the conversation is over — which is NOT the same as `complete`.
+ *
+ * `complete` used to swap the composer for the closing block, so the moment the
+ * server had enough facts the visitor lost the ability to add anything. Since
+ * this cycle the bot announces the report and invites one last thing, so the
+ * chat outlives completeness by exactly one message. The module owns the rule.
+ */
+const closed = computed(() => {
+  void tick.value
+  return chat.state.closed
 })
 
 /**
@@ -197,7 +206,7 @@ watch(
 )
 
 async function submit(): Promise<void> {
-  if (busy.value || complete.value) return
+  if (busy.value || closed.value) return
 
   const text = draft.value.trim()
   localError.value = null
@@ -354,7 +363,7 @@ onMounted(() => {
     </ol>
 
     <div
-      v-if="complete || blocked"
+      v-if="closed"
       class="conversation__done"
       role="status"
     >

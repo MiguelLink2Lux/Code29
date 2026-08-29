@@ -285,15 +285,21 @@ describe('email verification, inside the conversation', () => {
 })
 
 describe('closing the conversation', () => {
-  it('confirms completion when the server says the conversation is complete', async () => {
+  it('announces the report without ending the conversation', async () => {
+    // This used to assert the closing block appeared on `complete`. That was the
+    // defect: completeness means there are enough facts, and the bot answers it
+    // by inviting one last thing — which needs somewhere to be typed.
     const api = stubApi({
-      takeConversationTurn: vi.fn().mockResolvedValue(turn({ complete: true, missing: [] })),
+      takeConversationTurn: vi
+        .fn()
+        .mockResolvedValue(turn({ complete: true, missing: [], nextStep: 'closing' })),
     })
     mount(api)
 
     await say('ya está')
 
-    await waitFor(() => expect(screen.getByRole('status')).toBeTruthy())
+    await waitFor(() => expect(document.getElementById('conversation-input')).toBeTruthy())
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('a spent budget closes the conversation without looking like an error', async () => {
@@ -312,11 +318,14 @@ describe('closing the conversation', () => {
 
   it('stops accepting messages once the conversation is closed', async () => {
     const api = stubApi({
-      takeConversationTurn: vi.fn().mockResolvedValue(turn({ complete: true, missing: [] })),
+      takeConversationTurn: vi
+        .fn()
+        .mockResolvedValue(turn({ complete: true, missing: [], nextStep: 'closing' })),
     })
     mount(api)
 
     await say('ya está')
+    await say('y una última cosa')
 
     await waitFor(() => expect(composer()).toBeNull())
   })
@@ -478,5 +487,65 @@ describe('an address written in a normal message', () => {
 
     await waitFor(() => expect(api.takeConversationTurn).toHaveBeenCalled())
     expect(api.requestVerificationCode).not.toHaveBeenCalled()
+  })
+})
+
+describe('the closing turn', () => {
+  const closingApi = () =>
+    stubApi({
+      takeConversationTurn: vi.fn().mockResolvedValue(
+        turn({
+          complete: true,
+          missing: [],
+          nextStep: 'closing',
+          reply: 'Te preparo el informe. ¿Algo más que quieras contarme?',
+        }),
+      ),
+    })
+
+  it('keeps the composer after the bot says it has enough', async () => {
+    mount(closingApi())
+
+    await say('somos tres desarrolladores')
+
+    // The bug this replaces: the composer vanished the instant `complete`
+    // arrived, so the invitation had nowhere to be answered.
+    await waitFor(() =>
+      expect(document.querySelector('.conversation__text')?.textContent).toBeTruthy(),
+    )
+    expect(document.getElementById('conversation-input')).toBeTruthy()
+  })
+
+  it('takes the composer away once the visitor has answered', async () => {
+    mount(closingApi())
+
+    await say('somos tres desarrolladores')
+    await say('además desplegamos a mano y duele')
+
+    await waitFor(() => expect(document.getElementById('conversation-input')).toBeNull())
+  })
+})
+
+describe('an English visitor', () => {
+  it('is asked for the address in English, not only prompted in it', async () => {
+    // The instruction and the transport were proven separately; the surface the
+    // visitor actually reads was not. This mounts it and looks.
+    document.documentElement.lang = 'en'
+
+    try {
+      mount(readyForEmail())
+      await say('we connect retailers with marketplaces')
+
+      await waitFor(() => {
+        const said = [...document.querySelectorAll('.conversation__message--bot')]
+          .map((node) => node.textContent ?? '')
+          .join(' ')
+
+        expect(said).toMatch(/report|address|email/i)
+        expect(said).not.toMatch(/informe|correo|dirección/i)
+      })
+    } finally {
+      document.documentElement.lang = 'es'
+    }
   })
 })

@@ -600,3 +600,76 @@ describe('the copy variant', () => {
     expect(second).toBe(first)
   })
 })
+
+describe('the closing turn', () => {
+  const closingApi = () =>
+    stubApi({
+      takeConversationTurn: vi.fn().mockResolvedValue(
+        turn({ complete: true, missing: [], nextStep: 'closing', reply: '¿Algo más?' }),
+      ),
+      requestConversationReport: vi.fn().mockResolvedValue(undefined),
+    })
+
+  it('stays open after the server says it has enough', async () => {
+    const chat = createConversation({ api: closingApi() })
+
+    await chat.send('somos tres desarrolladores')
+
+    // `complete` now means "enough to write the report", not "the chat is over".
+    expect(chat.state.complete).toBe(true)
+    expect(chat.state.closed).toBe(false)
+  })
+
+  it('closes once the visitor has answered the invitation', async () => {
+    const chat = createConversation({ api: closingApi() })
+
+    await chat.send('somos tres desarrolladores')
+    await chat.send('además nos cuesta mucho desplegar')
+
+    expect(chat.state.closed).toBe(true)
+  })
+
+  it('holds the report back until that last message is in', async () => {
+    const api = closingApi()
+    const chat = createConversation({ api })
+    await chat.requestCode('ada@example.com', 'turnstile-token')
+    await chat.confirmCode('123456')
+
+    await chat.send('somos tres')
+    await chat.deliverReport()
+
+    // Sending it on sufficiency would make the invitation a lie: whatever they
+    // add next would arrive after the report it was meant to improve.
+    expect(api.requestConversationReport).not.toHaveBeenCalled()
+
+    await chat.send('y desplegamos a mano')
+    await chat.deliverReport()
+
+    expect(api.requestConversationReport).toHaveBeenCalled()
+  })
+
+  it('remembers it closed across a reload', async () => {
+    const chat = createConversation({ api: closingApi() })
+    await chat.send('somos tres')
+    await chat.send('nada más')
+
+    expect(createConversation({ api: stubApi() }).state.closed).toBe(true)
+  })
+})
+
+describe('the rendered variant, not just the seed', () => {
+  it('is the same sentence after a reload', async () => {
+    // The seed being stable is not the property that matters to a visitor: the
+    // words are. A refactor that broke the indexing would keep the seed and
+    // change the sentence, and a seed-only test would not notice.
+    const pool = ['uno', 'dos', 'tres', 'cuatro']
+    const pick = (seed: number) => pool[seed % pool.length]
+
+    const first = createConversation({ api: stubApi() })
+    const before = pick(first.state.variantSeed)
+
+    const second = createConversation({ api: stubApi() })
+
+    expect(pick(second.state.variantSeed)).toBe(before)
+  })
+})
