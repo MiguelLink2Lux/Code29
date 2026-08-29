@@ -330,3 +330,47 @@ test.describe('conversational contact', () => {
     await expect(page.locator('#contact')).toContainText('hola, soy Ada')
   })
 })
+
+test.describe('the chat speaks one language at a time', () => {
+  test('the composer is not in Spanish while the bot talks in English', async ({ page }) => {
+    await stubBackend(page)
+    await page.goto('/')
+    await page.evaluate(() => {
+      localStorage.setItem('lang', 'en')
+      // The thread deliberately survives a reload, so an opening picked in the
+      // previous language would outlive the switch. Start clean.
+      sessionStorage.clear()
+    })
+    await page.reload()
+
+    // The defect: text nodes were corrected on hydration and attributes were
+    // not, so the bot spoke English into a Spanish placeholder.
+    await expect
+      .poll(async () => page.locator('#conversation-input').getAttribute('placeholder'))
+      .toBe(translations.contactConversation.en.placeholder)
+
+    const bot = await page.locator('.conversation__message--bot').first().textContent()
+    expect(
+      translations.contactConversation.en.openings.some((o) => bot?.includes(o)),
+    ).toBe(true)
+  })
+
+  test('and not the other way round either', async ({ page }) => {
+    await stubBackend(page)
+    await page.goto('/')
+    await page.evaluate(() => {
+      localStorage.setItem('lang', 'es')
+      sessionStorage.clear()
+    })
+    await page.reload()
+
+    await expect
+      .poll(async () => page.locator('#conversation-input').getAttribute('placeholder'))
+      .toBe(translations.contactConversation.es.placeholder)
+
+    const bot = await page.locator('.conversation__message--bot').first().textContent()
+    expect(
+      translations.contactConversation.es.openings.some((o) => bot?.includes(o)),
+    ).toBe(true)
+  })
+})

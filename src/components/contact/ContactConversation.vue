@@ -16,6 +16,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import { translations, type Lang } from '@/i18n/translations'
+import { DEFAULT_LANG, getLang } from '@/utils/i18n'
 import { type ContactApi, createContactApi } from '@/utils/contact-api'
 import {
   createConversation,
@@ -40,11 +41,22 @@ const turnstile =
   props.turnstile ??
   createTurnstileClient((import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string) ?? '')
 
-// Read before the conversation is created: the opening has to be in the
-// visitor's language from the first paint.
-const currentLang = ref<Lang>(
-  typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'es',
-)
+/**
+ * The language, from the utility that owns it — never sniffed off the DOM.
+ *
+ * It starts at DEFAULT_LANG, which is what Astro renders on the server, so the
+ * client's first render matches the served HTML exactly. That matters: reading
+ * `document.documentElement.lang` in setup produced a different value on the
+ * client than on the server, and Vue's hydration corrects text nodes but not
+ * attributes — so the bot spoke English into a Spanish placeholder.
+ *
+ * `getLang()` (localStorage, falling back to the browser) is the site's source
+ * of truth, and it is applied in onMounted: a reactive change after mount is a
+ * real render, and attributes follow. The rest of the page already works this
+ * way through `data-i18n`, so the brief flash of Spanish is the behaviour the
+ * whole site has, not a new one.
+ */
+const currentLang = ref<Lang>(DEFAULT_LANG)
 
 const copy = computed(() => translations.contactConversation[currentLang.value])
 
@@ -282,10 +294,16 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => {
-  // The switcher sets html[lang] before paint; follow it, then track changes.
+  // Now that the DOM exists, adopt the language the site actually settled on.
+  currentLang.value = getLang()
+  chat.retranslateOpening(translations.contactConversation[currentLang.value].openings)
+  sync()
+
   window.addEventListener('language-changed', (event) => {
     const detail = (event as CustomEvent<{ lang?: Lang }>).detail
     currentLang.value = detail?.lang === 'en' ? 'en' : 'es'
+    chat.retranslateOpening(translations.contactConversation[currentLang.value].openings)
+    sync()
   })
   sync()
 })
