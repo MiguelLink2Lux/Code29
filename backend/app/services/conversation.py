@@ -26,6 +26,7 @@ import base64
 import hmac
 import json
 import time
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -74,10 +75,14 @@ class ConversationFacts(BaseModel):
 
 
 class ConversationState(BaseModel):
-    """An opened envelope: the facts held and how many turns were spent."""
+    """An opened envelope: the facts held, turns spent, and whether it is blocked."""
 
     facts: ConversationFacts
     turns: int
+    #: Set when a prompt-injection attempt ended the conversation. Inside the
+    #: signature, so a client cannot clear it — but see `seal_envelope`: this
+    #: blocks a conversation, never a person.
+    blocked: bool = False
 
 
 def _clean(value: str | None) -> str | None:
@@ -96,12 +101,21 @@ def seal_envelope(
     turns: int,
     secret: str,
     at: float | None = None,
+    blocked: bool = False,
 ) -> str:
-    """Sign the conversation state. Format matches the access token: payload.signature."""
+    """Sign the conversation state. Format matches the access token: payload.signature.
+
+    `blocked` goes inside the signature for the same reason the turn counter does:
+    a flag the client can edit is not a control. Note the bound of what that buys
+    — this ends *this conversation*, and a visitor who drops the envelope starts a
+    clean one. There is no store to remember a person by (ADR 0006), so per-visitor
+    blocking is not available at any price short of a different architecture.
+    """
     issued_at = time.time() if at is None else at
     payload = {
         "facts": facts.model_dump(exclude_none=True),
         "turns": int(turns),
+        "blocked": bool(blocked),
         "exp": int(issued_at + ENVELOPE_TTL_SECONDS),
         "purpose": ENVELOPE_PURPOSE,
     }
@@ -143,6 +157,9 @@ def open_envelope(
         payload = json.loads(raw)
         facts = ConversationFacts.model_validate(payload["facts"])
         turns = int(payload["turns"])
+        # Defaulted, not required: envelopes sealed before this field existed are
+        # still in flight when the backend ships, and they are not blocked.
+        blocked = bool(payload.get("blocked", False))
         expires_at = int(payload["exp"])
         purpose = str(payload["purpose"])
     except (ValueError, KeyError, TypeError) as error:
@@ -157,7 +174,7 @@ def open_envelope(
     if expires_at < now:
         raise InvalidToken("expired envelope")
 
-    return ConversationState(facts=facts, turns=turns)
+    return ConversationState(facts=facts, turns=turns, blocked=blocked)
 
 
 def merge_facts(held: ConversationFacts, delta: ConversationFacts) -> ConversationFacts:
@@ -186,6 +203,46 @@ def is_complete(facts: ConversationFacts, *, email_verified: bool) -> bool:
     An explicit refusal counts as held; silence does not.
     """
     return email_verified and not missing_facts(facts)
+
+
+NextStep = Literal["message", "email", "code", "closing", "blocked"]
+
+
+def derive_next_step(
+    facts: ConversationFacts,
+    *,
+    email_verified: bool,
+    turns: int,
+    blocked: bool,
+) -> NextStep:
+    """What the visitor should be asked for next. The one authority on the script.
+
+    This exists because the order used to be split three ways — the server owned
+    `missing`, the model owned which fact to ask about, and a Vue computed owned
+    which field appeared. The three disagreed, and the symptom was that the email
+    address was requested *last*: the component only switched to it once nothing
+    else was outstanding. Now the order is decided in one place, and the client
+    renders what it is told.
+
+    Derived on every turn rather than sealed into the envelope: a step sealed
+    before the access token existed would be stale the moment the address was
+    verified, which is precisely the trap `complete` already fell into.
+    """
+    if blocked:
+        return "blocked"
+
+    # Second, never last. The opening turn belongs to the visitor's own account of
+    # their business — asking for an address before they have said anything is the
+    # questionnaire behaviour this replaces — but from the next turn on, the
+    # address is what the whole conversation is for: without it there is nobody to
+    # send the report to.
+    if not email_verified:
+        return "message" if turns == 0 else "email"
+
+    if missing_facts(facts):
+        return "message"
+
+    return "closing"
 
 
 def turns_exhausted(turns: int) -> bool:

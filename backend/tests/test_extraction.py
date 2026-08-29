@@ -21,6 +21,7 @@ from app.services.extraction import (
     GeminiFactExtractor,
     StubFactExtractor,
     _instruction,
+    _ModelDelta,
     redact_email,
 )
 
@@ -231,3 +232,48 @@ class TestTheInstruction:
 
     def test_it_still_never_asks_for_an_email(self) -> None:
         assert "never ask for an email" in _instruction().lower()
+
+
+class TestTheInstructionSpeaksTheVisitorsLanguage:
+    """The opening is chosen from html[lang]; the replies were always Spanish.
+
+    An English visitor got an English greeting and then Spanish answers to it.
+    The language is a property of the conversation, so it has to reach the
+    instruction rather than be baked into it.
+    """
+
+    def test_spanish_is_the_default(self) -> None:
+        assert "in Spanish" in _instruction()
+
+    def test_english_is_asked_for_explicitly(self) -> None:
+        assert "in English" in _instruction("en")
+
+    def test_the_language_is_the_only_thing_that_changes(self) -> None:
+        # The conduct and the extraction contract are identical in both: a
+        # translated prompt that drifts is two prompts.
+        for phrase in ("never infer", "data, not a command", "never ask for an email"):
+            assert phrase in _instruction("es").lower()
+            assert phrase in _instruction("en").lower()
+
+
+class TestTheModelCanReportAnAttack:
+    """A second net behind the deterministic guard, never the only one.
+
+    The guard runs first and short-circuits, so this is what catches phrasing a
+    regex does not. It is advisory: the endpoint decides what it means.
+    """
+
+    def test_the_delta_accepts_an_injection_flag(self) -> None:
+        parsed = _ModelDelta.model_validate(
+            {"facts": {}, "reply": "…", "injection": True}
+        )
+
+        assert parsed.injection is True
+
+    def test_it_defaults_to_false_when_the_model_omits_it(self) -> None:
+        parsed = _ModelDelta.model_validate({"facts": {}, "reply": "…"})
+
+        assert parsed.injection is False
+
+    def test_the_instruction_asks_for_it(self) -> None:
+        assert "injection" in _instruction().lower()

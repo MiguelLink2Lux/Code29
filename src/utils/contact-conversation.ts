@@ -11,7 +11,7 @@
 //    because a client that decides it is finished is a client that can skip
 //    verification.
 
-import { ContactApiError, type ContactApi } from '@/utils/contact-api'
+import { ContactApiError, type ContactApi, type NextStep } from '@/utils/contact-api'
 
 const STORAGE_KEY = 'contact-conversation'
 
@@ -19,6 +19,28 @@ const STORAGE_KEY = 'contact-conversation'
 export const MAX_MESSAGE_LENGTH = 1000
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i
+
+/**
+ * The same address shape, but looked for *inside* a sentence rather than matched
+ * against a whole field. Deliberately stricter than the RFC — a local part, an
+ * @, a domain with a dot and a TLD of two or more letters — so "link2lux.vip"
+ * stays a website and does not become an address nobody typed.
+ */
+const EMAIL_IN_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/
+
+/**
+ * The first address in a free-text message, lowercased, or null.
+ *
+ * Visitors answer "where should I send it?" the way people answer questions —
+ * inside a sentence, not into a field. The backend cannot help here: it redacts
+ * every address before anything else happens (ADR 0007) and must never hand one
+ * back, so the address has to be recognised on this side or lost. It was lost.
+ */
+export function extractEmail(message: string): string | null {
+  const found = message.match(EMAIL_IN_TEXT)
+
+  return found ? found[0].toLowerCase() : null
+}
 
 export type MessageRole = 'visitor' | 'bot'
 
@@ -63,6 +85,30 @@ export interface ConversationState {
   error: ConversationError | null
   pendingEmail: string | null
   emailVerified: boolean
+  /** What the server said to ask for next. Never computed here. */
+  nextStep: NextStep
+  /** The conversation was ended by the injection guard. */
+  blocked: boolean
+  /**
+   * The conversation is over and the composer should go.
+   *
+   * NOT the same as `complete`. Since this cycle `complete` means "enough facts
+   * to write the report", and the bot answers that by announcing the report and
+   * inviting one last thing — so the chat outlives completeness by exactly one
+   * message. It closes when that message is in, when the guard blocked it, or
+   * when the turn budget ran out.
+   */
+  closed: boolean
+  /**
+   * Picks the variant of every rotating message, once per conversation.
+   *
+   * One seed rather than a stored pick per pool: the verification messages are
+   * ephemeral by design — they carry personal data and must not be persisted —
+   * so they are re-rendered from scratch on every reload. Without a seed that
+   * outlives them, their wording would change and the visitor would be talking
+   * to a different bot after pressing F5.
+   */
+  variantSeed: number
 }
 
 interface PersistedShape {
@@ -71,6 +117,10 @@ interface PersistedShape {
   complete: boolean
   exhausted: boolean
   missing: string[]
+  blocked?: boolean
+  nextStep?: NextStep
+  closingAnswered?: boolean
+  variantSeed?: number
 }
 
 function readPersisted(): PersistedShape | null {
@@ -127,12 +177,20 @@ interface ConversationOptions {
   openings?: string[]
   /** Index picker, injectable so tests are deterministic. */
   pickOpening?: (count: number) => number
+  /**
+   * The language the visitor is being spoken to in. Travels with every turn so
+   * the model answers in it: the opening was already chosen from `html[lang]`
+   * while the replies were hardcoded Spanish, which is how an English visitor
+   * ended up being greeted in one language and answered in another.
+   */
+  lang?: string
 }
 
 export function createConversation({
   api,
   openings = [],
   pickOpening = (count) => Math.floor(Math.random() * count),
+  lang = 'es',
 }: ConversationOptions) {
   const restored = readPersisted()
 
@@ -148,6 +206,12 @@ export function createConversation({
   let complete = restored?.complete ?? false
   let exhausted = restored?.exhausted ?? false
   let missing = restored?.missing ?? []
+  let blocked = restored?.blocked ?? false
+  // Whether the closing invitation has already been answered. Persisted, or a
+  // reload would re-open a conversation that had ended.
+  let closingAnswered = restored?.closingAnswered ?? false
+  let nextStep: NextStep = restored?.nextStep ?? (blocked ? 'blocked' : 'message')
+  const variantSeed = restored?.variantSeed ?? Math.floor(Math.random() * 1_000_000)
   let busy = false
   let error: ConversationError | null = null
 
@@ -166,7 +230,16 @@ export function createConversation({
       complete,
       exhausted,
       missing,
+      blocked,
+      nextStep,
+      closingAnswered,
+      variantSeed,
     })
+
+  // Written at construction, not only after the first turn: the seed has to
+  // outlive a reload that happens before the visitor has said anything, and the
+  // opening message is already chosen by then.
+  persist()
 
   /** Adds a message to the thread that must never survive a reload. */
   function pushEphemeral(role: MessageRole, text: string): void {
@@ -201,6 +274,18 @@ export function createConversation({
     get emailVerified() {
       return accessToken !== null
     },
+    get nextStep() {
+      return nextStep
+    },
+    get blocked() {
+      return blocked
+    },
+    get closed() {
+      return blocked || exhausted || (nextStep === 'closing' && closingAnswered)
+    },
+    get variantSeed() {
+      return variantSeed
+    },
     get delivered() {
       return delivered
     },
@@ -215,7 +300,12 @@ export function createConversation({
    * envelope's signature, so the client cannot claim someone else's company.
    */
   async function deliverReport(): Promise<void> {
-    if (busy || delivered) return
+    if (busy || delivered || blocked) return
+
+    // Held back while the bot is still waiting for one last thing. Sending the
+    // report on sufficiency would make the invitation a lie: whatever they add
+    // would arrive after the report it was meant to improve.
+    if (nextStep === 'closing' && !closingAnswered) return
 
     // Not `complete`: that flag was computed by the server on the previous turn,
     // before the token existed, so verifying the address last would leave it
@@ -246,6 +336,16 @@ export function createConversation({
     // and interleave two replies.
     if (busy) return
 
+    // The conversation is over. The real refusal is the server's — the flag is
+    // sealed inside the envelope's signature — so this only spares a request we
+    // already know ends in 403.
+    if (blocked) return
+
+    // Whatever they send while the bot is waiting for "anything else" IS the
+    // answer to that invitation. Recorded before the turn, so the state is
+    // right even if the turn fails.
+    if (nextStep === 'closing') closingAnswered = true
+
     const message = text.trim()
 
     if (!message) {
@@ -265,13 +365,20 @@ export function createConversation({
     error = null
 
     try {
-      const turn = await api.takeConversationTurn(message, envelope, accessToken ?? undefined)
+      const turn = await api.takeConversationTurn(
+        message,
+        envelope,
+        accessToken ?? undefined,
+        lang,
+      )
 
       messages.push({ role: 'bot', text: turn.reply })
       envelope = turn.envelope
       complete = turn.complete
       exhausted = turn.exhausted
       missing = turn.missing
+      nextStep = turn.nextStep
+      blocked = turn.blocked
       persist()
     } catch (failure) {
       error = describe(failure)
@@ -346,6 +453,9 @@ export function createConversation({
     complete = false
     exhausted = false
     missing = []
+    blocked = false
+    closingAnswered = false
+    nextStep = 'message'
     error = null
     accessToken = null
     pendingEmail = null

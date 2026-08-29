@@ -17,6 +17,7 @@ Chronological log of significant architecture decisions (MADR format).
 | [[0008-improvement-canon]] | Ten fixed improvement points as the structure of the workflow report | Accepted (partially supersedes 0006) |
 | [[0009-conversational-contact-agent]] | A conversational agent replaces the guided questionnaire, and an agent verifies the report | Accepted (partially supersedes 0006) |
 | [[0010-snyk-dependency-scanning]] | Snyk scans dependencies for known vulnerabilities, outside the PR pipeline | Accepted |
+| [[0011-server-owned-conversation-script]] | The server owns the conversation script, and the guard blocks conversations rather than people | Accepted |
 
 The **location** decided by 0005 — the AI layer embedded in the FastAPI backend — still
 stands; only the **mechanism** (the Genkit Python SDK) was replaced by a direct REST call
@@ -29,6 +30,11 @@ everything else:
   `DiagnosisAxis` members become the ten fixed points of [[improvement-canon]].
 - [[0009-conversational-contact-agent]] replaces the **eleven-step fixed flow** with a
   conversational agent, and is where the canon report is actually implemented.
+
+The **absence of a store** decided by 0006 is what bounds the injection guard of
+[[0011-server-owned-conversation-script]]: with nothing able to remember a visitor, a block can
+end a conversation but never deny a person access, and a false positive leaves no trace. That
+limit is specified there, not a gap to be closed by hardening the guard.
 
 Still in force from 0006: stateless email verification by HMAC, Turnstile failing closed, the
 SSRF guard, the absence of a datastore and the privacy posture. Note that "the step order is

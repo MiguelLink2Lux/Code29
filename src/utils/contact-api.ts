@@ -139,8 +139,9 @@ export function createContactApi(options: ContactApiOptions = {}) {
       message: string,
       envelope?: string,
       accessToken?: string,
+      lang: string = 'es',
     ): Promise<ConversationTurn> {
-      const body: { message: string; envelope?: string } = { message }
+      const body: { message: string; envelope?: string; lang: string } = { message, lang }
 
       // Omitted rather than sent as null on the first turn: the backend treats
       // an absent envelope as "start a conversation".
@@ -153,12 +154,23 @@ export function createContactApi(options: ContactApiOptions = {}) {
   }
 }
 
+/**
+ * What the server says comes next. The client renders this; it never computes
+ * it — the script order is the server's, and splitting it across layers is what
+ * made the chat ask for the email address last.
+ */
+export const NEXT_STEPS = ['message', 'email', 'code', 'closing', 'blocked'] as const
+
+export type NextStep = (typeof NEXT_STEPS)[number]
+
 export interface ConversationTurn {
   reply: string
   envelope: string
   complete: boolean
   exhausted: boolean
   missing: string[]
+  nextStep: NextStep
+  blocked: boolean
 }
 
 /** A turn without an envelope cannot be continued, so it is refused outright. */
@@ -179,6 +191,16 @@ function parseTurn(payload: unknown): ConversationTurn {
     complete: turn.complete === true,
     exhausted: turn.exhausted === true,
     missing: Array.isArray(turn.missing) ? turn.missing.map(String) : [],
+    // Defaulted, not required. The frontend and the backend are separate Vercel
+    // projects and do not deploy at the same instant: for the length of that
+    // window a new client talks to a backend that has never heard of these
+    // fields, and the chat must degrade to its previous behaviour rather than
+    // break on a missing key. An unrecognised value is treated the same way —
+    // the response is data from the network, not an instruction to obey.
+    nextStep: NEXT_STEPS.includes(turn.next_step as NextStep)
+      ? (turn.next_step as NextStep)
+      : 'message',
+    blocked: turn.blocked === true,
   }
 }
 

@@ -667,8 +667,22 @@ export const translations = {
       verify: {
         // Said by the bot, inside the thread: the address is one more thing it
         // needs to do its job, not a field that interrupts the conversation.
-        ask: '¿A qué email te envío el informe? Te mandaré un código para comprobar que es tuyo.',
-        askCode: 'Te acabo de enviar un código. Escríbelo aquí y seguimos.',
+        //
+        // Pools, not strings, and indexed by the conversation's own seed: these
+        // messages are ephemeral — they carry personal data and are never
+        // persisted — so they are re-rendered on every reload. A fixed string
+        // reads as a recording; a freshly random one reads as a different bot.
+        ask: [
+          '¿A qué email te envío el informe? Te mandaré un código para comprobar que es tuyo.',
+          'Para mandarte el informe necesito tu correo. Te enviaré un código para confirmarlo.',
+          '¿Dónde te lo envío? Dime tu email y te paso un código de verificación.',
+          'Antes de seguir: ¿a qué dirección te mando el informe? Te llegará un código.',
+        ],
+        askCode: [
+          'Te acabo de enviar un código. Escríbelo aquí y seguimos.',
+          'Ya va el código camino de tu bandeja. Pégalo aquí y continuamos.',
+          'Mira tu correo: te he mandado un código. En cuanto lo escribas, seguimos.',
+        ],
         emailLabel: 'Email',
         emailPlaceholder: 'tu@empresa.com',
         request: 'Enviar código',
@@ -676,13 +690,27 @@ export const translations = {
         codePlaceholder: '000000',
         codeHint: 'Caduca en 10 minutos. Revisa el spam si no aparece.',
         confirm: 'Confirmar',
-        verified: 'Perfecto, email verificado.',
+        verified: [
+          'Perfecto, email verificado.',
+          'Listo, ya sé dónde encontrarte.',
+          'Verificado. Seguimos.',
+        ],
       },
       done: {
         title: 'Informe en camino',
         body: 'Te lo envío al email verificado. Si algo no cuadra, responde a ese mensaje.',
       },
-      exhausted: 'Con esto tengo suficiente para preparar tu informe.',
+      exhausted: [
+        'Con esto tengo suficiente para preparar tu informe.',
+        'Ya tengo material de sobra. Me pongo con el informe.',
+        'Creo que tengo lo que necesito. Paso a escribirlo.',
+      ],
+      // No detail, on purpose: someone who learns which phrasing ended the
+      // conversation learns how to word the next attempt.
+      blocked: {
+        title: 'Conversación terminada',
+        body: 'No puedo continuar con esta conversación. Si crees que es un error, escríbenos a hola@code29.dev.',
+      },
       errors: {
         empty: 'Escribe algo antes de enviar.',
         tooLong: 'El mensaje es demasiado largo. Resúmelo un poco.',
@@ -713,8 +741,17 @@ export const translations = {
       assistant: 'CODE29',
       threadLabel: 'Conversation',
       verify: {
-        ask: 'Where should I send the report? I will mail you a code to check the address is yours.',
-        askCode: 'I have just sent you a code. Type it here and we carry on.',
+        ask: [
+          'Where should I send the report? I will mail you a code to check the address is yours.',
+          'To send you the report I need your email. I will mail a code to confirm it.',
+          'Where do I send it? Give me your address and I will send a verification code.',
+          'Before we go on: which address should the report go to? A code will follow.',
+        ],
+        askCode: [
+          'I have just sent you a code. Type it here and we carry on.',
+          'The code is on its way to your inbox. Paste it here and we continue.',
+          'Check your email: I sent you a code. Type it and we keep going.',
+        ],
         emailLabel: 'Email',
         emailPlaceholder: 'you@company.com',
         request: 'Send code',
@@ -722,13 +759,25 @@ export const translations = {
         codePlaceholder: '000000',
         codeHint: 'It expires in 10 minutes. Check your spam folder if it does not arrive.',
         confirm: 'Confirm',
-        verified: 'Great, your email is verified.',
+        verified: [
+          'Great, your email is verified.',
+          'Done — now I know where to find you.',
+          'Verified. Let us carry on.',
+        ],
       },
       done: {
         title: 'Report on its way',
         body: 'I am sending it to the verified address. If anything looks off, reply to that email.',
       },
-      exhausted: 'That is enough for me to prepare your report.',
+      exhausted: [
+        'That is enough for me to prepare your report.',
+        'I have plenty to work with. Let me write it up.',
+        'I think I have what I need. On to the report.',
+      ],
+      blocked: {
+        title: 'Conversation ended',
+        body: 'I cannot continue this conversation. If you think that is a mistake, write to us at hola@code29.dev.',
+      },
       errors: {
         empty: 'Write something before sending.',
         tooLong: 'That message is too long. Trim it a little.',
