@@ -19,8 +19,8 @@ import { translations, type Lang } from '@/i18n/translations'
 import { type ContactApi, createContactApi } from '@/utils/contact-api'
 import {
   createConversation,
-  extractEmail,
   MAX_MESSAGE_LENGTH,
+  readAnswer,
 } from '@/utils/contact-conversation'
 import {
   createTurnstileClient,
@@ -61,8 +61,13 @@ function variant(pool: readonly string[]): string {
 
 const chat = createConversation({
   api,
-  lang: currentLang.value,
+  // A getter: the visitor can switch language mid-conversation.
+  lang: () => currentLang.value,
   openings: translations.contactConversation[currentLang.value].openings,
+  botCopy: {
+    codeRejected: translations.contactConversation[currentLang.value].verify.codeRejected,
+    humanCheck: translations.contactConversation[currentLang.value].verify.humanCheck,
+  },
   ...(props.pickOpening ? { pickOpening: props.pickOpening } : {}),
 })
 
@@ -95,11 +100,6 @@ const exhausted = computed(() => {
   void tick.value
   return chat.state.exhausted
 })
-const emailVerified = computed(() => {
-  void tick.value
-  return chat.state.emailVerified
-})
-
 const blocked = computed(() => {
   void tick.value
   return chat.state.blocked
@@ -119,58 +119,33 @@ const closed = computed(() => {
 })
 
 /**
- * What the composer is asking for right now — the step the SERVER named.
+ * The bot asks for the address when the server says so — and the composer does
+ * not change at all.
  *
- * This used to be computed here, and that was the defect: the order of the
- * script lived in three places at once (the server's `missing`, the model's
- * prompt, and this computed), the three disagreed, and the visible symptom was
- * that the email address was requested last. Now `derive_next_step` on the
- * backend is the single authority and this only renders it.
- *
- * The one local override is the code step: whether a code is outstanding is a
- * fact about this browser — the server never learns that a code was requested,
- * because verification runs through a different endpoint.
+ * `next_step` used to choose a *field*: the composer swapped its id, label,
+ * placeholder, button, inputmode and autocomplete, and the chat visibly became
+ * a form halfway through a conversation. That is the questionnaire wearing
+ * burbujas, which is what the visitor recognised. The step now chooses only
+ * what the bot SAYS. What the visitor writes is read by `readAnswer`.
  */
-const mode = computed<'message' | 'email' | 'code'>(() => {
+const askingForAddress = computed(() => {
   void tick.value
 
-  if (chat.state.pendingEmail !== null && !chat.state.emailVerified) return 'code'
-
-  if (chat.state.nextStep === 'email' && !chat.state.emailVerified) return 'email'
-
-  return 'message'
+  return chat.state.nextStep === 'email' && !chat.state.emailVerified
 })
 
-const composerId = computed(() =>
-  mode.value === 'message' ? 'conversation-input' : `conversation-${mode.value}`,
-)
+const awaitingCode = computed(() => {
+  void tick.value
+
+  return chat.state.pendingEmail !== null && !chat.state.emailVerified
+})
 
 const closingCopy = computed(() => {
   void tick.value
   return variant(copy.value.exhausted)
 })
 
-const placeholder = computed(() => {
-  if (mode.value === 'email') return copy.value.verify.emailPlaceholder
-  if (mode.value === 'code') return copy.value.verify.codePlaceholder
-
-  return copy.value.placeholder
-})
-
-const composerLabel = computed(() => {
-  if (mode.value === 'email') return copy.value.verify.emailLabel
-  if (mode.value === 'code') return copy.value.verify.codeLabel
-
-  return copy.value.placeholder
-})
-
-const sendLabel = computed(() => {
-  if (busy.value) return copy.value.sending
-  if (mode.value === 'email') return copy.value.verify.request
-  if (mode.value === 'code') return copy.value.verify.confirm
-
-  return copy.value.send
-})
+const sendLabel = computed(() => (busy.value ? copy.value.sending : copy.value.send))
 
 const errorMessage = computed(() => {
   void tick.value
@@ -186,12 +161,17 @@ const errorMessage = computed(() => {
 // The bot asks for the address itself, once, the moment the server says it is
 // the missing piece. Without this the composer would silently change shape and
 // the visitor would have no idea why.
-watch(mode, (next, previous) => {
-  if (next === previous) return
+watch(askingForAddress, (asking, wasAsking) => {
+  if (!asking || wasAsking) return
 
-  if (next === 'email') chat.pushEphemeral('bot', variant(copy.value.verify.ask))
-  if (next === 'code') chat.pushEphemeral('bot', variant(copy.value.verify.askCode))
+  chat.pushEphemeral('bot', variant(copy.value.verify.ask))
+  sync()
+})
 
+watch(awaitingCode, (waiting, wasWaiting) => {
+  if (!waiting || wasWaiting) return
+
+  chat.pushEphemeral('bot', variant(copy.value.verify.askCode))
   sync()
 })
 
@@ -217,8 +197,12 @@ async function submit(): Promise<void> {
     return
   }
 
-  if (mode.value === 'email') return submitEmail(text)
-  if (mode.value === 'code') return submitCode(text)
+  // The composer never changed shape, so the reply is classified by what it
+  // contains rather than by which field was on screen.
+  const answer = readAnswer(text, { pendingEmail: chat.state.pendingEmail })
+
+  if (answer.kind === 'email' && !chat.state.emailVerified) return submitEmail(answer.value)
+  if (answer.kind === 'code') return submitCode(answer.value)
 
   return submitMessage(text)
 }
@@ -232,17 +216,6 @@ async function submitMessage(text: string): Promise<void> {
     return
   }
 
-  // People answer "where should I send it?" inside a sentence, not into a
-  // field. Routed here rather than sent as a turn because the backend redacts
-  // every address before anything else happens (ADR 0007) — an address sent as
-  // a message is an address thrown away, which is exactly what used to happen.
-  const address = extractEmail(text)
-
-  if (address && !chat.state.emailVerified) {
-    draft.value = ''
-    sync()
-    return submitEmail(address)
-  }
 
   // Started, then synced, then awaited: `send` flips `busy` synchronously, and
   // without this sync the typing indicator would only appear after the answer
@@ -381,24 +354,24 @@ onMounted(() => {
     >
       <label
         class="conversation__sr-only"
-        :for="composerId"
+        for="conversation-input"
       >
-        {{ composerLabel }}
+        {{ copy.placeholder }}
       </label>
       <!--
-        The id names what the field is asking for — conversation-email,
-        conversation-code — which is what the end-to-end test addresses. The
-        message mode keeps the name it always had.
+        One id, one label, one placeholder, for the whole conversation. The
+        composer must be indistinguishable at every moment: the instant it
+        announces what it wants, the chat has become a form.
       -->
       <textarea
-        :id="composerId"
+        id="conversation-input"
         v-model="draft"
         class="conversation__input"
         rows="1"
-        :placeholder="placeholder"
-        :inputmode="mode === 'code' ? 'numeric' : 'text'"
-        :autocomplete="mode === 'email' ? 'email' : mode === 'code' ? 'one-time-code' : 'off'"
+        :placeholder="copy.placeholder"
+        autocomplete="off"
         :aria-invalid="Boolean(errorMessage)"
+        :disabled="busy"
         @keydown="onKeydown"
       />
       <button
@@ -419,20 +392,6 @@ onMounted(() => {
       ref="turnstileHost"
       class="conversation__challenge"
     />
-
-    <p
-      v-if="mode === 'code'"
-      class="conversation__hint"
-    >
-      {{ copy.verify.codeHint }}
-    </p>
-
-    <p
-      v-if="emailVerified && mode === 'message'"
-      class="conversation__verified"
-    >
-      {{ copy.verify.verified }}
-    </p>
 
     <p
       v-if="errorMessage"

@@ -683,13 +683,18 @@ export const translations = {
           'Ya va el código camino de tu bandeja. Pégalo aquí y continuamos.',
           'Mira tu correo: te he mandado un código. En cuanto lo escribas, seguimos.',
         ],
-        emailLabel: 'Email',
-        emailPlaceholder: 'tu@empresa.com',
-        request: 'Enviar código',
-        codeLabel: 'Código de verificación',
-        codePlaceholder: '000000',
-        codeHint: 'Caduca en 10 minutos. Revisa el spam si no aparece.',
-        confirm: 'Confirmar',
+        // Said by the bot, in the thread. There is no field to raise an alert
+        // under any more, and that is deliberate: a form warns, a conversation
+        // tells you and keeps going.
+        codeRejected: [
+          'Ese código no me cuadra. ¿Lo miras otra vez?',
+          'No me sale ese código. Revísalo y me lo dices.',
+          'Ese no es. Échale un ojo al correo y prueba otra vez.',
+        ],
+        humanCheck: [
+          'No he podido confirmar que eres una persona. Recarga la página y seguimos.',
+          'Se me ha atascado la comprobación anti-robots. Prueba a recargar y me lo cuentas otra vez.',
+        ],
         verified: [
           'Perfecto, email verificado.',
           'Listo, ya sé dónde encontrarte.',
@@ -752,13 +757,15 @@ export const translations = {
           'The code is on its way to your inbox. Paste it here and we continue.',
           'Check your email: I sent you a code. Type it and we keep going.',
         ],
-        emailLabel: 'Email',
-        emailPlaceholder: 'you@company.com',
-        request: 'Send code',
-        codeLabel: 'Verification code',
-        codePlaceholder: '000000',
-        codeHint: 'It expires in 10 minutes. Check your spam folder if it does not arrive.',
-        confirm: 'Confirm',
+        codeRejected: [
+          'That code does not match. Care to check it again?',
+          'I am not getting that code. Have another look and tell me.',
+          'That is not the one. Check the email and try again.',
+        ],
+        humanCheck: [
+          'I could not confirm you are a person. Reload the page and we carry on.',
+          'The anti-robot check got stuck. Try reloading and tell me again.',
+        ],
         verified: [
           'Great, your email is verified.',
           'Done — now I know where to find you.',

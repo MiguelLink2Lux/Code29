@@ -168,7 +168,13 @@ describe('email verification, inside the conversation', () => {
 
     await say('hola')
 
-    await waitFor(() => expect(screen.getByLabelText(/email|correo/i)).toBeTruthy())
+    await waitFor(() => {
+      const said = [...document.querySelectorAll('.conversation__message--bot')]
+        .map((node) => node.textContent ?? '')
+        .join(' ')
+
+      expect(translations.contactConversation.es.verify.ask.some((v) => said.includes(v))).toBe(true)
+    })
   })
 
   it('asks for the address even with every other fact still outstanding', async () => {
@@ -184,7 +190,13 @@ describe('email verification, inside the conversation', () => {
 
     await say('hola')
 
-    await waitFor(() => expect(screen.getByLabelText(/email|correo/i)).toBeTruthy())
+    await waitFor(() => {
+      const said = [...document.querySelectorAll('.conversation__message--bot')]
+        .map((node) => node.textContent ?? '')
+        .join(' ')
+
+      expect(translations.contactConversation.es.verify.ask.some((v) => said.includes(v))).toBe(true)
+    })
   })
 
   it('never decides on its own that it is time for the address', async () => {
@@ -202,9 +214,7 @@ describe('email verification, inside the conversation', () => {
     const { api, turnstile } = mount(readyForEmail())
     await say('hola')
 
-    const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
-    await fireEvent.update(emailInput, 'ada@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: /verificar|verify|enviar código/i }))
+    await say('ada@example.com')
 
     await waitFor(() => expect(turnstile.getToken).toHaveBeenCalled())
     expect(api.requestVerificationCode).toHaveBeenCalledWith('ada@example.com', 'turnstile-token')
@@ -214,9 +224,7 @@ describe('email verification, inside the conversation', () => {
     const { turnstile } = mount(readyForEmail())
     await say('hola')
 
-    const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
-    await fireEvent.update(emailInput, 'ada@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: /verificar|verify|enviar código/i }))
+    await say('ada@example.com')
 
     await waitFor(() => expect(turnstile.getToken).toHaveBeenCalled())
 
@@ -234,9 +242,7 @@ describe('email verification, inside the conversation', () => {
     mount(readyForEmail(), turnstile)
     await say('hola')
 
-    const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
-    await fireEvent.update(emailInput, 'ada@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: /verificar|verify|enviar código/i }))
+    await say('ada@example.com')
 
     await waitFor(() =>
       expect(screen.getByRole('alert').textContent).toMatch(/no está disponible|unavailable/i),
@@ -247,20 +253,16 @@ describe('email verification, inside the conversation', () => {
     const { api } = mount(readyForEmail())
     await say('hola')
 
-    const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
-    await fireEvent.update(emailInput, 'ada@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: /verificar|verify|enviar código/i }))
+    await say('ada@example.com')
 
-    const codeInput = await waitFor(() => screen.getByLabelText(/código|code/i))
-    await fireEvent.update(codeInput, '123456')
-    await fireEvent.click(screen.getByRole('button', { name: /confirmar|confirm/i }))
+    await say('123456')
 
     await waitFor(() =>
       expect(api.confirmVerificationCode).toHaveBeenCalledWith('ada@example.com', '123456'),
     )
   })
 
-  it('a rejected code keeps the visitor unverified with an actionable message', async () => {
+  it('a rejected code is said by the bot, and the visitor can try again', async () => {
     const api = stubApi({
       takeConversationTurn: vi
         .fn()
@@ -270,17 +272,23 @@ describe('email verification, inside the conversation', () => {
     mount(api)
     await say('hola')
 
-    const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
-    await fireEvent.update(emailInput, 'ada@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: /verificar|verify|enviar código/i }))
+    await say('ada@example.com')
 
-    const codeInput = await waitFor(() => screen.getByLabelText(/código|code/i))
-    await fireEvent.update(codeInput, '000000')
-    await fireEvent.click(screen.getByRole('button', { name: /confirmar|confirm/i }))
+    await say('000000')
 
-    await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toMatch(/no es válido|not valid/i),
-    )
+    // No alert under a field, because there is no field: the bot says it in the
+    // thread and the conversation stays open for another try.
+    await waitFor(() => {
+      const said = [...document.querySelectorAll('.conversation__message--bot')]
+        .map((node) => node.textContent ?? '')
+        .join(' ')
+
+      expect(
+        translations.contactConversation.es.verify.codeRejected.some((v) => said.includes(v)),
+      ).toBe(true)
+    })
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(document.getElementById('conversation-input')).toBeTruthy()
   })
 })
 
@@ -383,9 +391,15 @@ describe('it reads as a conversation, not as a form', () => {
 
     await say('hola')
 
-    await waitFor(() => expect(document.getElementById('conversation-email')).toBeTruthy())
+    // This used to assert `#conversation-email` existed — "one composer" while
+    // checking it had changed identity. One field that mutates into a form is
+    // the defect, not the fix.
+    await waitFor(() => expect(document.querySelectorAll('.conversation__message').length).toBeGreaterThan(1))
     expect(document.querySelectorAll('form')).toHaveLength(1)
     expect(document.querySelectorAll('.conversation__input')).toHaveLength(1)
+    expect(document.getElementById('conversation-input')).toBeTruthy()
+    expect(document.getElementById('conversation-email')).toBeNull()
+    expect(document.getElementById('conversation-code')).toBeNull()
   })
 
   it('shows a typing indicator while the bot is thinking', async () => {
@@ -420,13 +434,9 @@ describe('it reads as a conversation, not as a form', () => {
     mount(readyForEmail())
     await say('hola')
 
-    const emailInput = await waitFor(() => screen.getByLabelText(/email|correo/i))
-    await fireEvent.update(emailInput, 'ada@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: /verificar|verify|enviar código/i }))
+    await say('ada@example.com')
 
-    const codeInput = await waitFor(() => screen.getByLabelText(/código|code/i))
-    await fireEvent.update(codeInput, '123456')
-    await fireEvent.click(screen.getByRole('button', { name: /confirmar|confirm/i }))
+    await say('123456')
 
     await waitFor(() => {
       const stored = JSON.stringify(sessionStorage)
@@ -552,5 +562,174 @@ describe('an English visitor', () => {
     } finally {
       document.documentElement.lang = 'es'
     }
+  })
+})
+
+describe('one composer, for the whole conversation', () => {
+  /** Everything a visitor could use to tell one composer from another. */
+  const fingerprint = () => {
+    const field = document.querySelector('.conversation__input') as HTMLTextAreaElement
+    const label = document.querySelector('label') as HTMLLabelElement
+    const button = document.querySelector('.conversation__btn--primary') as HTMLButtonElement
+
+    return {
+      id: field?.id,
+      placeholder: field?.placeholder,
+      inputmode: field?.getAttribute('inputmode'),
+      autocomplete: field?.getAttribute('autocomplete'),
+      label: label?.textContent?.trim(),
+      button: button?.textContent?.trim(),
+    }
+  }
+
+  it('is indistinguishable while the address is being asked for', async () => {
+    mount(readyForEmail())
+    const opening = fingerprint()
+
+    await say('somos tres y conectamos retailers con marketplaces')
+
+    // Captured and compared rather than matched against expected strings: the
+    // copy may change, the sameness may not.
+    await waitFor(() => expect(document.querySelectorAll('.conversation__message').length).toBeGreaterThan(1))
+    expect(fingerprint()).toEqual(opening)
+  })
+
+  it('is indistinguishable while a code is outstanding', async () => {
+    const api = readyForEmail()
+    mount(api)
+    const opening = fingerprint()
+
+    await say('hola')
+    await say('miguel@link2lux.com')
+
+    await waitFor(() => expect(api.requestVerificationCode).toHaveBeenCalled())
+    expect(fingerprint()).toEqual(opening)
+  })
+
+  it('verifies an address answered in conversation, without spending a turn', async () => {
+    const api = readyForEmail()
+    const { turnstile } = mount(api)
+
+    await say('hola')
+    const turnsBefore = api.takeConversationTurn.mock.calls.length
+    await say('miguel@link2lux.com')
+
+    await waitFor(() =>
+      expect(api.requestVerificationCode).toHaveBeenCalledWith('miguel@link2lux.com', 'turnstile-token'),
+    )
+    expect(turnstile.getToken).toHaveBeenCalled()
+    expect(api.takeConversationTurn.mock.calls).toHaveLength(turnsBefore)
+  })
+
+  it('confirms a code answered in conversation', async () => {
+    const api = readyForEmail()
+    mount(api)
+
+    await say('hola')
+    await say('miguel@link2lux.com')
+    await waitFor(() => expect(api.requestVerificationCode).toHaveBeenCalled())
+    await say('384012')
+
+    await waitFor(() =>
+      expect(api.confirmVerificationCode).toHaveBeenCalledWith('miguel@link2lux.com', '384012'),
+    )
+  })
+
+  it('does not stall when the visitor withholds the address', async () => {
+    const api = readyForEmail()
+    mount(api)
+
+    await say('hola')
+    const turnsBefore = api.takeConversationTurn.mock.calls.length
+    await say('prefiero contártelo antes')
+
+    // Sent as an ordinary turn, and no error: getting stuck on one step is what
+    // gives a form away.
+    await waitFor(() =>
+      expect(api.takeConversationTurn.mock.calls.length).toBe(turnsBefore + 1),
+    )
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('what a screen reader gets', () => {
+  it('reaches the composer by its accessible name', () => {
+    mount()
+
+    // Losing the `Email` / `Código de verificación` labels was the price of one
+    // composer. The permanent one has to actually name the field, or the price
+    // was paid for nothing.
+    const field = screen.getByLabelText(translations.contactConversation.es.placeholder)
+
+    expect(field).toBe(document.getElementById('conversation-input'))
+  })
+
+  it('announces the bot asking for the address, since no label says it any more', async () => {
+    mount(readyForEmail())
+
+    await say('somos tres')
+
+    // The spec claims the thread carries the meaning the label used to. That
+    // claim is only true if the request lands inside the live region.
+    await waitFor(() => {
+      const live = document.querySelector('[role="log"][aria-live="polite"]') as HTMLElement
+      const said = [...live.querySelectorAll('.conversation__message--bot')]
+        .map((node) => node.textContent ?? '')
+        .join(' ')
+
+      expect(translations.contactConversation.es.verify.ask.some((v) => said.includes(v))).toBe(true)
+    })
+  })
+
+  it('announces a rejected code the same way', async () => {
+    const api = stubApi({
+      takeConversationTurn: vi
+        .fn()
+        .mockResolvedValue(turn({ missing: ['email'], nextStep: 'email' })),
+      confirmVerificationCode: vi.fn().mockRejectedValue(new ContactApiError('bad', 400)),
+    })
+    mount(api)
+
+    await say('hola')
+    await say('ada@example.com')
+    await say('000000')
+
+    await waitFor(() => {
+      const live = document.querySelector('[role="log"][aria-live="polite"]') as HTMLElement
+      const said = live.textContent ?? ''
+
+      expect(
+        translations.contactConversation.es.verify.codeRejected.some((v) => said.includes(v)),
+      ).toBe(true)
+    })
+  })
+})
+
+describe('a message sent while the bot is answering', () => {
+  it('is not swallowed: the composer refuses input instead of discarding it', async () => {
+    const api = stubApi({ takeConversationTurn: vi.fn().mockReturnValue(new Promise(() => {})) })
+    mount(api)
+
+    await say('hola')
+
+    // `submit()` returned early on `busy` and dropped the text with no signal.
+    // A field that cannot be typed into is honest; a field that accepts words
+    // and throws them away is not.
+    await waitFor(() => {
+      const field = document.querySelector('.conversation__input') as HTMLTextAreaElement
+      expect(field.disabled).toBe(true)
+    })
+  })
+
+  it('accepts input again once the answer arrives', async () => {
+    const api = stubApi()
+    mount(api)
+
+    await say('hola')
+
+    await waitFor(() => {
+      const field = document.querySelector('.conversation__input') as HTMLTextAreaElement
+      expect(field.disabled).toBe(false)
+    })
   })
 })
