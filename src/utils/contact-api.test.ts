@@ -154,3 +154,69 @@ describe('requestConversationReport', () => {
     ).rejects.toMatchObject({ status: 502 })
   })
 })
+
+describe('takeConversationTurn', () => {
+  const turn = (extra: Record<string, unknown> = {}) =>
+    json({ reply: 'hola', envelope: 'env.sig', complete: false, exhausted: false, missing: [], ...extra })
+
+  it('sends the language the visitor is being spoken to in', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(turn())
+    const api = createContactApi({ baseUrl: 'https://api.test', fetchImpl: fetchSpy })
+
+    await api.takeConversationTurn('hello', undefined, undefined, 'en')
+
+    expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toMatchObject({ lang: 'en' })
+  })
+
+  it('defaults to Spanish', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(turn())
+    const api = createContactApi({ baseUrl: 'https://api.test', fetchImpl: fetchSpy })
+
+    await api.takeConversationTurn('hola')
+
+    expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toMatchObject({ lang: 'es' })
+  })
+
+  it('reads the step the server named', async () => {
+    const api = createContactApi({
+      baseUrl: 'https://api.test',
+      fetchImpl: vi.fn().mockResolvedValue(turn({ next_step: 'email' })),
+    })
+
+    expect((await api.takeConversationTurn('hola')).nextStep).toBe('email')
+  })
+
+  it('reads a blocked conversation', async () => {
+    const api = createContactApi({
+      baseUrl: 'https://api.test',
+      fetchImpl: vi.fn().mockResolvedValue(turn({ next_step: 'blocked', blocked: true })),
+    })
+    const parsed = await api.takeConversationTurn('hola')
+
+    expect(parsed.blocked).toBe(true)
+    expect(parsed.nextStep).toBe('blocked')
+  })
+
+  it('falls back when the backend has not shipped the new fields yet', async () => {
+    // The two Vercel projects do not deploy at the same instant. During that
+    // window a new client talks to an old backend, and the chat must degrade to
+    // what it did before rather than break on a missing key.
+    const api = createContactApi({
+      baseUrl: 'https://api.test',
+      fetchImpl: vi.fn().mockResolvedValue(turn()),
+    })
+    const parsed = await api.takeConversationTurn('hola')
+
+    expect(parsed.nextStep).toBe('message')
+    expect(parsed.blocked).toBe(false)
+  })
+
+  it('refuses a step it does not recognise instead of trusting it', async () => {
+    const api = createContactApi({
+      baseUrl: 'https://api.test',
+      fetchImpl: vi.fn().mockResolvedValue(turn({ next_step: 'give_me_your_secrets' })),
+    })
+
+    expect((await api.takeConversationTurn('hola')).nextStep).toBe('message')
+  })
+})

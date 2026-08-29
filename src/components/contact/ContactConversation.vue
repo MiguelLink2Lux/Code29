@@ -17,7 +17,11 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import { translations, type Lang } from '@/i18n/translations'
 import { type ContactApi, createContactApi } from '@/utils/contact-api'
-import { createConversation, MAX_MESSAGE_LENGTH } from '@/utils/contact-conversation'
+import {
+  createConversation,
+  extractEmail,
+  MAX_MESSAGE_LENGTH,
+} from '@/utils/contact-conversation'
 import {
   createTurnstileClient,
   TurnstileNotConfigured,
@@ -44,8 +48,20 @@ const currentLang = ref<Lang>(
 
 const copy = computed(() => translations.contactConversation[currentLang.value])
 
+/**
+ * Picks this conversation's variant out of a rotating pool.
+ *
+ * The seed lives with the thread, so the wording is stable across a reload: the
+ * verification messages are ephemeral and get re-rendered from scratch, and a
+ * bot whose phrasing changes when the tab reloads reads as a different bot.
+ */
+function variant(pool: readonly string[]): string {
+  return pool[chat.state.variantSeed % pool.length]
+}
+
 const chat = createConversation({
   api,
+  lang: currentLang.value,
   openings: translations.contactConversation[currentLang.value].openings,
   ...(props.pickOpening ? { pickOpening: props.pickOpening } : {}),
 })
@@ -88,23 +104,30 @@ const emailVerified = computed(() => {
   return chat.state.emailVerified
 })
 
+const blocked = computed(() => {
+  void tick.value
+  return chat.state.blocked
+})
+
 /**
- * What the composer is asking for right now. One source, derived from the
- * server's own answer about what it still needs — never set by the template.
+ * What the composer is asking for right now — the step the SERVER named.
+ *
+ * This used to be computed here, and that was the defect: the order of the
+ * script lived in three places at once (the server's `missing`, the model's
+ * prompt, and this computed), the three disagreed, and the visible symptom was
+ * that the email address was requested last. Now `derive_next_step` on the
+ * backend is the single authority and this only renders it.
+ *
+ * The one local override is the code step: whether a code is outstanding is a
+ * fact about this browser — the server never learns that a code was requested,
+ * because verification runs through a different endpoint.
  */
 const mode = computed<'message' | 'email' | 'code'>(() => {
   void tick.value
 
   if (chat.state.pendingEmail !== null && !chat.state.emailVerified) return 'code'
 
-  // Only when the address is the LAST thing missing. The server reports `email`
-  // as missing from the very first turn — it cannot know it otherwise — so
-  // asking on `includes` would demand the address before the conversation has
-  // said anything, which is the questionnaire behaviour this replaces.
-  const onlyTheAddressIsLeft =
-    chat.state.missing.length === 1 && chat.state.missing[0] === 'email'
-
-  if (onlyTheAddressIsLeft && !chat.state.emailVerified) return 'email'
+  if (chat.state.nextStep === 'email' && !chat.state.emailVerified) return 'email'
 
   return 'message'
 })
@@ -112,6 +135,11 @@ const mode = computed<'message' | 'email' | 'code'>(() => {
 const composerId = computed(() =>
   mode.value === 'message' ? 'conversation-input' : `conversation-${mode.value}`,
 )
+
+const closingCopy = computed(() => {
+  void tick.value
+  return variant(copy.value.exhausted)
+})
 
 const placeholder = computed(() => {
   if (mode.value === 'email') return copy.value.verify.emailPlaceholder
@@ -152,8 +180,8 @@ const errorMessage = computed(() => {
 watch(mode, (next, previous) => {
   if (next === previous) return
 
-  if (next === 'email') chat.pushEphemeral('bot', copy.value.verify.ask)
-  if (next === 'code') chat.pushEphemeral('bot', copy.value.verify.askCode)
+  if (next === 'email') chat.pushEphemeral('bot', variant(copy.value.verify.ask))
+  if (next === 'code') chat.pushEphemeral('bot', variant(copy.value.verify.askCode))
 
   sync()
 })
@@ -193,6 +221,18 @@ async function submitMessage(text: string): Promise<void> {
     localError.value = 'tooLong'
     sync()
     return
+  }
+
+  // People answer "where should I send it?" inside a sentence, not into a
+  // field. Routed here rather than sent as a turn because the backend redacts
+  // every address before anything else happens (ADR 0007) — an address sent as
+  // a message is an address thrown away, which is exactly what used to happen.
+  const address = extractEmail(text)
+
+  if (address && !chat.state.emailVerified) {
+    draft.value = ''
+    sync()
+    return submitEmail(address)
   }
 
   // Started, then synced, then awaited: `send` flips `busy` synchronously, and
@@ -240,7 +280,7 @@ async function submitCode(code: string): Promise<void> {
   sync()
 
   if (chat.state.emailVerified) {
-    chat.pushEphemeral('bot', copy.value.verify.verified)
+    chat.pushEphemeral('bot', variant(copy.value.verify.verified))
     sync()
   }
 
@@ -314,14 +354,14 @@ onMounted(() => {
     </ol>
 
     <div
-      v-if="complete"
+      v-if="complete || blocked"
       class="conversation__done"
       role="status"
     >
       <p class="conversation__done-title">
-        {{ copy.done.title }}
+        {{ blocked ? copy.blocked.title : copy.done.title }}
       </p>
-      <p>{{ exhausted ? copy.exhausted : copy.done.body }}</p>
+      <p>{{ blocked ? copy.blocked.body : exhausted ? closingCopy : copy.done.body }}</p>
     </div>
 
     <form
