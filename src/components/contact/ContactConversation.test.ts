@@ -173,11 +173,12 @@ describe('email verification, inside the conversation', () => {
     await say('hola')
 
     await waitFor(() => {
-      const said = [...document.querySelectorAll('.conversation__message--bot')]
-        .map((node) => node.textContent ?? '')
-        .join(' ')
+      const bots = document.querySelectorAll('.conversation__message--bot')
 
-      expect(translations.contactConversation.es.verify.ask.some((v) => said.includes(v))).toBe(true)
+      // Exactly one new bot message, and it is the model's reply: the client
+      // has no words of its own for this step any more.
+      expect(bots).toHaveLength(2)
+      expect(bots[1].textContent).toContain('¿En qué empresa trabajas?')
     })
   })
 
@@ -195,11 +196,12 @@ describe('email verification, inside the conversation', () => {
     await say('hola')
 
     await waitFor(() => {
-      const said = [...document.querySelectorAll('.conversation__message--bot')]
-        .map((node) => node.textContent ?? '')
-        .join(' ')
+      const bots = document.querySelectorAll('.conversation__message--bot')
 
-      expect(translations.contactConversation.es.verify.ask.some((v) => said.includes(v))).toBe(true)
+      // Exactly one new bot message, and it is the model's reply: the client
+      // has no words of its own for this step any more.
+      expect(bots).toHaveLength(2)
+      expect(bots[1].textContent).toContain('¿En qué empresa trabajas?')
     })
   })
 
@@ -380,13 +382,9 @@ describe('it reads as a conversation, not as a form', () => {
         .map((node) => node.textContent ?? '')
         .join(' ')
 
-      // Asserted against the pool itself. Matching a keyword instead was
-      // flaky: the wording rotates at random and one variant asks for the
-      // "dirección" without ever saying "email" — it passed locally and failed
-      // in CI, which is the seed being a real input the test was ignoring.
-      expect(translations.contactConversation.es.verify.ask.some((v) => said.includes(v))).toBe(
-        true,
-      )
+      // The bot's own voice is now literally the model's: the client no longer
+      // owns a sentence for this step, so what the thread shows is the reply.
+      expect(said).toContain('¿En qué empresa trabajas?')
     })
   })
 
@@ -677,14 +675,15 @@ describe('what a screen reader gets', () => {
     await say('somos tres')
 
     // The spec claims the thread carries the meaning the label used to. That
-    // claim is only true if the request lands inside the live region.
+    // claim is only true if what the bot says lands inside the live region —
+    // and what it says is now the model's own words, not a client string.
     await waitFor(() => {
       const live = document.querySelector('[role="log"][aria-live="polite"]') as HTMLElement
       const said = [...live.querySelectorAll('.conversation__message--bot')]
         .map((node) => node.textContent ?? '')
         .join(' ')
 
-      expect(translations.contactConversation.es.verify.ask.some((v) => said.includes(v))).toBe(true)
+      expect(said).toContain('¿En qué empresa trabajas?')
     })
   })
 
@@ -738,5 +737,36 @@ describe('a message sent while the bot is answering', () => {
       const field = document.querySelector('.conversation__input') as HTMLTextAreaElement
       expect(field.disabled).toBe(false)
     })
+  })
+})
+
+describe('one voice per turn', () => {
+  it('adds exactly one bot message when the address step arrives', async () => {
+    mount(readyForEmail())
+
+    await say('me llamo Miguel')
+
+    // The defect: the model asked about the company and the client added its
+    // own canned request for the address. Two questions, one turn, and the
+    // second written by nobody in the conversation.
+    await waitFor(() =>
+      expect(document.querySelectorAll('.conversation__message--bot')).toHaveLength(2),
+    )
+  })
+
+  it('says nothing of its own about the address', async () => {
+    mount(readyForEmail())
+
+    await say('me llamo Miguel')
+
+    await waitFor(() =>
+      expect(document.querySelectorAll('.conversation__message--bot')).toHaveLength(2),
+    )
+    const said = [...document.querySelectorAll('.conversation__message--bot')]
+      .map((node) => node.textContent ?? '')
+      .join(' ')
+
+    // The bot's own words come from the model. The client no longer has any.
+    expect(said).toContain('¿En qué empresa trabajas?')
   })
 })

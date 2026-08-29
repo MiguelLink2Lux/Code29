@@ -140,12 +140,6 @@ const closed = computed(() => {
  * burbujas, which is what the visitor recognised. The step now chooses only
  * what the bot SAYS. What the visitor writes is read by `readAnswer`.
  */
-const askingForAddress = computed(() => {
-  void tick.value
-
-  return chat.state.nextStep === 'email' && !chat.state.emailVerified
-})
-
 const awaitingCode = computed(() => {
   void tick.value
 
@@ -173,13 +167,6 @@ const errorMessage = computed(() => {
 // The bot asks for the address itself, once, the moment the server says it is
 // the missing piece. Without this the composer would silently change shape and
 // the visitor would have no idea why.
-watch(askingForAddress, (asking, wasAsking) => {
-  if (!asking || wasAsking) return
-
-  chat.pushEphemeral('bot', variant(copy.value.verify.ask))
-  sync()
-})
-
 watch(awaitingCode, (waiting, wasWaiting) => {
   if (!waiting || wasWaiting) return
 

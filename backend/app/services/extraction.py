@@ -63,7 +63,11 @@ class ExtractionResult(BaseModel):
 @runtime_checkable
 class FactExtractor(Protocol):
     async def extract(
-        self, message: str, held: ConversationFacts, lang: str = "es"
+        self,
+        message: str,
+        held: ConversationFacts,
+        lang: str = "es",
+        step: str = "message",
     ) -> ExtractionResult: ...
 
 
@@ -90,7 +94,11 @@ class StubFactExtractor:
     """
 
     async def extract(
-        self, message: str, held: ConversationFacts, lang: str = "es"
+        self,
+        message: str,
+        held: ConversationFacts,
+        lang: str = "es",
+        step: str = "message",
     ) -> ExtractionResult:
         if not message_within_budget(message):
             raise ValueError(f"message over budget: {MAX_MESSAGE_CHARS} characters maximum")
@@ -162,7 +170,11 @@ class GeminiFactExtractor:
         return f"{API_BASE}/{self._model}:generateContent"
 
     async def extract(
-        self, message: str, held: ConversationFacts, lang: str = "es"
+        self,
+        message: str,
+        held: ConversationFacts,
+        lang: str = "es",
+        step: str = "message",
     ) -> ExtractionResult:
         if not message_within_budget(message):
             raise ValueError(f"message over budget: {MAX_MESSAGE_CHARS} characters maximum")
@@ -170,7 +182,7 @@ class GeminiFactExtractor:
         clean, _ = redact_email(message)
 
         payload = {
-            "systemInstruction": {"parts": [{"text": _instruction(lang)}]},
+            "systemInstruction": {"parts": [{"text": _instruction(lang, step)}]},
             "contents": [
                 {
                     "role": "user",
@@ -229,8 +241,36 @@ class GeminiFactExtractor:
         )
 
 
-def _instruction(lang: str = "es") -> str:
+#: What the bot must do this turn, phrased for the model. The server decides
+#: which one applies; these are the words it gets.
+_CONDUCT_BY_STEP = {
+    "email": (
+        "THIS TURN: you need their email address. Acknowledge what they just told you, then ask "
+        "for it in your own words, as part of the same sentence if it reads naturally — say it is "
+        "so you can send them the report. Ask ONLY that: one question this turn, and it is this "
+        "one. Do not ask about the company, the website or the team as well."
+    ),
+    "closing": (
+        "THIS TURN: you have everything you need. Tell them the report is being prepared and that "
+        "it will reach them by email, then invite them to add anything else they think matters. "
+        "Ask no further questions about facts."
+    ),
+    "message": (
+        "THIS TURN: ask for ONE fact you do not hold yet. Never ask for an email address: the "
+        "server decides when that is due and will tell you."
+    ),
+}
+
+
+def _instruction(lang: str = "es", step: str = "message") -> str:
     """How the model conducts the conversation, in the visitor's language.
+
+    `step` is the server's decision about what this turn is for, turned into
+    conduct. It exists because the two halves of "the server decides the step,
+    the model puts it into words" (ADR 0011) were shipped with a fixed sentence
+    in the client filling the gap between them: the model asked about the
+    company while the client asked for the address, and a single turn carried
+    two questions — one of them written by nobody in the conversation.
 
     The extraction contract is unchanged — only typed, actually-stated facts
     survive. What this adds is conduct: the bot says what it is for, reacts to
@@ -278,6 +318,7 @@ def _instruction(lang: str = "es") -> str:
         "for what is genuinely still missing.\n"
         "- When you hold all four, say so and tell them the report is being prepared. Do not "
         "invent a next question.\n"
+        f"{_CONDUCT_BY_STEP.get(step, _CONDUCT_BY_STEP['message'])}\n"
         "- Two or three sentences at most. No bullet points, no numbered steps.\n"
         "Answer with a single JSON object: "
         '{"facts": {"contact_name": null, "company": null, "website": null, "team": null}, '

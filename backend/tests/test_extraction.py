@@ -277,3 +277,37 @@ class TestTheModelCanReportAnAttack:
 
     def test_the_instruction_asks_for_it(self) -> None:
         assert "injection" in _instruction().lower()
+
+
+class TestTheInstructionCarriesTheStep:
+    """The server decides the step; the model puts it into words.
+
+    Both halves were shipped, and between them a fixed sentence in the client
+    asked for the address too — so a single turn carried two questions, one of
+    them written by nobody in the conversation.
+    """
+
+    def test_the_email_step_tells_the_model_to_ask_for_the_address(self) -> None:
+        instruction = _instruction("es", "email").lower()
+
+        assert "email address" in instruction
+
+    def test_the_email_step_forbids_asking_anything_else(self) -> None:
+        # The defect exactly: the model asked about the company while the client
+        # asked for the address. One turn, one question.
+        instruction = _instruction("es", "email").lower()
+
+        assert "only" in instruction and "one question" in instruction
+
+    def test_the_default_step_still_never_asks_for_an_email(self) -> None:
+        # The old rule survives everywhere else: the address is asked for when
+        # the server says so, and at no other time.
+        assert "never ask for an email" in _instruction("es", "message").lower()
+
+    def test_the_closing_step_announces_the_report(self) -> None:
+        assert "report" in _instruction("es", "closing").lower()
+
+    def test_the_conduct_is_the_same_in_both_languages(self) -> None:
+        for step in ("message", "email", "closing"):
+            assert "never infer" in _instruction("es", step).lower()
+            assert "never infer" in _instruction("en", step).lower()

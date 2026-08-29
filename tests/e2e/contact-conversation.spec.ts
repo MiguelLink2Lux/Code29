@@ -235,7 +235,7 @@ test.describe('conversational contact', () => {
     await expect(page.locator('#conversation-code')).toHaveCount(0)
   })
 
-  test('the address is asked for early, not once everything else is held', async ({ page }) => {
+  test('the client adds no voice of its own when the address step arrives', async ({ page }) => {
     // The defect this cycle exists for, asserted end to end: the composer used
     // to stay a message box until `missing` had shrunk to just the address.
     await stubBackend(page, { completeAfter: 99 })
@@ -243,20 +243,13 @@ test.describe('conversational contact', () => {
 
     await say(page, 'tenemos un software que conecta retailers con marketplaces')
 
-    // Asserted against the pools themselves, in both languages. Matching
-    // keywords was wrong twice over: the wording rotates at random AND the page
-    // may render in either language, so any word I expect can legitimately be
-    // absent.
-    const asks = [
-      ...translations.contactConversation.es.verify.ask,
-      ...translations.contactConversation.en.verify.ask,
-    ]
+    // One turn, one bot message. The request for the address is written by the
+    // model — the server tells it that this is the step — so there is no client
+    // sentence to look for, and a second bubble here would mean the client had
+    // started talking on its own again.
     await expect
-      .poll(async () => {
-        const said = await page.locator('.conversation__message--bot').allTextContents()
-        return asks.some((variant) => said.some((line) => line.includes(variant)))
-      })
-      .toBe(true)
+      .poll(async () => page.locator('.conversation__message--bot').count())
+      .toBe(2)
   })
 
   test('the closing invitation can actually be answered', async ({ page }) => {

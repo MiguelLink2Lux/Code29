@@ -175,8 +175,18 @@ async def take_turn(
     # or future, ours or mistaken — can ever be handed an address.
     redacted, _ = redact_email(message)
 
+    # The step the model is told about is derived BEFORE extracting, from the
+    # facts we already hold and the turn this one will be. The `next_step` in
+    # the response is derived after, from the facts as updated — they are two
+    # different questions. For `email` they always agree: it depends only on
+    # whether an address is verified and how many turns have been spent, neither
+    # of which this turn's extraction can change.
+    step = derive_next_step(
+        held, email_verified=email is not None, turns=turns + 1, blocked=False
+    )
+
     try:
-        result = await extractor.extract(redacted, held, payload.lang)
+        result = await extractor.extract(redacted, held, payload.lang, step)
     except (ModelUnavailable, ModelResponseInvalid) as error:
         # The model is a dependency like any other: its failure is a 502, never
         # a 500, and never a silent fallback that fabricates a reply.
