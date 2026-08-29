@@ -42,6 +42,43 @@ export function extractEmail(message: string): string | null {
   return found ? found[0].toLowerCase() : null
 }
 
+/** A verification code as the backend issues it: six digits, nothing else. */
+const BARE_CODE = /^\d{6}$/
+
+export interface Answer {
+  kind: 'email' | 'code' | 'message'
+  value: string
+}
+
+/**
+ * What the visitor's reply actually is.
+ *
+ * There is one composer for the whole conversation — verification is not a step
+ * the visitor is put through, it is something that happens while they talk — so
+ * the reply has to be read rather than routed by whichever field was on screen.
+ *
+ * A six-digit number is only a code when a verification is **pending** and the
+ * reply is **nothing but** those digits. Both halves matter: "somos 6 en el
+ * equipo", "facturamos 384012 euros" and "en 2024" are things people say, and
+ * swallowing one as a verification code would lose an answer and burn a code.
+ *
+ * An address wins over digits when a reply carries both: verifying is what
+ * unblocks the report, and the code can be given again.
+ */
+export function readAnswer(
+  text: string,
+  { pendingEmail }: { pendingEmail: string | null },
+): Answer {
+  const trimmed = text.trim()
+  const address = extractEmail(trimmed)
+
+  if (address) return { kind: 'email', value: address }
+
+  if (pendingEmail && BARE_CODE.test(trimmed)) return { kind: 'code', value: trimmed }
+
+  return { kind: 'message', value: trimmed }
+}
+
 export type MessageRole = 'visitor' | 'bot'
 
 export interface ConversationMessage {
@@ -178,12 +215,24 @@ interface ConversationOptions {
   /** Index picker, injectable so tests are deterministic. */
   pickOpening?: (count: number) => number
   /**
-   * The language the visitor is being spoken to in. Travels with every turn so
-   * the model answers in it: the opening was already chosen from `html[lang]`
-   * while the replies were hardcoded Spanish, which is how an English visitor
-   * ended up being greeted in one language and answered in another.
+   * What the bot says when verification does not go through.
+   *
+   * Injected rather than imported: this module is framework-free and holds no
+   * copy. It matters that these are *messages* and not error codes — a form
+   * raises an alert under the field, a conversation says something and carries
+   * on, and the difference is the whole point of this cycle.
    */
-  lang?: string
+  botCopy?: { codeRejected: string[]; humanCheck: string[] }
+  /**
+   * The language the visitor is being spoken to in, travelling with every turn.
+   *
+   * Accepts a getter as well as a value, and the getter is the point: a value
+   * is captured when the conversation is created, so a visitor who switches the
+   * site to Spanish mid-conversation kept being answered in English. The
+   * language is a property of the moment a turn is sent, not of the moment the
+   * chat was built.
+   */
+  lang?: string | (() => string)
 }
 
 export function createConversation({
@@ -191,6 +240,7 @@ export function createConversation({
   openings = [],
   pickOpening = (count) => Math.floor(Math.random() * count),
   lang = 'es',
+  botCopy = { codeRejected: [], humanCheck: [] },
 }: ConversationOptions) {
   const restored = readPersisted()
 
@@ -244,6 +294,20 @@ export function createConversation({
   /** Adds a message to the thread that must never survive a reload. */
   function pushEphemeral(role: MessageRole, text: string): void {
     messages.push({ role, text, ephemeral: true })
+  }
+
+  /**
+   * Says a verification failure in the bot's voice instead of raising it.
+   *
+   * Ephemeral like the rest of the verification exchange: it is part of a
+   * conversation about an address, and the address is not written down.
+   */
+  function say(pool: string[]): boolean {
+    if (!pool.length) return false
+
+    pushEphemeral('bot', pool[variantSeed % pool.length])
+
+    return true
   }
 
   const state: ConversationState = {
@@ -361,6 +425,10 @@ export function createConversation({
     }
 
     messages.push({ role: 'visitor', text: message })
+    // Persisted before the request, not after it. Waiting for the answer meant
+    // a reload while the turn was in flight threw away what the visitor had
+    // just written — their words are theirs the moment they send them.
+    persist()
     busy = true
     error = null
 
@@ -369,7 +437,7 @@ export function createConversation({
         message,
         envelope,
         accessToken ?? undefined,
-        lang,
+        typeof lang === 'function' ? lang() : lang,
       )
 
       messages.push({ role: 'bot', text: turn.reply })
@@ -414,10 +482,19 @@ export function createConversation({
       pushEphemeral('visitor', address)
     } catch (failure) {
       // 403 is the human check, not a bad address: telling the visitor their
-      // email is wrong would send them in circles.
-      error = failure instanceof ContactApiError && failure.status === 403
-        ? 'humanCheck'
-        : describe(failure)
+      // email is wrong would send them in circles. Spoken rather than raised —
+      // a transport failure still becomes an error, because a bot cannot
+      // explain a dead network away in character.
+      const humanCheckFailed = failure instanceof ContactApiError && failure.status === 403
+
+      if (humanCheckFailed && say(botCopy.humanCheck)) {
+        error = null
+      } else {
+        // With no copy to say it with, the typed code is still better than a
+        // generic failure: `describe` has no mapping for 403 and would flatten
+        // a human check into "something went wrong".
+        error = humanCheckFailed ? 'humanCheck' : describe(failure)
+      }
     } finally {
       busy = false
     }
@@ -438,10 +515,16 @@ export function createConversation({
       pushEphemeral('visitor', code.trim())
       persist()
     } catch (failure) {
-      error =
-        failure instanceof ContactApiError && failure.status === 400
-          ? 'codeRejected'
-          : describe(failure)
+      // A wrong code is the one failure the visitor can fix by answering again,
+      // so it stays in the conversation and `pendingEmail` is kept: the next
+      // six digits are still read as a code.
+      const codeRejected = failure instanceof ContactApiError && failure.status === 400
+
+      if (codeRejected && say(botCopy.codeRejected)) {
+        error = null
+      } else {
+        error = codeRejected ? 'codeRejected' : describe(failure)
+      }
     } finally {
       busy = false
     }

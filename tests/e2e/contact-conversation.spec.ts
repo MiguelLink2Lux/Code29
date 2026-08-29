@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
+import { translations } from '../../src/i18n/translations'
+
 /**
  * The conversational contact flow, end to end in a real browser.
  *
@@ -88,6 +90,11 @@ async function stubBackend(page: Page, stub: BackendStub = {}) {
 const composer = (page: Page) => page.locator('#contact textarea, #contact input[type="text"]').first()
 
 async function say(page: Page, text: string) {
+  // Wait for the composer to be ready rather than typing over a busy one. It is
+  // disabled while the bot answers, so `fill` now fails loudly instead of the
+  // message being accepted and silently dropped — which is what this used to do
+  // and why these tests were intermittent.
+  await expect(composer(page)).toBeEnabled()
   await composer(page).fill(text)
   await page.locator('#contact button[type="submit"]').first().click()
 }
@@ -100,15 +107,25 @@ async function say(page: Page, text: string) {
  * The ids are what identify the mode; the button text is what the visitor sees.
  */
 async function verifyEmail(page: Page, address = 'ada@example.com') {
-  const email = page.locator('#conversation-email')
-  await expect(email, 'the verification thread should appear once email is the last gap').toBeVisible()
-  await email.fill(address)
-  await page.locator('#contact button', { hasText: /send code|enviar código/i }).click()
+  // Spoken, not filled in. There is one composer for the whole conversation and
+  // it never changes: the address and the code are answers like any other.
+  await say(page, address)
 
-  const code = page.locator('#conversation-code')
-  await expect(code, 'the code field should appear once a code was requested').toBeVisible()
-  await code.fill('123456')
-  await page.locator('#contact button', { hasText: /confirm|confirmar/i }).click()
+  // Wait for the bot to say the code is on its way, exactly as a person would.
+  // Typing it before the request lands means no verification is pending yet, so
+  // the digits are read as an ordinary message — which is what made this flaky.
+  const askCodes = [
+    ...translations.contactConversation.es.verify.askCode,
+    ...translations.contactConversation.en.verify.askCode,
+  ]
+  await expect
+    .poll(async () => {
+      const said = await page.locator('.conversation__message--bot').allTextContents()
+      return askCodes.some((variant) => said.some((line) => line.includes(variant)))
+    })
+    .toBe(true)
+
+  await say(page, '123456')
 }
 
 test.beforeEach(async ({ page }) => {
@@ -192,6 +209,32 @@ test.describe('conversational contact', () => {
     await expect(page.locator('#contact [role="alert"]')).toBeVisible()
   })
 
+  test('the composer never becomes a form', async ({ page }) => {
+    await stubBackend(page, { completeAfter: 1 })
+    await page.goto('/')
+
+    const composer = page.locator('#conversation-input')
+    const before = {
+      placeholder: await composer.getAttribute('placeholder'),
+      inputmode: await composer.getAttribute('inputmode'),
+      autocomplete: await composer.getAttribute('autocomplete'),
+    }
+
+    await say(page, 'somos tres y conectamos retailers con marketplaces')
+    await say(page, 'ada@example.com')
+
+    // Captured and compared: during verification the composer must be the same
+    // element with the same attributes, not a field wearing another label.
+    await expect(composer).toBeVisible()
+    expect({
+      placeholder: await composer.getAttribute('placeholder'),
+      inputmode: await composer.getAttribute('inputmode'),
+      autocomplete: await composer.getAttribute('autocomplete'),
+    }).toEqual(before)
+    await expect(page.locator('#conversation-email')).toHaveCount(0)
+    await expect(page.locator('#conversation-code')).toHaveCount(0)
+  })
+
   test('the address is asked for early, not once everything else is held', async ({ page }) => {
     // The defect this cycle exists for, asserted end to end: the composer used
     // to stay a message box until `missing` had shrunk to just the address.
@@ -200,10 +243,20 @@ test.describe('conversational contact', () => {
 
     await say(page, 'tenemos un software que conecta retailers con marketplaces')
 
-    await expect(
-      page.locator('#conversation-email'),
-      'the address should be asked for with other facts still outstanding',
-    ).toBeVisible()
+    // Asserted against the pools themselves, in both languages. Matching
+    // keywords was wrong twice over: the wording rotates at random AND the page
+    // may render in either language, so any word I expect can legitimately be
+    // absent.
+    const asks = [
+      ...translations.contactConversation.es.verify.ask,
+      ...translations.contactConversation.en.verify.ask,
+    ]
+    await expect
+      .poll(async () => {
+        const said = await page.locator('.conversation__message--bot').allTextContents()
+        return asks.some((variant) => said.some((line) => line.includes(variant)))
+      })
+      .toBe(true)
   })
 
   test('the closing invitation can actually be answered', async ({ page }) => {

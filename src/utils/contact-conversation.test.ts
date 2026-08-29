@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ContactApiError } from '@/utils/contact-api'
-import { createConversation, extractEmail, MAX_MESSAGE_LENGTH } from '@/utils/contact-conversation'
+import { createConversation, extractEmail, MAX_MESSAGE_LENGTH, readAnswer } from '@/utils/contact-conversation'
 
 /**
  * The conversational state, framework-free so it can be reasoned about without
@@ -671,5 +671,142 @@ describe('the rendered variant, not just the seed', () => {
     const second = createConversation({ api: stubApi() })
 
     expect(pick(second.state.variantSeed)).toBe(before)
+  })
+})
+
+describe('readAnswer', () => {
+  const pending = { pendingEmail: 'ada@example.com' }
+  const nothingPending = { pendingEmail: null }
+
+  it('sees an address inside a sentence', () => {
+    expect(readAnswer('claro, escríbeme a m@link2lux.com', nothingPending)).toEqual({
+      kind: 'email',
+      value: 'm@link2lux.com',
+    })
+  })
+
+  it('sees a bare code while a verification is pending', () => {
+    expect(readAnswer('384012', pending)).toEqual({ kind: 'code', value: '384012' })
+  })
+
+  it('ignores surrounding whitespace on a code', () => {
+    expect(readAnswer('  384012 ', pending)).toEqual({ kind: 'code', value: '384012' })
+  })
+
+  it('does not read digits inside a sentence as a code', () => {
+    // The trap: a team size, a year, a budget. Six digits are only a code when
+    // the answer is nothing but the code.
+    expect(readAnswer('somos 6 en el equipo', pending).kind).toBe('message')
+    expect(readAnswer('facturamos 384012 euros', pending).kind).toBe('message')
+  })
+
+  it('does not read a bare number as a code when nothing is pending', () => {
+    expect(readAnswer('384012', nothingPending).kind).toBe('message')
+  })
+
+  it('treats an ordinary answer as a message', () => {
+    expect(readAnswer('somos dos desarrolladores', nothingPending)).toEqual({
+      kind: 'message',
+      value: 'somos dos desarrolladores',
+    })
+  })
+
+  it('prefers the address when a reply carries both', () => {
+    // Verifying is the step that unblocks the report; the digits can wait.
+    expect(readAnswer('384012 y mi correo es a@b.com', pending).kind).toBe('email')
+  })
+})
+
+// Injected the way `openings` is: the module holds no text, so a test has to
+// declare the copy it expects the component to hand over.
+const botCopy = {
+  codeRejected: ['Ese código no me cuadra. ¿Lo reviso contigo?'],
+  humanCheck: ['No he podido confirmar que eres una persona.'],
+}
+
+describe('verification failures are spoken, not raised', () => {
+  it('a rejected code becomes a bot message and leaves the chat open', async () => {
+    const api = stubApi({
+      confirmVerificationCode: vi.fn().mockRejectedValue(new ContactApiError('bad', 400)),
+    })
+    const chat = createConversation({ api, botCopy })
+    await chat.requestCode('ada@example.com', 'token')
+
+    await chat.confirmCode('000000')
+
+    // A form raises an alert under the field. A conversation says something.
+    expect(chat.state.error).toBeNull()
+    expect(chat.state.messages.at(-1)?.role).toBe('bot')
+    expect(chat.state.emailVerified).toBe(false)
+    // And the address is still pending, so the next six digits are read as a code.
+    expect(chat.state.pendingEmail).toBe('ada@example.com')
+  })
+
+  it('a failed human check is spoken too', async () => {
+    const api = stubApi({
+      requestVerificationCode: vi.fn().mockRejectedValue(new ContactApiError('nope', 403)),
+    })
+    const chat = createConversation({ api, botCopy })
+
+    await chat.requestCode('ada@example.com', 'token')
+
+    expect(chat.state.error).toBeNull()
+    expect(chat.state.messages.at(-1)?.role).toBe('bot')
+  })
+
+  it('still surfaces a transport failure as an error, because that is not the visitor', async () => {
+    // A network failure is not something the bot can explain away in character.
+    const api = stubApi({
+      requestVerificationCode: vi.fn().mockRejectedValue(new ContactApiError('down', 0)),
+    })
+    const chat = createConversation({ api })
+
+    await chat.requestCode('ada@example.com', 'token')
+
+    expect(chat.state.error).toBe('network')
+  })
+})
+
+describe('the language follows the visitor', () => {
+  it('sends the language as it is when the turn goes out, not as it was at construction', async () => {
+    const api = stubApi()
+    let lang = 'en'
+    // A getter, because the visitor can switch the site mid-conversation and a
+    // value captured at construction stays English for ever.
+    const chat = createConversation({ api, lang: () => lang })
+
+    await chat.send('hello')
+    lang = 'es'
+    await chat.send('hola')
+
+    expect(api.takeConversationTurn).toHaveBeenLastCalledWith('hola', 'envelope-1', undefined, 'es')
+  })
+
+  it('still accepts a plain string', async () => {
+    const api = stubApi()
+    const chat = createConversation({ api, lang: 'en' })
+
+    await chat.send('hello')
+
+    expect(api.takeConversationTurn).toHaveBeenLastCalledWith('hello', undefined, undefined, 'en')
+  })
+})
+
+describe('what the visitor typed is not lost to a reload', () => {
+  it('persists their message before the answer comes back', async () => {
+    let release: (value: unknown) => void = () => {}
+    const api = stubApi({
+      takeConversationTurn: vi.fn().mockReturnValue(new Promise((r) => (release = r))),
+    })
+    const chat = createConversation({ api })
+
+    const pending = chat.send('hola, soy Ada')
+
+    // Mid-flight: a reload here used to drop the message, because persisting
+    // only happened once the backend answered.
+    expect(createConversation({ api: stubApi() }).state.messages.at(-1)?.text).toBe('hola, soy Ada')
+
+    release(turn())
+    await pending
   })
 })
