@@ -368,8 +368,13 @@ describe('it reads as a conversation, not as a form', () => {
         .map((node) => node.textContent ?? '')
         .join(' ')
 
-      // One of the pool's variants — the wording rotates, the intent does not.
-      expect(said).toMatch(/email|correo|address/i)
+      // Asserted against the pool itself. Matching a keyword instead was
+      // flaky: the wording rotates at random and one variant asks for the
+      // "dirección" without ever saying "email" — it passed locally and failed
+      // in CI, which is the seed being a real input the test was ignoring.
+      expect(translations.contactConversation.es.verify.ask.some((v) => said.includes(v))).toBe(
+        true,
+      )
     })
   })
 
