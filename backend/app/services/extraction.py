@@ -47,7 +47,9 @@ _WEBSITE = re.compile(
     r"\b((?:https?://)?(?:[a-z0-9][a-z0-9-]*\.)+[a-z]{2,}(?:/\S*)?)\b", re.IGNORECASE
 )
 
-REQUEST_TIMEOUT_SECONDS = 20.0
+# The same deadline the report generator gives the model. One number for one
+# provider: two different ones were a coincidence, not a decision.
+REQUEST_TIMEOUT_SECONDS = 30.0
 
 
 class ExtractionResult(BaseModel):
@@ -196,7 +198,17 @@ class GeminiFactExtractor:
                     ],
                 }
             ],
-            "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
+            "generationConfig": {
+                "temperature": 0,
+                "responseMimeType": "application/json",
+                # Reading facts out of one sentence is not a problem to reason
+                # about. Flash 3.x thinks at `medium` unless told otherwise, and
+                # that reasoning is what took the call past its deadline in
+                # production (COD-63). `low` is the floor these models accept —
+                # `minimal` is refused, and `thinkingBudget` cannot travel with
+                # `thinkingLevel`: sending both is a 400.
+                "thinkingConfig": {"thinkingLevel": "low"},
+            },
         }
 
         try:

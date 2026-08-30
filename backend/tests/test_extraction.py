@@ -13,6 +13,8 @@ Two rules are enforced before any model call:
   arbitrarily long prompt.
 """
 
+import json
+
 import pytest
 
 from app.services.conversation import ConversationFacts
@@ -178,6 +180,29 @@ class TestGeminiExtractor:
         with pytest.raises(ModelResponseInvalid):
             await extractor.extract("hola", ConversationFacts())
 
+    async def test_the_model_is_told_not_to_think_before_extracting(self) -> None:
+        """Extraction is a deterministic read of one sentence, not a problem to
+        reason about. The Flash models of the 3.x family think at `medium` unless
+        told otherwise, and that reasoning is what pushed the call past its
+        deadline in production (COD-63)."""
+        import httpx
+
+        seen: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return httpx.Response(200, json=self._model_reply({}))
+
+        extractor = GeminiFactExtractor(api_key="k", transport=httpx.MockTransport(handler))
+
+        await extractor.extract("hola", ConversationFacts())
+
+        config = json.loads(seen[0].content)["generationConfig"]
+        # `minimal` is not accepted by Flash 3.x — `low` is the floor.
+        assert config["thinkingConfig"] == {"thinkingLevel": "low"}
+        # The two settings are mutually exclusive: sending both is a 400.
+        assert "thinkingBudget" not in json.dumps(config)
+
     async def test_an_over_long_message_is_refused_before_the_call(self) -> None:
         import httpx
 
@@ -311,3 +336,14 @@ class TestTheInstructionCarriesTheStep:
         for step in ("message", "email", "closing"):
             assert "never infer" in _instruction("es", step).lower()
             assert "never infer" in _instruction("en", step).lower()
+
+
+class TestTheDeadlineGivenToTheModel:
+    """The extractor's deadline is the one the visitor waits behind, so it is
+    stated here rather than left to a default that changed under us (COD-63)."""
+
+    def test_it_matches_the_one_the_report_generator_uses(self) -> None:
+        from app.services import report_gemini
+        from app.services.extraction import REQUEST_TIMEOUT_SECONDS
+
+        assert REQUEST_TIMEOUT_SECONDS == report_gemini.REQUEST_TIMEOUT_SECONDS

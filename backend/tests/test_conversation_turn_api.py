@@ -175,6 +175,36 @@ class TestRefusals:
 
         assert response.status_code == 502
 
+    def test_a_model_failure_says_why_in_the_log(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A 502 that leaves no trace costs an afternoon of forensics: the
+        production incident of COD-63 had to be diagnosed from the clock,
+        because the only record of it was the status code."""
+
+        class _Broken:
+            async def extract(
+                self,
+                message: str,
+                held: ConversationFacts,
+                lang: str = "es",
+                step: str = "message",
+            ) -> ExtractionResult:
+                from app.services.report_gemini import ModelUnavailable
+
+                raise ModelUnavailable("model down")
+
+        with caplog.at_level("WARNING"):
+            response = build(_Broken()).post(
+                URL, json={"message": "hola, soy de Analytical Engines"}
+            )
+
+        assert response.status_code == 502
+        logged = caplog.text
+        assert "ModelUnavailable" in logged
+        # The visitor's words are theirs. A log line is not a place to keep them.
+        assert "Analytical Engines" not in logged
+
 
 class TestPrivacy:
     def test_the_envelope_never_carries_an_email(self) -> None:

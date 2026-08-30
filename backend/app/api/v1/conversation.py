@@ -208,6 +208,12 @@ async def take_turn(
     except (ModelUnavailable, ModelResponseInvalid) as error:
         # The model is a dependency like any other: its failure is a 502, never
         # a 500, and never a silent fallback that fabricates a reply.
+        #
+        # Logged before it is converted, because the 502 the visitor sees says
+        # nothing about the cause on purpose. The class and our own message are
+        # enough to tell a timeout from a refusal; the visitor's words are not
+        # ours to keep, so they never appear here.
+        logger.warning("conversation turn failed: %s: %s", type(error).__name__, error)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="No he podido procesar tu mensaje. Inténtalo de nuevo.",
