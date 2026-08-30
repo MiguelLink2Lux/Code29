@@ -9,6 +9,38 @@ from app.services.turnstile import TEST_SECRET_KEY as TURNSTILE_TEST_SECRET_KEY
 
 MIN_SECRET_LENGTH = 32
 
+#: Domains where anyone can hold a mailbox and nobody can prove the domain is
+#: theirs. A transactional provider will refuse to send from one, always — so a
+#: sender here is a configuration that cannot work, not one that might.
+#:
+#: Deliberately a short list of the obvious: it exists to catch the address
+#: somebody pasted in while wiring things up, not to police every possible
+#: domain. A false negative costs what it cost before; a false positive would
+#: switch off a working flow.
+PUBLIC_MAILBOX_DOMAINS = frozenset(
+    {
+        "gmail.com",
+        "googlemail.com",
+        "hotmail.com",
+        "hotmail.es",
+        "outlook.com",
+        "outlook.es",
+        "live.com",
+        "msn.com",
+        "yahoo.com",
+        "yahoo.es",
+        "icloud.com",
+        "me.com",
+        "aol.com",
+        "proton.me",
+        "protonmail.com",
+        "gmx.com",
+        "zoho.com",
+        "mail.com",
+        "yandex.com",
+    }
+)
+
 
 class Settings(BaseSettings):
     """Environment-driven configuration.
@@ -36,6 +68,28 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.strip().lower() in {"production", "prod"}
+
+    @property
+    def sender_domain(self) -> str:
+        """The domain CONTACT_FROM_EMAIL sends from, lowercased.
+
+        Reads through the display-name form as well — Resend accepts
+        `CODE29 <noreply@code29.dev>` — because a check that only understands
+        the bare address is a check an ordinary configuration walks past.
+        """
+        address = self.contact_from_email.strip()
+
+        if address.endswith(">") and "<" in address:
+            address = address[address.rindex("<") + 1 : -1]
+
+        _, _, domain = address.rpartition("@")
+
+        return domain.strip().lower()
+
+    @property
+    def sender_is_a_public_mailbox(self) -> bool:
+        """True when the sender sits on a domain nobody can verify as theirs."""
+        return self.sender_domain in PUBLIC_MAILBOX_DOMAINS
 
     @property
     def turnstile_runs_on_the_test_secret(self) -> bool:
@@ -71,6 +125,21 @@ class Settings(BaseSettings):
             return (
                 "TURNSTILE_SECRET_KEY is Cloudflare's test secret, which approves "
                 "every token; production needs the secret of a real widget"
+            )
+
+        # A sender on a public mailbox domain is not a risky configuration: it
+        # is one that fails every single time. Transactional providers only send
+        # from a domain the account has verified, and nobody verifies gmail.com.
+        #
+        # Caught here rather than at send time because of when the failure would
+        # otherwise surface: not on deploy, not on a health check, but the
+        # moment a real visitor hands over their address — and as a 502, which
+        # reads like a transport blip rather than a variable someone has to fix.
+        if self.is_production and self.sender_is_a_public_mailbox:
+            return (
+                f"CONTACT_FROM_EMAIL is on {self.sender_domain}, a public mailbox domain that "
+                "no transactional provider will send from; use an address on a domain you have "
+                "verified with the provider"
             )
 
         return None

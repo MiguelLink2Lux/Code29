@@ -12,6 +12,20 @@ from app.services.turnstile import TEST_SECRET_KEY as TURNSTILE_TEST_SECRET_KEY
 STRONG_SECRET = "a" * 32
 
 
+def configured(**overrides: object) -> Settings:
+    """A fully configured flow, so a test only has to state what it is about."""
+    defaults: dict[str, object] = {
+        "app_env": "production",
+        "contact_token_secret": STRONG_SECRET,
+        "resend_api_key": "re_test",
+        "turnstile_secret_key": "0x4realsecret",
+        "contact_from_email": "noreply@code29.dev",
+        "contact_to_email": "hola@code29.dev",
+    }
+
+    return Settings(**{**defaults, **overrides})  # type: ignore[arg-type]
+
+
 class TestSigningSecret:
     def test_absent_secret_is_allowed_in_development(self) -> None:
         # Local work must not require ceremony; the flow degrades instead.
@@ -121,3 +135,60 @@ class TestSecretExposure:
         settings = Settings(contact_token_secret=STRONG_SECRET, resend_api_key="re_supersecret")
         assert "re_supersecret" not in str(settings)
         assert STRONG_SECRET not in str(settings)
+
+
+class TestSenderDomain:
+    """A sender on a public mailbox domain cannot deliver, and the code knows it.
+
+    Resend — like every transactional provider — only sends from a domain the
+    account has verified, and nobody verifies gmail.com. So a sender there is
+    not a risky configuration, it is one that fails every single time.
+
+    The check that existed asked whether CONTACT_FROM_EMAIL was non-empty.
+    `someone@gmail.com` is non-empty, so by every measure the system had, the
+    flow was configured. It failed only when a real visitor handed over their
+    address — the exact moment the lead is lost — with a 502 that reads like a
+    transport blip.
+
+    Same lesson as the Turnstile test secret, written down once already: a value
+    that cannot work must be recognisable to the code, not only to the person
+    who typed it.
+    """
+
+    @pytest.mark.parametrize(
+        "sender",
+        [
+            "hola@gmail.com",
+            "Hola@GMail.com",
+            "code29@hotmail.com",
+            "info@outlook.com",
+            "contacto@yahoo.es",
+            "hey@icloud.com",
+            "team@proton.me",
+        ],
+    )
+    def test_a_public_mailbox_sender_disables_the_flow_in_production(self, sender: str) -> None:
+        settings = configured(app_env="production", contact_from_email=sender)
+
+        assert settings.contact_flow_enabled is False
+        assert "CONTACT_FROM_EMAIL" in (settings.contact_flow_disabled_reason or "")
+
+    def test_a_domain_of_your_own_is_fine(self) -> None:
+        settings = configured(app_env="production", contact_from_email="noreply@code29.dev")
+
+        assert settings.contact_flow_enabled is True
+
+    def test_a_display_name_around_the_address_is_still_read(self) -> None:
+        # Resend accepts "CODE29 <noreply@code29.dev>", so the check has to see
+        # through that form as well.
+        blocked = configured(app_env="production", contact_from_email="CODE29 <hola@gmail.com>")
+        allowed = configured(app_env="production", contact_from_email="CODE29 <n@code29.dev>")
+
+        assert blocked.contact_flow_enabled is False
+        assert allowed.contact_flow_enabled is True
+
+    def test_local_development_is_left_alone(self) -> None:
+        # A personal address is how you try the flow on your own machine.
+        settings = configured(app_env="development", contact_from_email="hola@gmail.com")
+
+        assert settings.contact_flow_enabled is True

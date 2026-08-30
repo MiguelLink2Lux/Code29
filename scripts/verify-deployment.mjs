@@ -283,8 +283,26 @@ async function checkBackend() {
     !IS_LOCAL,
   )
 
-  // 502 is a different failure from 503 and needs saying so: the flow IS
-  // configured, and the mail provider refused the send.
+  // 403 and 503 both mean the door is shut, and they were reported as the same
+  // success — so a flow that was switched off entirely looked identical to one
+  // defending itself. Only 403 means the flow is configured AND the gate held.
+  //
+  // This is what makes a bad sender visible from outside: COD-58 turns a public
+  // mailbox domain into "not configured", and without this line that change
+  // would read as green.
+  const flowLive = verify?.status === 403
+  record(
+    'the contact flow is switched on',
+    flowLive,
+    flowLive
+      ? 'HTTP 403 — configured, and the challenge did its job'
+      : `HTTP ${verify?.status} — the flow is off; the backend log names the variable`,
+    !IS_LOCAL,
+  )
+
+  // 502 means the opposite: the flow IS configured and the mail provider
+  // refused the send. Unreachable while the gate holds — it takes a real token
+  // to get this far — so it stays as the diagnosis for when the gate is open.
   if (verify?.status === 502) {
     record('the mail provider accepts our sends', false, 'HTTP 502 — check the backend logs')
   }
