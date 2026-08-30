@@ -30,6 +30,7 @@ from app.services.conversation import (
     is_complete,
     merge_facts,
     message_within_budget,
+    missing_facts,
     open_envelope,
     seal_envelope,
     turns_exhausted,
@@ -395,3 +396,18 @@ class TestNextStep:
 
         assert worst_case <= MAX_TURNS
         assert not turns_exhausted(worst_case)
+
+
+class TestTheFactOrder:
+    def test_the_company_comes_before_the_name(self) -> None:
+        """What they are building is the opening question, so it is the first gap.
+
+        The openings stopped asking "what is your name?" — they ask what the
+        visitor is working on — and the order the server reports its gaps in has
+        to agree, or the model asks for the name on the very next turn and the
+        visitor answers the same thing twice.
+        """
+        assert REQUIRED_FACTS.index("company") < REQUIRED_FACTS.index("contact_name")
+
+    def test_missing_facts_reports_them_in_that_order(self) -> None:
+        assert missing_facts(ConversationFacts())[0] == "company"

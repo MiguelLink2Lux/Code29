@@ -646,16 +646,16 @@ export const translations = {
   },
   contactConversation: {
     es: {
-      // Openings rotate per conversation. Every one of them must say the same
-      // three things — who is asking, that there will be questions, and that the
-      // point is the report — because a greeting that omits the purpose turns the
-      // questions that follow into an interrogation.
+      // The opening offers help and asks them to introduce what they are
+      // building. It used to ask for a name, which made the first move a form
+      // field: a name is answered in one word and leads nowhere. What they are
+      // working on is something a person actually wants to talk about — and it
+      // is what a salesperson asks first.
       openings: [
-        'Hola, soy el asistente de CODE29. Te haré unas pocas preguntas sobre cómo trabajáis y con eso te preparo un informe con la hoja de ruta de vuestro flujo de desarrollo. ¿Cómo te llamas?',
-        'Buenas. Antes de nada: esto es una conversación corta, no un formulario. Con lo que me cuentes te preparo un informe a medida sobre vuestro flujo de desarrollo. Empecemos por lo fácil, ¿cómo te llamas?',
-        'Soy el asistente de CODE29. Mi trabajo aquí es entender cómo desarrolláis para escribirte un informe con lo que mejoraría. Serán cuatro o cinco preguntas. ¿Con quién hablo?',
-        'Hola. Voy a hacerte unas preguntas sobre vuestro día a día de desarrollo y a cambio te mando un informe con la hoja de ruta que sacaría de ellas. ¿Cómo te llamas?',
-        'Hola, soy el asistente de CODE29. Cuanto mejor entienda cómo trabajáis, más útil será el informe que te envíe al final. Empecemos: ¿cómo te llamas?',
+        'Hola, soy el asistente de CODE29. Cuéntame qué estáis construyendo y montamos juntos un informe con lo que veo que os podría ayudar. ¿Qué tenéis entre manos?',
+        'Buenas. Soy el asistente de CODE29 y mi trabajo es ver dónde os podemos echar una mano. Preséntame tu proyecto o tu empresa y salimos de aquí con un informe hecho a medida.',
+        'Hola, soy el asistente de CODE29. Si me cuentas qué estáis desarrollando, preparo contigo un informe con las mejoras que le veo a vuestro flujo de trabajo. ¿Por dónde empezamos — qué hacéis?',
+        'Soy el asistente de CODE29. Dime en qué andáis metidos: producto, empresa o idea, y vemos juntos en qué podemos ayudaros. Al final te llevas un informe con lo que saquemos.',
       ],
       placeholder: 'Escribe tu respuesta…',
       typing: 'CODE29 está escribiendo…',
@@ -726,11 +726,10 @@ export const translations = {
     },
     en: {
       openings: [
-        'Hi, I am the CODE29 assistant. I will ask you a few questions about how your team works, and from those I will put together a report with a roadmap for your development workflow. What is your name?',
-        'Hello. First things first: this is a short conversation, not a form. From what you tell me I will write you a report tailored to your development workflow. Let us start easy — what is your name?',
-        'I am the CODE29 assistant. My job here is to understand how you build, so I can write you a report on what I would improve. Four or five questions. Who am I speaking with?',
-        'Hi. I am going to ask about your day-to-day development, and in return I will send you a report with the roadmap I draw from it. What is your name?',
-        'Hi, I am the CODE29 assistant. The better I understand how you work, the more useful the report I send you at the end. Let us begin: what is your name?',
+        'Hi, I am the CODE29 assistant. Tell me what you are building and we will put together a report on where I think we could help. What are you working on?',
+        'Hello. I am the CODE29 assistant, and my job is to find where we can lend you a hand. Introduce me to your project or your company and you leave with a report made for it.',
+        'Hi, I am the CODE29 assistant. Tell me what you are developing and I will prepare a report with the improvements I see in how you work. Where do we start — what do you do?',
+        'I am the CODE29 assistant. Tell me what you are up to: product, company or just an idea, and we will look together at where we can help. You leave with a report on whatever we find.',
       ],
       placeholder: 'Type your answer…',
       typing: 'CODE29 is typing…',

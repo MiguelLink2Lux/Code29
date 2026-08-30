@@ -372,6 +372,20 @@ describe('it reads as a conversation, not as a form', () => {
     }
   })
 
+  it('no opening asks for a name first', () => {
+    // Opening on "what is your name?" makes the first move a form field. The
+    // conversation starts on what they are building; the name comes up when it
+    // fits, and the server's fact order was changed to match.
+    const asksForAName = /c[oó]mo te llamas|con qui[eé]n hablo|tu nombre|what is your name|who am i speaking|your name\?/i
+
+    for (const opening of [
+      ...translations.contactConversation.es.openings,
+      ...translations.contactConversation.en.openings,
+    ]) {
+      expect(opening).not.toMatch(asksForAName)
+    }
+  })
+
   it('asks for the address in the bot’s own voice, inside the thread', async () => {
     mount(readyForEmail())
 

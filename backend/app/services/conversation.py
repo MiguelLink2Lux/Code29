@@ -54,7 +54,11 @@ DECLINED = "__declined__"
 
 # The four facts the envelope tracks. The fifth — the verified email — is the
 # access token, on purpose.
-REQUIRED_FACTS = ("contact_name", "company", "website", "team")
+#: In ask order, and the order is the point: the conversation opens on what the
+#: visitor is building, so that is the first gap. Asking the name first made the
+#: opening move a form field — one word, leading nowhere — and left the model
+#: asking for it again on the very next turn.
+REQUIRED_FACTS = ("company", "contact_name", "website", "team")
 
 
 class EnvelopeTooLarge(InvalidToken):
