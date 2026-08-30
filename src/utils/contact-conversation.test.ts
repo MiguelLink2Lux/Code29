@@ -711,6 +711,27 @@ describe('readAnswer', () => {
     })
   })
 
+  it('reads a mistyped code as a code, not as something new to say', () => {
+    // COD-64: a visitor typed seven digits. The old rule wanted exactly six, so
+    // the reply travelled to the conversation endpoint as free text and the bot
+    // asked for the email address it already held. A wrong code has to reach the
+    // endpoint that can call it wrong.
+    expect(readAnswer('0101010', pending)).toEqual({ kind: 'code', value: '0101010' })
+    expect(readAnswer('38401', pending).kind).toBe('code')
+    expect(readAnswer('38401234', pending).kind).toBe('code')
+  })
+
+  it('still leaves a short number or a year to the conversation', () => {
+    // The other half of the trap: while a code is pending, "2024" and "6" are
+    // far likelier to be an answer than a code, so they stay messages.
+    expect(readAnswer('2024', pending).kind).toBe('message')
+    expect(readAnswer('6', pending).kind).toBe('message')
+  })
+
+  it('does not read a long number as a code when nothing is pending', () => {
+    expect(readAnswer('0101010', nothingPending).kind).toBe('message')
+  })
+
   it('prefers the address when a reply carries both', () => {
     // Verifying is the step that unblocks the report; the digits can wait.
     expect(readAnswer('384012 y mi correo es a@b.com', pending).kind).toBe('email')
