@@ -215,7 +215,7 @@ so there is one crypto path in the codebase rather than two:
 | TTL | 30 min (`ENVELOPE_TTL_SECONDS`) | Long enough to think, short enough that an abandoned envelope dies inside the session |
 | Size cap | 4 KB (`MAX_ENVELOPE_BYTES`) | Checked *before* parsing: arbitrary client bytes are not work we agreed to do |
 | Contents | Facts only — no transcript, no email | Anything in here can reach a model |
-| Turn budget | `MAX_TURNS = 12`, **inside the signature** | A client able to reset it could loop the conversation at our expense |
+| Turn budget | `MAX_TURNS = 16`, **inside the signature** | A client able to reset it could loop the conversation at our expense |
 | Message cap | 1000 chars, refused **before** the model call | Paying for a prompt we know is over budget is money spent on nothing |
 
 Exhausting the budget is **not an error**: the endpoint closes with what it has
@@ -373,7 +373,7 @@ them — the model's manners changed, its licence to invent did not.
   cycle.
 - **Extraction quality is unmeasured against real visitors.** The suite drives
   `StubFactExtractor` and mocked Gemini responses. Whether a real conversation yields four clean
-  facts in a reasonable number of turns is unknown; `MAX_TURNS = 12` is a guess pending the
+  facts in a reasonable number of turns is unknown; `MAX_TURNS = 16` (12 until [[0012-the-script-covers-the-canon]] grew the script) is a guess pending the
   first real run.
 - **`measured_evidence_for()` maps one point.** Correct by the standard this ADR sets, but it
   means measured evidence — the part a lead cannot dispute, and the part 0008 said should lead

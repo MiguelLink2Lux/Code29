@@ -19,6 +19,8 @@ is the durable half: what was actually wrong, and what now prevents it.
 | [[gemini-extractor-never-wired]] | Contact conversation — extractor wiring | Fixed | 2026-08-26 |
 | [[turnstile-test-key-in-production]] | Contact verification — anti-abuse gate | Fixed | 2026-08-27 |
 | [[turnstile-widget-outside-the-dom]] | Contact verification — human check | Fixed | 2026-08-28 |
+| [[model-thinking-outlived-the-deadline]] | Contact conversation — model deadline | Fixed | 2026-08-30 |
+| [[a-mistyped-code-became-a-message]] | Contact verification — answer routing | Fixed | 2026-08-30 |
 
 ## Convention
 

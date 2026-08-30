@@ -18,6 +18,7 @@ Chronological log of significant architecture decisions (MADR format).
 | [[0009-conversational-contact-agent]] | A conversational agent replaces the guided questionnaire, and an agent verifies the report | Accepted (partially supersedes 0006) |
 | [[0010-snyk-dependency-scanning]] | Snyk scans dependencies for known vulnerabilities, outside the PR pipeline | Accepted |
 | [[0011-server-owned-conversation-script]] | The server owns the conversation script, and the guard blocks conversations rather than people | Accepted |
+| [[0012-the-script-covers-the-canon]] | The script asks what the report promises to assess, and the new ground is optional | Accepted |
 
 The **location** decided by 0005 — the AI layer embedded in the FastAPI backend — still
 stands; only the **mechanism** (the Genkit Python SDK) was replaced by a direct REST call
