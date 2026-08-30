@@ -42,7 +42,7 @@ htmlcov/
 .astro/
 
 # Vercel build output
-.vercel/output/
+.vercel/
 
 # Playwright
 playwright-report/
