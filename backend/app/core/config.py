@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import SecretStr, field_validator, model_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.services.turnstile import TEST_SECRET_KEY as TURNSTILE_TEST_SECRET_KEY
@@ -117,6 +117,17 @@ class Settings(BaseSettings):
         if missing:
             return f"not configured: {', '.join(missing)}"
 
+        # A secret shorter than the minimum is not a configured flow: it signs
+        # tokens that authorise sending email and fetching third-party sites, so
+        # it must not run — but it must not take the service with it either.
+        secret = self.contact_token_secret.get_secret_value()
+
+        if self.is_production and len(secret) < MIN_SECRET_LENGTH:
+            return (
+                f"CONTACT_TOKEN_SECRET is shorter than {MIN_SECRET_LENGTH} characters; "
+                "it would sign tokens that authorise outbound email"
+            )
+
         # A test secret is not a configured gate, it is an open one: Turnstile is
         # the only thing standing between this endpoint and an email amplifier,
         # and Cloudflare's test pair approves every token. Treating it as absent
@@ -163,25 +174,6 @@ class Settings(BaseSettings):
             ]
         )
 
-    @model_validator(mode="after")
-    def _require_strong_secret_in_production(self) -> "Settings":
-        # A weak secret is always a hard failure: it would authorise outbound
-        # email and third-party fetches with a guessable signature.
-        secret = self.contact_token_secret.get_secret_value()
-
-        if secret and self.is_production and len(secret) < MIN_SECRET_LENGTH:
-            raise ValueError(
-                f"CONTACT_TOKEN_SECRET must be at least {MIN_SECRET_LENGTH} characters long"
-            )
-
-        # An absent secret only fails when the flow was clearly meant to run.
-        # Otherwise a health-only production deploy — which is what ships today —
-        # would refuse to boot over a feature it does not serve.
-        if self.is_production and self._contact_flow_intended and not secret:
-            raise ValueError("CONTACT_TOKEN_SECRET is required when the contact flow is configured")
-
-        return self
-
     # enable_decoding=False stops pydantic-settings from JSON-decoding complex
     # fields (list[str]) at the source level, so CORS_ORIGINS reaches the
     # validator below as a raw comma-separated string instead of crashing.
@@ -199,10 +191,13 @@ class Settings(BaseSettings):
         else:
             origins = value
 
-        # Fail fast on boot instead of deploying an open CORS policy: credentials
-        # aside, `*` would let any site call the API from a visitor's browser.
-        if isinstance(origins, list) and "*" in origins:
-            raise ValueError("CORS_ORIGINS must list explicit origins; wildcard `*` is not allowed")
+        # A wildcard would let any site call this API from a visitor's browser,
+        # so it is dropped — but dropping it is the whole response. Raising here
+        # would take the service down over a CORS setting, and a backend that
+        # will not start is not safer than one that allows no origins: both
+        # serve nothing to the browser, and only one can be asked why.
+        if isinstance(origins, list):
+            return [origin for origin in origins if origin != "*"]
 
         return origins
 
