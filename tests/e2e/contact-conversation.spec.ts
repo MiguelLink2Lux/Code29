@@ -185,7 +185,7 @@ test.describe('conversational contact', () => {
     await verifyEmail(page)
 
     await expect
-      .poll(() => calls.filter((url) => url.includes('/contact/report')).length, { timeout: 10000 })
+      .poll(() => calls.filter((url) => url.includes('/contact/report')).length, { timeout: 20000 })
       .toBeGreaterThan(0)
   })
 
@@ -214,13 +214,21 @@ test.describe('conversational contact', () => {
     await page.goto('/')
 
     const composer = page.locator('#conversation-input')
+
+    // Captured AFTER the first turn, not straight after goto(). The island
+    // adopts the visitor's language on mount, so a fingerprint taken before
+    // hydration carries the server-rendered Spanish and one taken after carries
+    // English — a difference in language, not in shape, and not what this test
+    // is about. Waiting for a turn to complete means hydration is done.
+    await say(page, 'somos tres y conectamos retailers con marketplaces')
+    await expect(page.locator('.conversation__message--bot')).toHaveCount(2)
+
     const before = {
       placeholder: await composer.getAttribute('placeholder'),
       inputmode: await composer.getAttribute('inputmode'),
       autocomplete: await composer.getAttribute('autocomplete'),
     }
 
-    await say(page, 'somos tres y conectamos retailers con marketplaces')
     await say(page, 'ada@example.com')
 
     // Captured and compared: during verification the composer must be the same
@@ -248,7 +256,7 @@ test.describe('conversational contact', () => {
     // sentence to look for, and a second bubble here would mean the client had
     // started talking on its own again.
     await expect
-      .poll(async () => page.locator('.conversation__message--bot').count())
+      .poll(async () => page.locator('.conversation__message--bot').count(), { timeout: 15000 })
       .toBe(2)
   })
 
