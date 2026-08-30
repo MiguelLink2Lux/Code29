@@ -42,8 +42,21 @@ export function extractEmail(message: string): string | null {
   return found ? found[0].toLowerCase() : null
 }
 
-/** A verification code as the backend issues it: six digits, nothing else. */
-const BARE_CODE = /^\d{6}$/
+/**
+ * An attempt at a verification code: digits and nothing else.
+ *
+ * Deliberately wider than the six digits the backend issues. A code of the
+ * wrong length is a *mistyped code*, not a new thing to say, and it has to
+ * reach the endpoint that can tell the visitor so — a visitor who typed seven
+ * digits was answered by the bot asking again for the address it already held
+ * (COD-64), because a near-miss fell through to the conversation.
+ *
+ * The floor of five is what keeps the other half of the trap closed: while a
+ * code is pending, "6" and "2024" are far likelier to be an answer than a
+ * code. The backend refuses whatever is not a valid code, so being generous
+ * here costs a rejected request and buys an honest error message.
+ */
+const BARE_CODE = /^\d{5,10}$/
 
 export interface Answer {
   kind: 'email' | 'code' | 'message'
@@ -57,10 +70,12 @@ export interface Answer {
  * the visitor is put through, it is something that happens while they talk — so
  * the reply has to be read rather than routed by whichever field was on screen.
  *
- * A six-digit number is only a code when a verification is **pending** and the
+ * A run of digits is only a code when a verification is **pending** and the
  * reply is **nothing but** those digits. Both halves matter: "somos 6 en el
  * equipo", "facturamos 384012 euros" and "en 2024" are things people say, and
  * swallowing one as a verification code would lose an answer and burn a code.
+ * See `BARE_CODE` for why the length is a range rather than the exact six the
+ * backend issues.
  *
  * An address wins over digits when a reply carries both: verifying is what
  * unblocks the report, and the code can be given again.
