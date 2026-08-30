@@ -16,6 +16,8 @@ the verified address, which lives in the token and never in the envelope.
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
@@ -37,6 +39,8 @@ from app.services.extraction import FactExtractor, redact_email
 from app.services.prompt_guard import scan
 from app.services.report_gemini import ModelResponseInvalid, ModelUnavailable
 from app.services.tokens import InvalidToken, verify_access_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contact/conversation", tags=["contact"])
 
@@ -190,6 +194,12 @@ async def take_turn(
     except (ModelUnavailable, ModelResponseInvalid) as error:
         # The model is a dependency like any other: its failure is a 502, never
         # a 500, and never a silent fallback that fabricates a reply.
+        #
+        # Logged before it is converted, because the 502 the visitor sees says
+        # nothing about the cause on purpose. The class and our own message are
+        # enough to tell a timeout from a refusal; the visitor's words are not
+        # ours to keep, so they never appear here.
+        logger.warning("conversation turn failed: %s: %s", type(error).__name__, error)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="No he podido procesar tu mensaje. Inténtalo de nuevo.",
