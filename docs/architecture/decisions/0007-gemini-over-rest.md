@@ -76,7 +76,8 @@ Request shape:
 | Auth | `x-goog-api-key` **header** | Never the query string — URLs end up in proxy logs, traces and error reports. |
 | `generationConfig.temperature` | `0` | The same facts about the same company must not yield two different diagnoses. |
 | `generationConfig.responseMimeType` | `application/json` | Asks for JSON directly instead of parsing prose. |
-| Timeout | 30 s | Bounded by the serverless invocation, not left to the default. |
+| `generationConfig.thinkingConfig` | `{"thinkingLevel": "low"}` | Extraction reads facts out of one sentence. Flash 3.x reasons at `medium` when the field is omitted, which outlived the deadline in production ([[model-thinking-outlived-the-deadline]]). `low` is the floor these models accept. |
+| Timeout | 30 s, extraction and generation alike | Bounded by the serverless invocation, not left to the default. One number for one provider: two different ones were a coincidence, not a decision. |
 
 The connector tolerates the model wrapping its JSON in a ```` ```json ```` fence anyway —
 models do it even when told not to — and strips the fence before parsing.
