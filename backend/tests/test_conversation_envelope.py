@@ -23,6 +23,7 @@ from app.services.conversation import (
     MAX_ENVELOPE_BYTES,
     MAX_MESSAGE_CHARS,
     MAX_TURNS,
+    OPTIONAL_FACTS,
     REQUIRED_FACTS,
     ConversationFacts,
     EnvelopeTooLarge,
@@ -44,6 +45,17 @@ FACTS = ConversationFacts(
     company="Analytical Engines",
     website="https://analyticalengines.example",
     team="4 developers, no dedicated QA",
+)
+
+
+#: The required facts plus the optional ground the canon needs (COD-65).
+EVERYTHING = FACTS.model_copy(
+    update={
+        "delivery": "PRs reviewed by a human, tests block the merge, deploys on push",
+        "context_home": "requirements in Notion, decisions as ADRs beside the code",
+        "ai_practice": "Copilot daily; no formal training yet",
+        "governance": "secrets in the provider vault, Dependabot on",
+    }
 )
 
 
@@ -369,7 +381,15 @@ class TestNextStep:
         )
 
     def test_everything_held_closes_with_an_invitation(self) -> None:
-        assert derive_next_step(FACTS, email_verified=True, turns=5, blocked=False) == "closing"
+        assert derive_next_step(EVERYTHING, email_verified=True, turns=9, blocked=False) == (
+            "closing"
+        )
+
+    def test_the_optional_ground_is_covered_before_closing(self) -> None:
+        """COD-65: the report promises ten points and the script used to ask four
+        things. With the required facts held, there is still ground to cover —
+        and the turn is spent on it rather than on an early goodbye."""
+        assert derive_next_step(FACTS, email_verified=True, turns=5, blocked=False) == "message"
 
     def test_blocked_beats_everything(self) -> None:
         assert derive_next_step(FACTS, email_verified=True, turns=5, blocked=True) == "blocked"
@@ -392,7 +412,7 @@ class TestNextStep:
         Asserted rather than re-tuned: MAX_TURNS is a cost ceiling, and moving it
         because a new step was added is how a ceiling stops meaning anything.
         """
-        worst_case = 1 + len(REQUIRED_FACTS) + 1
+        worst_case = 1 + len(REQUIRED_FACTS) + len(OPTIONAL_FACTS) + 1
 
         assert worst_case <= MAX_TURNS
         assert not turns_exhausted(worst_case)
@@ -411,3 +431,50 @@ class TestTheFactOrder:
 
     def test_missing_facts_reports_them_in_that_order(self) -> None:
         assert missing_facts(ConversationFacts())[0] == "company"
+
+
+class TestTheOptionalGround:
+    """COD-65: four grouped questions that feed the ten canon points.
+
+    They are optional by design. The visitor who will not answer them still
+    finishes and still gets a report — a chat that traps someone until they have
+    described their CI pipeline is a form wearing a chat's clothes.
+    """
+
+    def test_they_are_not_required_to_finish(self) -> None:
+        assert is_complete(FACTS, email_verified=True) is True
+
+    def test_they_never_appear_among_the_missing_facts(self) -> None:
+        """`missing` is the client's signal to ask for the report
+        (`contact-conversation.ts:402` gates on `missing.length > 0`). An
+        optional fact in that list would mean the report is never requested."""
+        assert missing_facts(ConversationFacts()) == list(REQUIRED_FACTS)
+
+        for field in OPTIONAL_FACTS:
+            assert field not in missing_facts(ConversationFacts())
+
+    def test_the_required_ground_is_covered_first(self) -> None:
+        """A visitor who has not said what they build is not asked about their
+        deployment pipeline."""
+        assert set(REQUIRED_FACTS).isdisjoint(OPTIONAL_FACTS)
+
+    def test_they_survive_a_round_trip_through_the_envelope(self) -> None:
+        envelope = seal_envelope(EVERYTHING, turns=6, secret=SECRET)
+
+        assert open_envelope(envelope, secret=SECRET).facts == EVERYTHING
+
+    def test_a_full_envelope_still_fits_the_size_cap(self) -> None:
+        """Eight facts of realistic length, sealed. The cap refuses oversize
+        envelopes by raising, so reaching this line is the assertion."""
+        crowded = EVERYTHING.model_copy(
+            update={field: "x" * 200 for field in OPTIONAL_FACTS}
+        )
+
+        seal_envelope(crowded, turns=6, secret=SECRET)
+
+    def test_an_unanswered_optional_never_blocks_the_close(self) -> None:
+        """The budget runs out before the ground is covered: the conversation
+        still ends, and it ends complete."""
+        assert derive_next_step(FACTS, email_verified=True, turns=MAX_TURNS, blocked=False) == (
+            "closing"
+        )

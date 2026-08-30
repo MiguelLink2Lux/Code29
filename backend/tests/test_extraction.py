@@ -347,3 +347,60 @@ class TestTheDeadlineGivenToTheModel:
         from app.services.extraction import REQUEST_TIMEOUT_SECONDS
 
         assert REQUEST_TIMEOUT_SECONDS == report_gemini.REQUEST_TIMEOUT_SECONDS
+
+
+@pytest.mark.anyio
+class TestTheGroundTheReportIsAbout:
+    """COD-65: the report assesses ten points, so the script has to ask about
+    them. Four grouped questions, asked after the required facts are held."""
+
+    def test_the_instruction_names_the_four_new_fields(self) -> None:
+        instruction = _instruction()
+
+        for field in ("delivery", "context_home", "ai_practice", "governance"):
+            assert field in instruction
+
+    def test_the_json_shape_carries_them_too(self) -> None:
+        """The model answers with the shape it is shown. A field missing from the
+        example is a field the model has no slot to put an answer in."""
+        shape = _instruction().split('Answer with a single JSON object: ')[1]
+
+        for field in ("delivery", "context_home", "ai_practice", "governance"):
+            assert f'"{field}"' in shape
+
+    def test_it_still_refuses_to_infer(self) -> None:
+        """Four open questions about pipelines and tooling are exactly where a
+        model starts filling in plausible detail. The rule holds."""
+        assert "Never infer, never fill in" in _instruction()
+
+    def test_it_still_never_asks_for_an_email(self) -> None:
+        assert "never ask for an email address" in _instruction().lower()
+
+    async def test_the_stub_asks_about_them_once_the_required_facts_are_held(self) -> None:
+        held = ConversationFacts(
+            contact_name="Ada",
+            company="Analytical Engines",
+            website="https://ae.example",
+            team="four developers",
+        )
+
+        result = await StubFactExtractor().extract("eso es todo", held)
+
+        assert "informe y te lo envío" not in result.reply
+        assert "?" in result.reply
+
+    async def test_the_stub_still_closes_once_there_is_nothing_left_to_ask(self) -> None:
+        held = ConversationFacts(
+            contact_name="Ada",
+            company="Analytical Engines",
+            website="https://ae.example",
+            team="four developers",
+            delivery="PRs con revisión, tests que bloquean el merge",
+            context_home="requisitos en Notion, ADRs junto al código",
+            ai_practice="Copilot a diario",
+            governance="secretos en el gestor del proveedor",
+        )
+
+        result = await StubFactExtractor().extract("nada más", held)
+
+        assert "informe" in result.reply.lower()
