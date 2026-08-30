@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "node scripts/assert-e2e-specs.mjs && playwright test",
+    "test:e2e:ci-sim": "node scripts/assert-e2e-specs.mjs && playwright test --config=playwright.ci-sim.config.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "verify:assets": "vitest run --config vitest.artifacts.config.ts",
