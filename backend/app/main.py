@@ -117,6 +117,14 @@ def _build_extractor() -> FactExtractor:
     return GeminiFactExtractor(api_key=key) if key else StubFactExtractor()
 
 
-# Module-level instance for `uvicorn app.main:app`. Import is side-effect-free
-# (only reads env via cached settings; no I/O or network).
+# Module-level instance for `uvicorn app.main:app`.
+#
+# This line is the whole reason nothing in the settings layer may raise. It runs
+# at import time, so an exception here is not a refused feature: the process
+# exits, every route answers 500, and /health goes down with the rest — which is
+# exactly what happened on 2026-08-29 over a secret that was too short.
+#
+# No I/O and no network, but "reads env" is not the same as "cannot fail". A bad
+# variable disables what depends on it and says so; see
+# `contact_flow_disabled_reason` and tests/test_startup_resilience.py.
 app = create_app()

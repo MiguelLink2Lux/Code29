@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import AliasChoices, Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,6 +48,29 @@ class ReportDeliverySettings(BaseSettings):
     # populate_by_name: the aliased field is also settable by its own name,
     # which tests and the future merge into Settings both rely on.
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", populate_by_name=True)
+
+    @field_validator("gemini_grounding", mode="before")
+    @classmethod
+    def _blank_is_absent(cls, value: object) -> object:
+        """An empty string means "I have not set this", not "invalid boolean".
+
+        A blank field is what a half-filled dashboard produces, and pydantic
+        cannot coerce `""` to a bool — so it raised, during the import of
+        `app.main`, taking the whole service down. Absent and blank must be
+        indistinguishable.
+        """
+        if not isinstance(value, str):
+            return value
+
+        cleaned = value.strip().lower()
+
+        if cleaned in {"1", "true", "yes", "on"}:
+            return True
+
+        # Blank, half-typed, or something nobody meant as a boolean: all of them
+        # mean the feature was not deliberately switched on, and none of them is
+        # worth taking the service down for.
+        return False
 
     def require_mail_configuration(self) -> tuple[str, str, str]:
         """Return (api_key, sender, owner) or refuse to build a mailer."""

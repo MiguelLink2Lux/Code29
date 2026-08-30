@@ -39,11 +39,15 @@ def test_production_origin_can_be_configured(app_with_env: Callable[..., FastAPI
     assert response.headers.get("access-control-allow-origin") == "https://code29.dev"
 
 
-def test_wildcard_origin_is_rejected_at_config_time() -> None:
-    # Fail fast on boot rather than silently deploying an open CORS policy.
-    import pytest
+def test_a_wildcard_origin_is_dropped_rather_than_fatal() -> None:
+    """The wildcard never survives; the service does.
 
+    This used to assert a raise, and raising here runs during the import of
+    app.main — so a CORS setting could take the whole backend down, /health with
+    it. A backend that will not start is not safer than one that allows no
+    origins: both serve nothing to a browser, and only one can be asked why.
+    """
     from app.core.config import Settings
 
-    with pytest.raises(ValueError, match="wildcard"):
-        Settings(cors_origins="*")
+    assert Settings(cors_origins="*").cors_origins == []
+    assert Settings(cors_origins="https://code29.dev,*").cors_origins == ["https://code29.dev"]

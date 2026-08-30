@@ -16,6 +16,8 @@ the verified address, which lives in the token and never in the envelope.
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
@@ -37,6 +39,8 @@ from app.services.extraction import FactExtractor, redact_email
 from app.services.prompt_guard import scan
 from app.services.report_gemini import ModelResponseInvalid, ModelUnavailable
 from app.services.tokens import InvalidToken, verify_access_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contact/conversation", tags=["contact"])
 
@@ -64,9 +68,23 @@ class TurnResponse(BaseModel):
 
 
 def _secret(request: Request) -> str:
-    settings = request.app.state.settings
+    """The signing secret, or 503 if this deployment has no usable one.
 
-    if not settings.contact_token_secret.get_secret_value():
+    Asks `contact_flow_disabled_reason` rather than whether the variable is
+    non-empty. A secret too short to be safe IS non-empty, so the old check
+    passed it straight through to sign envelopes — harmless only for as long as
+    a validator was crashing the process before any request arrived. It no
+    longer does, and this is what keeps that from becoming a hole.
+
+    The reason names the variable, so it goes to the log and never to the
+    response: telling an anonymous caller how a deployment is misconfigured is
+    a configuration oracle.
+    """
+    settings = request.app.state.settings
+    reason = settings.contact_flow_disabled_reason
+
+    if reason is not None:
+        logger.warning("conversation refused a request: %s", reason)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="The contact flow is not configured on this deployment.",

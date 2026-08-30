@@ -32,9 +32,14 @@ class TestSigningSecret:
         settings = Settings(app_env="development", contact_token_secret="")
         assert settings.contact_flow_enabled is False
 
-    def test_production_rejects_an_absent_secret_when_the_flow_is_configured(self) -> None:
-        with pytest.raises(ValueError, match="CONTACT_TOKEN_SECRET"):
-            Settings(app_env="production", contact_token_secret="", resend_api_key="re_test")
+    def test_production_disables_the_flow_when_the_secret_is_absent(self) -> None:
+        # This used to assert a raise. Raising happens during the import of
+        # app.main, so it did not refuse a feature — it stopped the service from
+        # starting, /health included, with no HTTP answer naming the variable.
+        settings = Settings(app_env="production", contact_token_secret="", resend_api_key="re_test")
+
+        assert settings.contact_flow_enabled is False
+        assert "CONTACT_TOKEN_SECRET" in (settings.contact_flow_disabled_reason or "")
 
     def test_production_boots_without_the_flow_configured(self) -> None:
         # A health-only deploy — what ships today — must not refuse to boot over
@@ -42,11 +47,16 @@ class TestSigningSecret:
         settings = Settings(app_env="production", contact_token_secret="")
         assert settings.contact_flow_enabled is False
 
-    def test_production_rejects_a_short_secret_even_alone(self) -> None:
-        # A weak secret is always fatal: it signs tokens that authorise sending
-        # email and fetching third-party sites.
-        with pytest.raises(ValueError, match="32"):
-            Settings(app_env="production", contact_token_secret="too-short")
+    def test_production_disables_the_flow_on_a_short_secret(self) -> None:
+        # A weak secret must never sign anything — that part is unchanged. What
+        # changed is how: the flow is disabled and every endpoint refuses with
+        # 503 before reaching a signing path, instead of the process refusing to
+        # start. See test_startup_resilience.py for the assertion that no route
+        # issues a token in this state.
+        settings = configured(contact_token_secret="too-short")
+
+        assert settings.contact_flow_enabled is False
+        assert "32" in (settings.contact_flow_disabled_reason or "")
 
     def test_production_accepts_a_strong_secret(self) -> None:
         settings = Settings(app_env="production", contact_token_secret=STRONG_SECRET)
