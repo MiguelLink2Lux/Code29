@@ -39,8 +39,10 @@ ENVELOPE_PURPOSE = "contact-conversation"
 ENVELOPE_TTL_SECONDS = 1800
 
 # Five facts need a handful of turns; more than this is a loop, not a
-# conversation. Tune after the first real run (design open question).
-MAX_TURNS = 12
+# conversation. Raised from 12 when the script grew the four grouped questions
+# the canon needs (COD-65): the ceiling exists to bound cost, so it moves with
+# the script deliberately, never as a side effect.
+MAX_TURNS = 16
 
 # One answer, not a pasted document. Also bounds what reaches the model.
 MAX_MESSAGE_CHARS = 1000
@@ -60,6 +62,19 @@ DECLINED = "__declined__"
 #: asking for it again on the very next turn.
 REQUIRED_FACTS = ("company", "contact_name", "website", "team")
 
+#: The ground the report is about, asked once the required facts are held.
+#:
+#: The emailed report assesses ten points, and the four required facts feed none
+#: of them: seven were unreachable by construction and the rest arrived only by
+#: chance (COD-65). These four questions are grouped rather than atomised — one
+#: open question about how code reaches production yields more than three closed
+#: ones, and eight separate fields would be the form this design refuses to be.
+#:
+#: Optional on purpose. They are never in `missing_facts` and never gate
+#: `is_complete`: a visitor who will not describe their pipeline still finishes
+#: and still gets their report.
+OPTIONAL_FACTS = ("delivery", "context_home", "ai_practice", "governance")
+
 
 class EnvelopeTooLarge(InvalidToken):
     """Envelope exceeds the size cap.
@@ -76,6 +91,17 @@ class ConversationFacts(BaseModel):
     company: str | None = None
     website: str | None = None
     team: str | None = None
+
+    #: The optional ground — see `OPTIONAL_FACTS`. Free text, like the rest: the
+    #: visitor describes their practice, the report decides what it evidences.
+    #: How code reaches production — review, tests, deploy, rollback.
+    delivery: str | None = None
+    #: Where the project's context lives — requirements, decisions, task tracker.
+    context_home: str | None = None
+    #: How the team uses AI day to day, and whether it has been trained for it.
+    ai_practice: str | None = None
+    #: Rules over data, secrets and third-party dependencies.
+    governance: str | None = None
 
 
 class ConversationState(BaseModel):
@@ -197,8 +223,18 @@ def merge_facts(held: ConversationFacts, delta: ConversationFacts) -> Conversati
 
 
 def missing_facts(facts: ConversationFacts) -> list[str]:
-    """Facts still unheld, in ask order — what the next question should target."""
+    """Facts still unheld, in ask order — what the next question should target.
+
+    Required facts only. The optional ground is deliberately absent: this list
+    is what the client gates the report request on, so a fact nobody has to
+    answer must never appear in it.
+    """
     return [field for field in REQUIRED_FACTS if _clean(getattr(facts, field)) is None]
+
+
+def unanswered_ground(facts: ConversationFacts) -> list[str]:
+    """The optional ground still unheld, in ask order. Never blocks anything."""
+    return [field for field in OPTIONAL_FACTS if _clean(getattr(facts, field)) is None]
 
 
 def is_complete(facts: ConversationFacts, *, email_verified: bool) -> bool:
@@ -244,6 +280,12 @@ def derive_next_step(
         return "message" if turns == 0 else "email"
 
     if missing_facts(facts):
+        return "message"
+
+    # The optional ground is worth a turn only while there are turns to spend.
+    # With the budget gone, an unanswered question is not a reason to keep the
+    # visitor talking: the conversation closes with what it has.
+    if unanswered_ground(facts) and not turns_exhausted(turns):
         return "message"
 
     return "closing"

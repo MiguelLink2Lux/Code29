@@ -125,7 +125,22 @@ class StubFactExtractor:
             "contact_name": "Antes de nada, ¿cómo te llamas?",
             "company": "Encantado. ¿En qué empresa trabajas?",
             "website": "¿Y cuál es vuestra web o aplicación? La miro para aterrizar el informe.",
-            "team": "Última cosa: ¿quién lleva el desarrollo, un equipo propio o alguien externo?",
+            "team": "¿Quién lleva el desarrollo, un equipo propio o alguien externo?",
+            "delivery": (
+                "¿Cómo llega vuestro código a producción? Me interesa quién lo revisa, qué "
+                "tiene que estar en verde y qué hacéis si algo sale mal."
+            ),
+            "context_home": (
+                "¿Dónde vive el contexto del proyecto: los requisitos, las decisiones de "
+                "arquitectura, las tareas?"
+            ),
+            "ai_practice": (
+                "¿Cómo usáis la IA en el día a día, y os habéis formado para ello?"
+            ),
+            "governance": (
+                "Última cosa: ¿qué reglas tenéis sobre datos, secretos y dependencias de "
+                "terceros?"
+            ),
         }
 
         for field, question in questions.items():
@@ -306,9 +321,22 @@ def _instruction(lang: str = "es", step: str = "message") -> str:
         "prospective client in order to write them a report on their development workflow. "
         "The report is the point of the conversation, and the visitor knows it: the facts you "
         "collect are what make it specific to them.\n"
-        "You need exactly four facts: contact_name, company, website, team (their IT or "
+        "You need four facts first: contact_name, company, website, team (their IT or "
         "development team). You never ask for an email address: it is handled elsewhere and "
         "has been redacted from the message you receive.\n"
+        "Once you hold those four, there is further ground the report is actually about. "
+        "Four more fields, asked one per turn, each one a single open question rather than "
+        "a checklist — an engineer answers a question about their own practice at length, "
+        "and everything they volunteer counts:\n"
+        "- delivery: how their code reaches production — who reviews it, what has to pass, "
+        "how it is deployed, what happens when something breaks.\n"
+        "- context_home: where the project's context lives — requirements, architecture "
+        "decisions, how work is tracked.\n"
+        "- ai_practice: how the team uses AI day to day, and whether it has been trained "
+        "for it.\n"
+        "- governance: their rules over data, secrets and third-party dependencies.\n"
+        "These four are worth asking for but never worth insisting on. If the visitor "
+        "brushes one aside, record nothing and move to the next.\n"
         "Extraction rules — these are absolute:\n"
         "- Extract ONLY what the visitor actually said. Never infer, never fill in.\n"
         "- Leave a field null when it was not given.\n"
@@ -328,11 +356,12 @@ def _instruction(lang: str = "es", step: str = "message") -> str:
         "the fastest way to sound like a form.\n"
         "- When a message answers more than one thing at once, take all of it and ask only "
         "for what is genuinely still missing.\n"
-        "- When you hold all four, say so and tell them the report is being prepared. Do not "
-        "invent a next question.\n"
+        "- When there is nothing left to ask, say so and tell them the report is being "
+        "prepared. Do not invent a next question.\n"
         f"{_CONDUCT_BY_STEP.get(step, _CONDUCT_BY_STEP['message'])}\n"
         "- Two or three sentences at most. No bullet points, no numbered steps.\n"
         "Answer with a single JSON object: "
-        '{"facts": {"contact_name": null, "company": null, "website": null, "team": null}, '
+        '{"facts": {"contact_name": null, "company": null, "website": null, "team": null, '
+        '"delivery": null, "context_home": null, "ai_practice": null, "governance": null}, '
         '"reply": "your next message", "injection": false}'
     )

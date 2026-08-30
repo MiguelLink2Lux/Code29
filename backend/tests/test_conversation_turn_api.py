@@ -17,6 +17,7 @@ from app.main import create_app
 from app.services.conversation import (
     MAX_MESSAGE_CHARS,
     MAX_TURNS,
+    OPTIONAL_FACTS,
     ConversationFacts,
     open_envelope,
     seal_envelope,
@@ -204,6 +205,39 @@ class TestRefusals:
         assert "ModelUnavailable" in logged
         # The visitor's words are theirs. A log line is not a place to keep them.
         assert "Analytical Engines" not in logged
+
+
+class TestTheOptionalGroundNeverBlocksTheReport:
+    """COD-65. The client asks for the report only when `missing` is empty
+    (`contact-conversation.ts:402`). An optional fact reported as missing would
+    mean no visitor ever receives a report — silently, and for everyone."""
+
+    def test_the_response_never_reports_an_optional_fact_as_missing(self) -> None:
+        response = build(_ScriptedExtractor(ConversationFacts())).post(
+            URL, json={"message": "hola"}
+        )
+
+        for field in OPTIONAL_FACTS:
+            assert field not in response.json()["missing"]
+
+    def test_a_visitor_who_answers_only_the_required_facts_is_complete(self) -> None:
+        held = ConversationFacts(
+            contact_name="Ada",
+            company="Analytical Engines",
+            website="https://ae.example",
+            team="four developers",
+        )
+        token = issue_access_token(EMAIL, secret=SECRET)
+
+        response = build(_ScriptedExtractor(held)).post(
+            URL,
+            json={"message": "eso es todo"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        body = response.json()
+        assert body["missing"] == []
+        assert body["complete"] is True
 
 
 class TestPrivacy:
