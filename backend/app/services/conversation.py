@@ -28,7 +28,7 @@ import json
 import time
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.services.tokens import InvalidToken, _b64decode, _b64encode, _sign
 
@@ -75,6 +75,10 @@ REQUIRED_FACTS = ("company", "contact_name", "website", "team")
 #: and still gets their report.
 OPTIONAL_FACTS = ("delivery", "context_home", "ai_practice", "governance")
 
+#: Ceiling for each optional fact. Generous for a sentence about how a team works,
+#: small enough that four of them cannot inflate the envelope past its own limit.
+MAX_GROUND_CHARS = 2000
+
 
 class EnvelopeTooLarge(InvalidToken):
     """Envelope exceeds the size cap.
@@ -94,14 +98,17 @@ class ConversationFacts(BaseModel):
 
     #: The optional ground — see `OPTIONAL_FACTS`. Free text, like the rest: the
     #: visitor describes their practice, the report decides what it evidences.
+    #: Bounded because the envelope is a signed token carried on every turn, and
+    #: because free text with no ceiling is where an instruction hides. The
+    #: generator truncates further before showing any of it to a model.
     #: How code reaches production — review, tests, deploy, rollback.
-    delivery: str | None = None
+    delivery: str | None = Field(default=None, max_length=MAX_GROUND_CHARS)
     #: Where the project's context lives — requirements, decisions, task tracker.
-    context_home: str | None = None
+    context_home: str | None = Field(default=None, max_length=MAX_GROUND_CHARS)
     #: How the team uses AI day to day, and whether it has been trained for it.
-    ai_practice: str | None = None
+    ai_practice: str | None = Field(default=None, max_length=MAX_GROUND_CHARS)
     #: Rules over data, secrets and third-party dependencies.
-    governance: str | None = None
+    governance: str | None = Field(default=None, max_length=MAX_GROUND_CHARS)
 
 
 class ConversationState(BaseModel):

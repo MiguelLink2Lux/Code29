@@ -1,10 +1,21 @@
 """Decide whether a visitor message is trying to seize control of the assistant.
 
-This is the boundary of the one surface where visitor prose reaches a model. The
-report generator is bounded *by construction* — it never sees what a visitor wrote
-(ADR 0007) — so it needs no filter. The extractor exists to read prose, and cannot
-be bounded that way. Hence a filter, here, and only here. The two mechanisms are
-complementary; unifying them would remove one of the guarantees.
+This is the boundary of the surface where visitor prose reaches a model. The
+extractor exists to read prose and cannot be bounded any other way, so it is
+filtered here.
+
+The report generator used to need no filter at all: it was bounded *by
+construction*, never seeing a word the visitor wrote (ADR 0007). COD-67 ended
+that. The four optional facts of the script — how the team delivers, where its
+context lives, how it uses AI, what governs its data — are the visitor's own
+sentences, and the report is worthless without them. They are sealed and
+validated, but they are still their words, so `scan` runs over them too before
+they are sent (`grounded_report._clean_ground`). The guarantee is the same; it is
+now enforced rather than structural, which is a weaker thing and worth saying out
+loud.
+
+The two mechanisms stay complementary; unifying them would remove one of the
+guarantees.
 
 **Where the zero is.** Zero tolerance was decided for the *response*: a detected
 attempt ends the conversation with no warning and no second chance. It was

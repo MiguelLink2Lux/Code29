@@ -249,9 +249,17 @@ class TemplateCanonGenerator:
         locale: str = "es",
         team: str | None = None,
         site: SiteSignals,
+        ground: dict[str, str | None] | None = None,  # noqa: ARG002 — see below
         reported: dict[str, Any] | None = None,
         cited: dict[str, Any] | None = None,
     ) -> CanonReport:
+        """`ground` is accepted and unused, so both generators stay interchangeable.
+
+        Splitting a sentence about a team's practice across canon points is
+        interpretation. With no model there is nothing to do it, and dumping the
+        whole answer under one point picked by the backend would be an attribution
+        nobody made. The template says `no evaluado`, which is true.
+        """
         return build_canon_report(
             contact_name=contact_name,
             company=company,
