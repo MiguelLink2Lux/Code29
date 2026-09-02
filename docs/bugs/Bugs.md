@@ -21,6 +21,8 @@ is the durable half: what was actually wrong, and what now prevents it.
 | [[turnstile-widget-outside-the-dom]] | Contact verification — human check | Fixed | 2026-08-28 |
 | [[model-thinking-outlived-the-deadline]] | Contact conversation — model deadline | Fixed | 2026-08-30 |
 | [[a-mistyped-code-became-a-message]] | Contact verification — answer routing | Fixed | 2026-08-30 |
+| [[a-validator-ran-at-import-time]] | Backend startup — configuration | Fixed | 2026-08-30 |
+| [[the-ground-never-left-the-envelope]] | Canon report — facts routing | Fixed | 2026-09-01 |
 
 ## Convention
 

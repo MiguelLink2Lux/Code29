@@ -100,6 +100,15 @@ models do it even when told not to — and strips the fence before parsing.
    template generator quotes it verbatim in the summary. The guarantee that holds regardless is
    (1): injected text can steer the prose, but it cannot produce an axis or a service that does
    not exist, and it cannot reach anything but the report.
+
+   **Amended 2026-09-01 (COD-67).** The canon generator that superseded this one *is* sent
+   visitor-authored prose: the four optional facts of the script, without which the report has
+   almost nothing to judge (see [[the-ground-never-left-the-envelope]]). The bound is therefore no
+   longer structural for that path — it is enforced. `prompt_guard.scan` runs over each fact before
+   the call, each is truncated to 500 characters, and the prompt presents them as quoted client
+   statements with an explicit instruction not to obey them. A refused fact simply does not travel,
+   leaving its point at `no evaluado`. Guarantee (1) is unchanged and remains the one that holds
+   regardless: injected text cannot invent a canon point or a service that does not exist.
 4. **The API key never appears in an exception.** Asserted by a test; the failure messages carry
    a status code or an exception class name, nothing else.
 
