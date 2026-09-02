@@ -58,7 +58,8 @@ design rather than half-working.
 | `CONTACT_TO_EMAIL` | Mailbox that receives the owner copy of every lead |
 | `TURNSTILE_SECRET_KEY` | Private half of the human check. Pairs with `PUBLIC_TURNSTILE_SITE_KEY` on the frontend: both halves come from **one** Cloudflare widget, and a real site key with a test secret verifies nothing |
 | `GEMINI_API_KEY` | Optional. Present → a model conducts the conversation; absent → the deterministic stub does |
-| `REPORT_GENERATOR` | `stub` or `gemini`. `gemini` without a key refuses rather than emailing a template as if a model wrote it |
+| `REPORT_GENERATOR` | `stub` or `gemini`. `gemini` without a key refuses rather than emailing a template as if a model wrote it. **Defaults to `stub`**, so an absent variable silently downgrades the report — see [[../bugs/the-report-generator-was-never-set]] |
+| `GEMINI_GROUNDING` | Optional, off by default. Switches on Google Search grounding for the report. Entitlement-gated: without a paid tier every grounded request returns 429 while the same one without it returns 200, so it stays off until billing is enabled. A blank value means absent, never an invalid boolean (`report_settings.py:52`) — a half-filled dashboard field used to take the whole service down at import time |
 
 **`GEMINI_API_KEY` is declared in exactly one place: `ReportDeliverySettings`.** Both the
 report generator and the conversation extractor read it from there. Do not add the field to
@@ -84,7 +85,7 @@ only because the variable was genuinely missing.
 | `PUBLIC_TURNSTILE_SITE_KEY reached the build` | No site key compiled in; every code request will answer "unavailable" |
 | `Turnstile runs on a real key, not the test one` | Cloudflare's always-passing **site** key is compiled into the frontend bundle — see the section below |
 | `an invented Turnstile token is refused` | The backend accepted a token that was never issued. The **secret** is the test one, and the gate is open |
-| `the conversation is model-driven` | The stub is answering: `GEMINI_API_KEY` is absent or the model rejected the request |
+| `the conversation is model-driven` | **The message this check prints is not reliable.** It decides on the shape of the response body, so a `502` — the model timed out — is reported as "the stub is answering, `GEMINI_API_KEY` is missing or rejected", which is a different cause with the opposite fix. It is also a `warn`, so the run still ends in "checks passed". Read it as "the turn did not come back clean" and diagnose from there. Tracked in COD-69 |
 | `contact flow is configured` (503) | Backend variables still missing |
 | `the mail provider accepts our sends` (502) | The flow is configured and **Resend refused**. The reason is in the backend logs |
 
