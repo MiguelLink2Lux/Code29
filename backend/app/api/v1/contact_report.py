@@ -291,6 +291,15 @@ async def create_contact_report(
     company = payload.company
     website = payload.site_url
     team: str | None = None
+    # The four optional facts of the script. Without them the generator has a
+    # company and no practice attached to it, and every point it could have
+    # judged stays `no evaluado` — a report about nothing (COD-67).
+    #
+    # Imported here, like `open_envelope` below: the conversation service pulls in
+    # the model client, and this module is imported at app build time.
+    from app.services.conversation import OPTIONAL_FACTS
+
+    ground: dict[str, str | None] = dict.fromkeys(OPTIONAL_FACTS)
 
     if payload.envelope:
         from app.services.conversation import open_envelope
@@ -312,6 +321,7 @@ async def create_contact_report(
         company = state.facts.company or ""
         website = state.facts.website
         team = state.facts.team
+        ground = {field: getattr(state.facts, field) for field in OPTIONAL_FACTS}
 
     signals = await _analyse(analyzer, website)
 
@@ -322,6 +332,7 @@ async def create_contact_report(
             locale=payload.locale,
             team=team,
             site=signals,
+            ground=ground,
         )
     except Exception as error:
         # Contained on purpose: a half-written report must never be emailed.

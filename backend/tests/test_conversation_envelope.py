@@ -17,6 +17,7 @@ import json
 import time
 
 import pytest
+from pydantic import ValidationError
 
 from app.services.conversation import (
     DECLINED,
@@ -478,3 +479,15 @@ class TestTheOptionalGround:
         assert derive_next_step(FACTS, email_verified=True, turns=MAX_TURNS, blocked=False) == (
             "closing"
         )
+
+
+class TestTheOptionalFactsAreBounded:
+    """Free text with no ceiling is where an instruction hides, and this travels in a token."""
+
+    def test_a_long_answer_is_refused_rather_than_sealed(self) -> None:
+        with pytest.raises(ValidationError):
+            ConversationFacts(delivery="x" * 2001)
+
+    def test_an_ordinary_answer_still_fits(self) -> None:
+        facts = ConversationFacts(delivery="PR obligatoria y tests, deploy a mano")
+        assert facts.delivery is not None

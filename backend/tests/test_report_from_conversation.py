@@ -12,9 +12,11 @@ to.
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.v1.contact_report import get_report_generator
 from app.core.config import Settings
 from app.core.report_settings import get_report_delivery_settings
 from app.main import create_app
+from app.services.canon_report import TemplateCanonGenerator
 from app.services.conversation import ConversationFacts, seal_envelope
 from app.services.mailer import NullMailer
 from app.services.tokens import issue_access_token
@@ -234,3 +236,87 @@ class TestEmailBody:
         )
 
         assert report.generator in body
+
+
+class TestTheGroundReachesTheGenerator:
+    """COD-67: the endpoint used to open the envelope and keep four fields of eight.
+
+    The other four — what the script spends most of its turns gathering — were
+    dropped on the line that unpacked the envelope, so the generator was handed a
+    company with no practice attached and the lead got a report about nothing.
+    """
+
+    def test_the_optional_facts_are_handed_to_the_generator(self) -> None:
+        client, _ = build()
+        seen: dict = {}
+
+        class Recording:
+            name = "recording"
+
+            async def generate(self, **kwargs):
+                seen.update(kwargs)
+                return await TemplateCanonGenerator().generate(
+                    **{k: v for k, v in kwargs.items() if k != "ground"}
+                )
+
+        client.app.dependency_overrides[get_report_generator] = lambda: Recording()
+
+        response = client.post(
+            URL,
+            json={
+                "envelope": envelope(
+                    ConversationFacts(
+                        contact_name="Ada Lovelace",
+                        company="Analytical Engines",
+                        website="analyticalengines.example",
+                        team="tres personas, sin CI",
+                        delivery="PR obligatoria y tests, deploy a mano",
+                        context_home="requisitos en Notion",
+                        ai_practice="Copilot a diario",
+                        governance="secretos en .env",
+                    )
+                ),
+                "consent": {"privacy_accepted": True, "report_accepted": True},
+            },
+            headers={"Authorization": f"Bearer {token()}"},
+        )
+
+        assert response.status_code in {200, 202}, response.text
+        assert seen["ground"] == {
+            "delivery": "PR obligatoria y tests, deploy a mano",
+            "context_home": "requisitos en Notion",
+            "ai_practice": "Copilot a diario",
+            "governance": "secretos en .env",
+        }
+
+    def test_an_envelope_without_them_hands_over_nothing(self) -> None:
+        client, _ = build()
+        seen: dict = {}
+
+        class Recording:
+            name = "recording"
+
+            async def generate(self, **kwargs):
+                seen.update(kwargs)
+                return await TemplateCanonGenerator().generate(
+                    **{k: v for k, v in kwargs.items() if k != "ground"}
+                )
+
+        client.app.dependency_overrides[get_report_generator] = lambda: Recording()
+
+        response = client.post(
+            URL,
+            json={
+                "envelope": envelope(),
+                "consent": {"privacy_accepted": True, "report_accepted": True},
+            },
+            headers={"Authorization": f"Bearer {token()}"},
+        )
+
+        assert response.status_code in {200, 202}, response.text
+        assert seen["ground"] == {
+            "delivery": None,
+            "context_home": None,
+            "ai_practice": None,
+            "governance": None,
+        }
