@@ -340,13 +340,305 @@ class TestTheInstructionCarriesTheStep:
 
 class TestTheDeadlineGivenToTheModel:
     """The extractor's deadline is the one the visitor waits behind, so it is
-    stated here rather than left to a default that changed under us (COD-63)."""
+    stated here rather than left to a default that changed under us (COD-63).
 
-    def test_it_matches_the_one_the_report_generator_uses(self) -> None:
+    It used to equal the report generator's 30 s. COD-69 split them: a turn is
+    interactive and now retries once, so its whole budget must stay under what
+    the visitor waited before; the report is neither."""
+
+    def test_the_whole_turn_fits_in_less_than_the_old_worst_case(self) -> None:
+        from app.services.extraction import TURN_BUDGET_SECONDS
+
+        assert TURN_BUDGET_SECONDS < 25
+
+    def test_connect_and_read_are_bounded_separately(self) -> None:
+        from app.services.extraction import REQUEST_TIMEOUT, TURN_BUDGET_SECONDS
+
+        # A refused connection is known fast; a slow answer is not. One attempt
+        # must leave room in the budget for the second.
+        assert REQUEST_TIMEOUT.connect is not None
+        assert REQUEST_TIMEOUT.read is not None
+        assert REQUEST_TIMEOUT.connect < REQUEST_TIMEOUT.read
+        assert REQUEST_TIMEOUT.connect + REQUEST_TIMEOUT.read < TURN_BUDGET_SECONDS
+
+    def test_the_report_generator_keeps_its_own_deadline(self) -> None:
         from app.services import report_gemini
-        from app.services.extraction import REQUEST_TIMEOUT_SECONDS
 
-        assert REQUEST_TIMEOUT_SECONDS == report_gemini.REQUEST_TIMEOUT_SECONDS
+        assert report_gemini.REQUEST_TIMEOUT_SECONDS == 30.0
+
+
+def _model_ok() -> dict:
+    return {
+        "candidates": [
+            {"content": {"parts": [{"text": json.dumps({"facts": {}, "reply": "¿Y tu web?"})}]}}
+        ]
+    }
+
+
+def _gemini_error(code: int, status: str) -> dict:
+    return {"error": {"code": code, "message": "quota detail", "status": status}}
+
+
+class _Scripted:
+    """A Gemini stand-in that answers from a script, one entry per call. An
+    entry is either a response or an exception to raise."""
+
+    def __init__(self, *script: object) -> None:
+        import httpx
+
+        self.script = list(script)
+        self.calls = 0
+        self.transport = httpx.MockTransport(self._handle)
+
+    def _handle(self, request: object) -> object:
+        entry = self.script[min(self.calls, len(self.script) - 1)]
+        self.calls += 1
+        if isinstance(entry, Exception):
+            raise entry
+        return entry
+
+
+class _Sleeps:
+    def __init__(self) -> None:
+        self.waited: list[float] = []
+
+    async def __call__(self, seconds: float) -> None:
+        self.waited.append(seconds)
+
+
+@pytest.mark.anyio
+class TestATransientFailureIsRetriedOnce:
+    """COD-69: about one turn in four answered 502 in production, on 429 and 503
+    refusals that the next call would have survived. One retry, inside a budget
+    the visitor can wait through — never more."""
+
+    def _extractor(self, gemini: _Scripted, sleeps: _Sleeps) -> GeminiFactExtractor:
+        return GeminiFactExtractor(api_key="k", transport=gemini.transport, sleep=sleeps)
+
+    async def test_the_happy_path_makes_one_call(self) -> None:
+        import httpx
+
+        gemini, sleeps = _Scripted(httpx.Response(200, json=_model_ok())), _Sleeps()
+
+        result = await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert result.reply
+        assert gemini.calls == 1
+        assert sleeps.waited == []
+
+    async def test_an_overloaded_model_is_asked_again(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        import logging
+
+        import httpx
+
+        gemini = _Scripted(
+            httpx.Response(503, json=_gemini_error(503, "UNAVAILABLE")),
+            httpx.Response(200, json=_model_ok()),
+        )
+        sleeps = _Sleeps()
+
+        with caplog.at_level(logging.WARNING):
+            result = await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert result.reply
+        assert gemini.calls == 2
+        logged = "\n".join(record.getMessage() for record in caplog.records)
+        assert "503" in logged and "UNAVAILABLE" in logged
+        assert "hola" not in logged, "the visitor's words are never logged"
+
+    async def test_a_rate_limit_honours_retry_after_when_it_fits(self) -> None:
+        import httpx
+
+        gemini = _Scripted(
+            httpx.Response(
+                429,
+                json=_gemini_error(429, "RESOURCE_EXHAUSTED"),
+                headers={"Retry-After": "2"},
+            ),
+            httpx.Response(200, json=_model_ok()),
+        )
+        sleeps = _Sleeps()
+
+        await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert gemini.calls == 2
+        assert sleeps.waited == [2.0]
+
+    async def test_a_rate_limit_without_retry_after_waits_a_short_fixed_backoff(self) -> None:
+        import httpx
+
+        from app.services.extraction import RETRY_BACKOFF_SECONDS
+
+        gemini = _Scripted(
+            httpx.Response(429, json=_gemini_error(429, "RESOURCE_EXHAUSTED")),
+            httpx.Response(200, json=_model_ok()),
+        )
+        sleeps = _Sleeps()
+
+        await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert gemini.calls == 2
+        assert sleeps.waited == [RETRY_BACKOFF_SECONDS]
+        assert RETRY_BACKOFF_SECONDS <= 2
+
+    async def test_a_retry_after_beyond_the_budget_fails_fast(self) -> None:
+        import httpx
+
+        from app.services.report_gemini import ModelUnavailable
+
+        gemini = _Scripted(
+            httpx.Response(
+                429,
+                json=_gemini_error(429, "RESOURCE_EXHAUSTED"),
+                headers={"Retry-After": "60"},
+            ),
+            httpx.Response(200, json=_model_ok()),
+        )
+        sleeps = _Sleeps()
+
+        with pytest.raises(ModelUnavailable, match="429"):
+            await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert gemini.calls == 1
+        assert sleeps.waited == []
+
+    @pytest.mark.parametrize("code", [500, 504])
+    async def test_a_server_fault_is_asked_again(self, code: int) -> None:
+        import httpx
+
+        gemini = _Scripted(
+            httpx.Response(code, json=_gemini_error(code, "INTERNAL")),
+            httpx.Response(200, json=_model_ok()),
+        )
+
+        result = await self._extractor(gemini, _Sleeps()).extract("hola", ConversationFacts())
+
+        assert result.reply
+        assert gemini.calls == 2
+
+    async def test_a_retry_after_as_a_date_falls_back_to_the_fixed_backoff(self) -> None:
+        import httpx
+
+        from app.services.extraction import RETRY_BACKOFF_SECONDS
+
+        gemini = _Scripted(
+            httpx.Response(
+                429,
+                json=_gemini_error(429, "RESOURCE_EXHAUSTED"),
+                headers={"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"},
+            ),
+            httpx.Response(200, json=_model_ok()),
+        )
+        sleeps = _Sleeps()
+
+        await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert gemini.calls == 2
+        assert sleeps.waited == [RETRY_BACKOFF_SECONDS]
+
+    async def test_an_attempt_that_outlasts_the_budget_is_not_retried(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import asyncio
+
+        import httpx
+
+        from app.services import extraction
+        from app.services.report_gemini import ModelUnavailable
+
+        monkeypatch.setattr(extraction, "TURN_BUDGET_SECONDS", 0.05)
+        calls = 0
+
+        async def slow(_request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            await asyncio.sleep(1)
+            return httpx.Response(200, json=_model_ok())
+
+        extractor = GeminiFactExtractor(
+            api_key="k", transport=httpx.MockTransport(slow), sleep=_Sleeps()
+        )
+
+        with pytest.raises(ModelUnavailable, match="exceeded the turn budget"):
+            await extractor.extract("hola", ConversationFacts())
+
+        assert calls == 1
+
+    async def test_a_hang_is_cut_and_asked_again(self) -> None:
+        import httpx
+
+        gemini = _Scripted(
+            httpx.ReadTimeout("read timed out"), httpx.Response(200, json=_model_ok())
+        )
+        sleeps = _Sleeps()
+
+        result = await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert result.reply
+        assert gemini.calls == 2
+
+    @pytest.mark.parametrize("code,reason", [(503, "UNAVAILABLE"), (429, "RESOURCE_EXHAUSTED")])
+    async def test_a_persistent_refusal_fails_after_exactly_two_calls(
+        self, code: int, reason: str
+    ) -> None:
+        import httpx
+
+        from app.services.report_gemini import ModelUnavailable
+
+        gemini = _Scripted(httpx.Response(code, json=_gemini_error(code, reason)))
+        sleeps = _Sleeps()
+
+        with pytest.raises(ModelUnavailable) as raised:
+            await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert gemini.calls == 2
+        message = str(raised.value)
+        assert str(code) in message
+        assert reason in message
+        assert "quota detail" not in message, "the provider's prose is not echoed"
+        assert "hola" not in message
+
+    async def test_a_persistent_hang_fails_after_exactly_two_calls(self) -> None:
+        import httpx
+
+        from app.services.report_gemini import ModelUnavailable
+
+        gemini = _Scripted(httpx.ReadTimeout("read timed out"))
+
+        with pytest.raises(ModelUnavailable, match="ReadTimeout"):
+            await self._extractor(gemini, _Sleeps()).extract("hola", ConversationFacts())
+
+        assert gemini.calls == 2
+
+    @pytest.mark.parametrize("code", [400, 401, 403, 404])
+    async def test_a_refusal_that_will_not_change_is_not_retried(self, code: int) -> None:
+        import httpx
+
+        from app.services.report_gemini import ModelUnavailable
+
+        gemini = _Scripted(
+            httpx.Response(code, json=_gemini_error(code, "INVALID_ARGUMENT")),
+            httpx.Response(200, json=_model_ok()),
+        )
+        sleeps = _Sleeps()
+
+        with pytest.raises(ModelUnavailable, match=str(code)):
+            await self._extractor(gemini, sleeps).extract("hola", ConversationFacts())
+
+        assert gemini.calls == 1
+        assert sleeps.waited == []
+
+    async def test_an_error_body_that_is_not_json_still_names_the_status(self) -> None:
+        import httpx
+
+        from app.services.report_gemini import ModelUnavailable
+
+        gemini = _Scripted(httpx.Response(503, text="<html>bad gateway</html>"))
+
+        with pytest.raises(ModelUnavailable, match="503"):
+            await self._extractor(gemini, _Sleeps()).extract("hola", ConversationFacts())
 
 
 @pytest.mark.anyio

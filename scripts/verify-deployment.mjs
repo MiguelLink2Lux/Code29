@@ -10,6 +10,8 @@
  * fail the run: they depend on configuration only the owner can complete.
  */
 
+import { conversationCheck } from './lib/conversation-check.mjs'
+
 const args = process.argv.slice(2)
 const flag = (name) => {
   const index = args.indexOf(`--${name}`)
@@ -232,24 +234,16 @@ async function checkBackend() {
     `HTTP ${unauth?.status}`,
   )
 
-  // Whether a model or the deterministic stub conducts the chat. The stub cannot
-  // read a name out of a sentence, so it still reports contact_name as missing —
-  // which is exactly what a deployment with no working GEMINI_API_KEY looks like.
+  // Whether a model, the deterministic stub, or nothing at all conducts the chat.
+  // A failing model is blocking; a missing one is the owner's to configure.
   const { response: turn } = await fetchSafe(`${API}/api/v1/contact/conversation/turn`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Origin: SITE },
     body: JSON.stringify({ message: 'Hola, me llamo Miguel y trabajo en Link2Lux' }),
   })
   const turnBody = await turn?.json().catch(() => null)
-  const extracted = Array.isArray(turnBody?.missing) && !turnBody.missing.includes('contact_name')
-  record(
-    'the conversation is model-driven',
-    extracted,
-    extracted
-      ? 'the name was extracted from a sentence'
-      : 'the stub is answering — GEMINI_API_KEY is missing or rejected',
-    false,
-  )
+  const turnCheck = conversationCheck(turn?.status, turnBody)
+  record('the conversation is model-driven', turnCheck.ok, turnCheck.detail, turnCheck.blocking)
 
   // 503 here means the contact flow is not configured yet — expected before the
   // env vars land, a failure afterwards. `probe` is deliberately not a real
