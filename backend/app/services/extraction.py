@@ -21,8 +21,12 @@ same typed result, so the endpoint never knows which is behind it.
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 import re
+import time
+from collections.abc import Awaitable, Callable
 from typing import Protocol, runtime_checkable
 
 import httpx
@@ -47,9 +51,32 @@ _WEBSITE = re.compile(
     r"\b((?:https?://)?(?:[a-z0-9][a-z0-9-]*\.)+[a-z]{2,}(?:/\S*)?)\b", re.IGNORECASE
 )
 
-# The same deadline the report generator gives the model. One number for one
-# provider: two different ones were a coincidence, not a decision.
-REQUEST_TIMEOUT_SECONDS = 30.0
+logger = logging.getLogger(__name__)
+
+# The turn no longer shares the report generator's 30 s deadline (COD-69). A turn
+# is interactive and retries once; the report is neither, and keeps its own.
+# Connect is split from read because a refused connection is known in a moment
+# while a slow answer is not. Read stays at 20 s: non-streaming generateContent
+# sends nothing until the model is done, and the first turn after a cold start
+# was measured at 16.8 s (COD-63) — a shorter read would cut healthy turns.
+# 3 + 20 still fits the turn budget; a second attempt after a full hang only
+# gets what is left of it.
+REQUEST_TIMEOUT = httpx.Timeout(20.0, connect=3.0)
+
+# Both attempts plus the backoff between them. Below the 30 s a visitor used to
+# wait behind a single hang, so the retry never makes the worst case worse.
+TURN_BUDGET_SECONDS = 24.0
+
+# Used when a retryable refusal carries no usable Retry-After.
+RETRY_BACKOFF_SECONDS = 1.0
+
+# What the next call can survive: overload, rate limits, server faults. Any other
+# 4xx (bad request, key, model id) will be refused again, so it is not retried.
+_RETRYABLE_STATUSES = frozenset({429, 500, 503, 504})
+
+# Gemini's `error.status` is an enum like RESOURCE_EXHAUSTED. Anything else in
+# that slot is not trusted into a log line.
+_PROVIDER_STATUS = re.compile(r"^[A-Z_]{1,64}$")
 
 
 class ExtractionResult(BaseModel):
@@ -177,10 +204,12 @@ class GeminiFactExtractor:
         api_key: str,
         model: str = "",
         transport: httpx.AsyncBaseTransport | None = None,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self._api_key = api_key
         self._model = (model or DEFAULT_GEMINI_MODEL).strip()
         self._transport = transport
+        self._sleep = sleep
 
     @property
     def endpoint(self) -> str:
@@ -226,20 +255,68 @@ class GeminiFactExtractor:
             },
         }
 
+        return self._parse(await self._post_with_one_retry(payload))
+
+    async def _post_with_one_retry(self, payload: dict) -> httpx.Response:
+        """POST the payload; on a transient failure, wait and try exactly once more.
+
+        Every failure becomes `ModelUnavailable` carrying the HTTP status and the
+        provider's own reason — never the payload, which holds the visitor's text.
+        """
+        deadline = time.monotonic() + TURN_BUDGET_SECONDS
+
+        for attempt in (1, 2):
+            outcome, retryable, retry_after = await self._attempt(payload, deadline)
+            if isinstance(outcome, httpx.Response):
+                return outcome
+
+            delay = RETRY_BACKOFF_SECONDS if retry_after is None else retry_after
+            # A Retry-After the budget cannot absorb is not honoured: waiting it
+            # out would break the budget, and a shorter wait would be refused again.
+            fits = time.monotonic() + delay + REQUEST_TIMEOUT.connect < deadline
+            if attempt == 2 or not retryable or not fits:
+                raise ModelUnavailable(outcome)
+
+            logger.warning("model turn attempt failed, retrying: %s", outcome)
+            await self._sleep(delay)
+
+        raise AssertionError("unreachable")  # pragma: no cover
+
+    async def _attempt(
+        self, payload: dict, deadline: float
+    ) -> tuple[httpx.Response | str, bool, float | None]:
+        """One call. Returns the response on success, otherwise (reason,
+        retryable, Retry-After seconds)."""
         try:
-            async with httpx.AsyncClient(
-                transport=self._transport, timeout=REQUEST_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.post(
-                    self.endpoint, json=payload, headers={"x-goog-api-key": self._api_key}
-                )
+            # The httpx timeouts bound each read; this bounds the whole attempt,
+            # so a body trickling in slowly cannot outlast the turn budget.
+            async with asyncio.timeout(max(deadline - time.monotonic(), 0.0)):
+                async with httpx.AsyncClient(
+                    transport=self._transport, timeout=REQUEST_TIMEOUT
+                ) as client:
+                    response = await client.post(
+                        self.endpoint, json=payload, headers={"x-goog-api-key": self._api_key}
+                    )
+        except TimeoutError:
+            # The budget is spent; there is nothing left to retry with.
+            return "model exceeded the turn budget", False, None
         except httpx.HTTPError as error:
-            raise ModelUnavailable(f"model transport failed ({type(error).__name__})") from error
+            # Timeouts and dropped connections: the next call may well get through.
+            return f"model transport failed ({type(error).__name__})", True, None
 
-        if response.is_error:
-            raise ModelUnavailable(f"model refused the request with {response.status_code}")
+        if not response.is_error:
+            return response, False, None
 
-        return self._parse(response)
+        reason = f"model refused the request with {response.status_code}"
+        provider_status = _provider_status(response)
+        if provider_status:
+            reason += f" ({provider_status})"
+
+        return (
+            reason,
+            response.status_code in _RETRYABLE_STATUSES,
+            _retry_after(response),
+        )
 
     @staticmethod
     def _parse(response: httpx.Response) -> ExtractionResult:
@@ -266,6 +343,30 @@ class GeminiFactExtractor:
         return ExtractionResult(
             delta=parsed.facts, reply=parsed.reply, injection=parsed.injection
         )
+
+
+def _provider_status(response: httpx.Response) -> str | None:
+    """Gemini's `error.status` (e.g. RESOURCE_EXHAUSTED), or None.
+
+    Only the enum is kept: it names which limit was hit without echoing the
+    provider's prose, and an error body is not guaranteed to be JSON at all.
+    """
+    try:
+        status = response.json()["error"]["status"]
+    except (ValueError, KeyError, TypeError):
+        return None
+
+    return status if isinstance(status, str) and _PROVIDER_STATUS.match(status) else None
+
+
+def _retry_after(response: httpx.Response) -> float | None:
+    """Retry-After in seconds, or None. The HTTP-date form is treated as absent."""
+    try:
+        seconds = float(response.headers.get("retry-after", ""))
+    except ValueError:
+        return None
+
+    return seconds if seconds >= 0 else None
 
 
 #: What the bot must do this turn, phrased for the model. The server decides
