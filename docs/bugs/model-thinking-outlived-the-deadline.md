@@ -55,7 +55,9 @@ then 2.05 s and 1.77 s.
 ## Prevention
 
 - `test_extraction.py` asserts the payload carries `thinkingLevel: "low"` and no
-  `thinkingBudget`, and that the extractor's deadline equals the report generator's.
+  `thinkingBudget`. It used to assert that the extractor's deadline equals the report
+  generator's; since [[gemini-transient-refusals-failed-the-turn]] the turn has its own
+  budget, and the tests pin that the read timeout stays above the ~17 s cold first turn.
 - `test_conversation_turn_api.py` asserts a model failure logs its cause and still
   answers 502 — and that the visitor's own words never reach the log.
 - The durable lesson: **when pinning a model, pin its reasoning level too.** A default
@@ -65,5 +67,6 @@ then 2.05 s and 1.77 s.
 
 - [[0007-gemini-over-rest]] — the request shape this amends
 - [[a-mistyped-code-became-a-message]] — the other defect found in the same session
+- [[gemini-transient-refusals-failed-the-turn]] — the turn deadline split from the report's
 - [[Bugs]] — parent index
 - [[testing-strategy]] — where the preventions land

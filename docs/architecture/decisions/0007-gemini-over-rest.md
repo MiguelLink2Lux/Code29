@@ -77,7 +77,7 @@ Request shape:
 | `generationConfig.temperature` | `0` | The same facts about the same company must not yield two different diagnoses. |
 | `generationConfig.responseMimeType` | `application/json` | Asks for JSON directly instead of parsing prose. |
 | `generationConfig.thinkingConfig` | `{"thinkingLevel": "low"}` | Extraction reads facts out of one sentence. Flash 3.x reasons at `medium` when the field is omitted, which outlived the deadline in production ([[model-thinking-outlived-the-deadline]]). `low` is the floor these models accept. |
-| Timeout | 30 s, extraction and generation alike | Bounded by the serverless invocation, not left to the default. One number for one provider: two different ones were a coincidence, not a decision. |
+| Timeout | Report generation: 30 s. Conversation turn: connect 3 s, read 20 s, one retry, 24 s for the whole turn | Bounded by the serverless invocation, not left to the default. The two diverged on purpose ([[gemini-transient-refusals-failed-the-turn]]): a turn is interactive and retries once on 429/5xx, so its whole budget stays under the 30 s a visitor used to wait; the report is neither. Read stays at 20 s because a cold first turn takes ~17 s ([[model-thinking-outlived-the-deadline]]). |
 
 The connector tolerates the model wrapping its JSON in a ```` ```json ```` fence anyway —
 models do it even when told not to — and strips the fence before parsing.
