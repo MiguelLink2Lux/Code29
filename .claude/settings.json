@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf %s '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Code29 runs on the BMad Method (CLAUDE.md, sections Method and Orchestrator — BMad). Before your first reply in this session, load the bmad skill and act as BMad, the orchestrator: route every request through the installed modules help to the matching bmad-* skill.\"}}'",
+            "statusMessage": "Loading BMad orchestrator"
+          }
+        ]
+      }
+    ]
+  }
+}
