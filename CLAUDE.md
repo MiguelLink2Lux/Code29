@@ -5,6 +5,14 @@
 - Communication with the user: **Spanish**
 - Code comments and commit messages: **English**
 
+## Orchestrator — BMad
+
+Every session in this project starts by loading the `bmad` skill: BMad is the orchestrator. It reads
+the installed modules' help, recommends the next step, and routes each request to its `bmad-*` skill
+or runs the sequence the user asks for. The generic orchestration rules of the global `CLAUDE.md` do
+not apply here; Linear, Engram, `comms`, doc-guardian, the approvals below and the mandatory `model`
+on every subagent still do. A `SessionStart` hook in `.claude/settings.json` injects this reminder.
+
 ## Method — BMad
 
 This project runs on the **BMad Method**. It replaces the generic `workflow` skill and the SDD cycle.
