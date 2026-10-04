@@ -24,9 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node 20 on purpose: @astrojs/vercel v7 reads the local process.version to
-      # pick the function runtime, so the runner's version is what verify:runtime
-      # asserts. .nvmrc is the single source for it.
+      # .nvmrc pins the Node major for CI and verify:runtime; Vercel builds from
+      # engines.node in package.json. The two must name the same major.
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc

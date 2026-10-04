@@ -1,5 +1,7 @@
 module.exports = {
   root: true,
+  // Astro 5 stages the static build in dist/ before the Vercel adapter copies it.
+  ignorePatterns: ['dist/'],
   env: {
     node: true,
     browser: true,

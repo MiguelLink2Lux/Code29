@@ -13,7 +13,8 @@ import { describe, expect, it } from 'vitest'
 import { PUBLIC_ROUTES, resolveSiteUrl, sitemapUrl } from '../../src/utils/seo'
 
 // The Vercel adapter writes static output here, not to dist/.
-const STATIC_DIR = join(process.cwd(), '.vercel', 'output', 'static')
+const OUTPUT_DIR = join(process.cwd(), '.vercel', 'output')
+const STATIC_DIR = join(OUTPUT_DIR, 'static')
 
 const read = (file: string) => readFileSync(join(STATIC_DIR, file), 'utf8')
 
@@ -56,5 +57,20 @@ describe('robots.txt', () => {
   it('advertises the sitemap that was actually generated', () => {
     // The historical bug: robots.txt pointed at /sitemap.xml, which never existed.
     expect(read('robots.txt')).toContain(`Sitemap: ${sitemapUrl({})}`)
+  })
+})
+
+describe('legacy redirects', () => {
+  // The dev server only fakes these with a meta refresh; the permanent redirect
+  // search engines see is the route the adapter writes into config.json.
+  it.each([
+    ['/mantenimiento', '/maintenance'],
+    ['/aviso-legal', '/legal-notice'],
+    ['/privacidad', '/privacy-policy'],
+  ])('%s is a 301 to %s', (from, to) => {
+    const { routes } = JSON.parse(readFileSync(join(OUTPUT_DIR, 'config.json'), 'utf8'))
+    const route = routes.find((r: { src?: string }) => r.src === `^${from}$`)
+
+    expect(route).toMatchObject({ status: 301, headers: { Location: to } })
   })
 })
