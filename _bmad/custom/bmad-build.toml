@@ -1,0 +1,19 @@
+# Code29 team overrides for bmad-build. Committed: these are project policy.
+# Personal tweaks go in bmad-build.user.toml (gitignored).
+
+[workflow]
+
+persistent_facts = [
+  "Language: talk to the user in Spanish; code, comments, commit messages and PR text in English.",
+  "Tracking: work is tracked in Linear (team Code29, prefix COD). Every commit message and PR title carries the issue key, e.g. `fix: ... (COD-36)`. Move the issue to In Progress when implementation starts.",
+  "Critical Section (required by Code29 CLAUDE.md): every plan includes a `### Critical Section` covering code conflicts with existing logic, technical debt introduced, side effects on other modules or integrations, edge cases not covered, and alternatives considered and why they were discarded — or states exactly \"No critical risks identified.\" Put it in `## Design Notes` (full route) or at the top of `## Implementation Notes` (oneshot route); never inside the frozen block.",
+  "SOLID Check (required by Code29 CLAUDE.md): every plan includes a `### SOLID Check` next to the Critical Section, naming each violation of the SOLID table in CLAUDE.md with its minimal fix, or stating none was found.",
+  "Approvals: never push, open a pull request or merge without the user's explicit approval. The user merges pull requests.",
+  "Documentation: only doc-guardian writes `docs/`, the project CLAUDE.md, Postman and OpenAPI. Route documentable changes to it; never edit those files from a build.",
+]
+
+on_complete = """
+Close the loop outside the repository:
+1. Linear: comment on the COD issue with the commit hash, what changed and what was deferred; once a PR exists, attach its URL to the issue.
+2. Run the doc-guardian skill in Quick Mode on the build commit and propose — do not apply — the documentation updates it finds.
+"""

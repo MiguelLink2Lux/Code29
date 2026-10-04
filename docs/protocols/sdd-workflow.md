@@ -1,7 +1,12 @@
 # Code29 — SDD Workflow
 
-> **Version:** 1.0 | **Date:** 2026-04-11 | **Status:** Active
+> **Version:** 1.0 | **Date:** 2026-04-11 | **Status:** Deprecated — superseded by the BMad Method on 2026-10-04, kept as history
 > **Part of:** [[Protocols]]
+
+> [!warning] Superseded
+> Since 2026-10-04 Code29 runs on the BMad Method: structural changes go through `bmad-spec` and
+> `bmad-build`, with project policy in `_bmad/custom/bmad-build.toml`. See the project `CLAUDE.md`,
+> section *Method — BMad*. Nothing below is in force; it records how SDD cycles were run until then.
 
 Spec-Driven Development (SDD) is the structured planning methodology for Code29. It ensures every significant change is designed before it is implemented.
 
