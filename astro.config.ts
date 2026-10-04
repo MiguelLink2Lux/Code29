@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config'
 import sitemap from '@astrojs/sitemap'
 import vue from '@astrojs/vue'
-import vercel from '@astrojs/vercel/serverless'
+import vercel from '@astrojs/vercel'
 
 import { resolveSiteUrl } from './src/utils/seo'
 
@@ -28,7 +28,6 @@ export default defineConfig({
         ),
     }),
   ],
-  output: 'hybrid',
   adapter: vercel(),
   redirects: {
     '/mantenimiento': '/maintenance',

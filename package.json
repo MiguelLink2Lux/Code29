@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "astro dev",
@@ -18,14 +18,14 @@
     "format": "prettier --write .",
     "verify:assets": "vitest run --config vitest.artifacts.config.ts",
     "verify:runtime": "node scripts/assert-vercel-runtime.mjs",
-    "build:node20": "npx --yes node@20 node_modules/astro/astro.js build",
+    "build:node24": "npx --yes node@24 node_modules/astro/astro.js build",
     "verify:deployment": "node scripts/verify-deployment.mjs"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.2.1",
-    "@astrojs/vercel": "^7.8.2",
-    "@astrojs/vue": "^4.5.0",
-    "astro": "^4.16.0",
+    "@astrojs/sitemap": "~3.7.4",
+    "@astrojs/vercel": "^9.0.5",
+    "@astrojs/vue": "^5.1.4",
+    "astro": "^5.18.2",
     "vue": "^3.5.0"
   },
   "devDependencies": {

@@ -29,7 +29,10 @@ test.describe('legacy redirects', () => {
     test(`${from} redirects to ${to}`, async ({ page }) => {
       await page.goto(from)
 
-      expect(new URL(page.url()).pathname.replace(/\/$/, '')).toBe(to)
+      // The dev server answers a static-output redirect with a meta refresh,
+      // not a 301, so wait for the navigation instead of reading the URL once.
+      // The 301 itself is asserted on the build output (verify:assets).
+      await expect(page).toHaveURL((url) => url.pathname.replace(/\/$/, '') === to)
     })
   }
 })
