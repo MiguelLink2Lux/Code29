@@ -10,7 +10,7 @@ agents operate on the code.
 
 | Note | What it covers | Status |
 |---|---|---|
-| [[sdd-workflow]] | Spec-Driven Development — when it is mandatory, and the phases of a cycle | Active |
+| [[sdd-workflow]] | Spec-Driven Development — when it was mandatory, and the phases of a cycle | Deprecated — superseded by the BMad Method 2026-10-04 (project `CLAUDE.md`, *Method — BMad*), kept as history |
 | [[linear-claude-integration]] | Task tracking in Linear (workspace `linear.app/code29`, team Code29, prefix `COD`) | Active |
 | [[ai-agents]] | Map of the agents and skills that operate on this repo, and what each one owns | Active |
 | [[deployment]] | Where each project runs, which variables it needs, and how a deploy is verified from outside | Active |

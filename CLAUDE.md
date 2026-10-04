@@ -5,13 +5,27 @@
 - Communication with the user: **Spanish**
 - Code comments and commit messages: **English**
 
-## Workflow
+## Method — BMad
 
-1. **Propose a plan** before touching any file — describe the approach, affected files, and risks
-2. **Wait for explicit approval** before writing any code
-3. **Track tasks** with Linear (workspace `linear.app/code29`, team Code29, issue prefix `COD` — see [Linear integration](docs/protocols/linear-claude-integration.md))
-4. **Execute task by task** — mark each done before moving to the next
-5. **Propose the commit** (message + files) and wait for approval before running it
+This project runs on the **BMad Method**. It replaces the generic `workflow` skill and the SDD cycle.
+
+| Situation | Skill |
+|---|---|
+| Any change to code, config or infrastructure | `bmad-build` — plan, approval checkpoint, implementation, review, commit |
+| Work bigger than one session | `bmad-spec` first (plus `bmad-prd`, `bmad-ux` or `bmad-architecture` when the work needs them), then one `bmad-build` per slice |
+| Reviewing a diff, PR or document | `bmad-review` / `bmad-code-review` |
+| Unsure where to start | `bmad` |
+
+Project policy is injected into `bmad-build` by the team override `_bmad/custom/bmad-build.toml`:
+Spanish chat, the `COD` key in every commit and PR, the Critical Section and SOLID Check inside the
+plan, approval before push / PR / merge, and Linear + doc-guardian on completion. Change policy there,
+never by editing installed skills. Plans and deferred work live in `_bmad-output/`.
+
+Unchanged by BMad:
+
+- **Track tasks** with Linear (workspace `linear.app/code29`, team Code29, issue prefix `COD` — see [Linear integration](docs/protocols/linear-claude-integration.md))
+- **Approval** — the plan is approved at the `bmad-build` checkpoint; push, PR and merge each need explicit approval, and the user merges
+- **Documentation** — only doc-guardian writes `docs/` and this file
 
 ## Critical Section (required in every plan)
 
@@ -60,17 +74,7 @@ Before approving any plan, a **SOLID Check** section must be included identifyin
 
 When a violation is detected: name the principle, explain the problem, propose the minimal fix.
 
-## SDD Workflow
+## SDD Workflow — superseded
 
-Spec-Driven Development is required for all structural changes. See full protocol:
-→ [SDD Workflow](docs/protocols/sdd-workflow.md)
-
-**Quick reference — SDD required when:**
-- Adding a new page or route
-- Implementing cookie consent, contact form, or legal pages
-- Introducing FastAPI (Phase 2+)
-- Any AI assistant or lead capture feature (Phase 2+)
-
-**Not required for:** CSS changes, content updates, bug fixes, dependency updates.
-
-**Start a new SDD cycle:** `/sdd-new [change-name]`
+The SDD cycle is no longer used; structural changes go through `bmad-spec` and `bmad-build` (see
+**Method — BMad** above). The protocol is kept as history: [SDD Workflow](docs/protocols/sdd-workflow.md).
