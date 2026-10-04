@@ -58,3 +58,6 @@ test-results/
 .obsidian/workspace-mobile.json
 docs/.obsidian/workspace.json
 docs/.obsidian/workspace-mobile.json
+
+# BMad: rendered skill snapshots, regenerated on every run
+_bmad/render/
