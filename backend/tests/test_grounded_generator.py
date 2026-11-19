@@ -86,7 +86,7 @@ def sent_facts(request: httpx.Request) -> dict:
 class TestGroundedRequest:
     async def test_declares_search_grounding(self) -> None:
         transport, seen = capturing(gemini_response(model_payload()))
-        generator = GroundedCanonGenerator(api_key=API_KEY, transport=transport)
+        generator = GroundedCanonGenerator(api_key=API_KEY, transport=transport, grounding=True)
 
         await generator.generate(**FACTS)  # type: ignore[arg-type]
 
@@ -158,7 +158,7 @@ class TestGroundedResult:
 
     async def test_a_cited_claim_reaches_its_section_with_its_reference(self) -> None:
         transport, _ = capturing(gemini_response(model_payload()))
-        generator = GroundedCanonGenerator(api_key=API_KEY, transport=transport)
+        generator = GroundedCanonGenerator(api_key=API_KEY, transport=transport, grounding=True)
 
         report = await generator.generate(**FACTS)  # type: ignore[arg-type]
         section = next(s for s in report.sections if s.point.number == 8)
@@ -179,11 +179,40 @@ class TestGroundedResult:
 
     async def test_records_that_the_report_was_grounded(self) -> None:
         transport, _ = capturing(gemini_response(model_payload()))
+        generator = GroundedCanonGenerator(api_key=API_KEY, transport=transport, grounding=True)
+
+        report = await generator.generate(**FACTS)  # type: ignore[arg-type]
+
+        assert report.generator.endswith(":grounded")
+
+
+@pytest.mark.anyio
+class TestGroundingOptIn:
+    """Grounding is opt-in, because it is entitlement-gated.
+
+    Without a paid tier every grounded request returns 429 while the same request
+    without grounding returns 200 in the same second, so attempting it costs a
+    round trip to learn something we already know.
+    """
+
+    async def test_grounding_is_off_by_default(self) -> None:
+        transport, seen = capturing(gemini_response(model_payload()))
+        generator = GroundedCanonGenerator(api_key=API_KEY, transport=transport)
+
+        await generator.generate(**FACTS)  # type: ignore[arg-type]
+
+        assert len(seen) == 1
+        assert "tools" not in json.loads(seen[0].content), "grounding attempted unasked"
+
+    async def test_an_ungrounded_report_says_so_and_cites_nothing(self) -> None:
+        transport, _ = capturing(gemini_response(model_payload()))
         generator = GroundedCanonGenerator(api_key=API_KEY, transport=transport)
 
         report = await generator.generate(**FACTS)  # type: ignore[arg-type]
 
-        assert "grounded" in report.generator
+        assert report.generator.endswith(":ungrounded")
+        for section in report.sections:
+            assert all(i.source is not EvidenceSource.CITED for i in section.evidence)
 
 
 @pytest.mark.anyio
@@ -200,7 +229,7 @@ class TestDegradation:
             return httpx.Response(200, json=gemini_response(model_payload()))
 
         generator = GroundedCanonGenerator(
-            api_key=API_KEY, transport=httpx.MockTransport(handler)
+            api_key=API_KEY, transport=httpx.MockTransport(handler), grounding=True
         )
 
         report = await generator.generate(**FACTS)  # type: ignore[arg-type]
@@ -218,7 +247,7 @@ class TestDegradation:
             return httpx.Response(200, json=gemini_response(model_payload()))
 
         generator = GroundedCanonGenerator(
-            api_key=API_KEY, transport=httpx.MockTransport(handler)
+            api_key=API_KEY, transport=httpx.MockTransport(handler), grounding=True
         )
 
         report = await generator.generate(**FACTS)  # type: ignore[arg-type]
@@ -234,7 +263,7 @@ class TestDegradation:
             return httpx.Response(200, json=gemini_response(model_payload()))
 
         generator = GroundedCanonGenerator(
-            api_key=API_KEY, transport=httpx.MockTransport(handler)
+            api_key=API_KEY, transport=httpx.MockTransport(handler), grounding=True
         )
 
         report = await generator.generate(**FACTS)  # type: ignore[arg-type]
@@ -251,6 +280,7 @@ class TestDegradation:
             api_key=API_KEY,
             transport=httpx.MockTransport(handler),
             degrade_without_grounding=False,
+            grounding=True,
         )
 
         with pytest.raises(GroundingUnavailable):
@@ -265,7 +295,7 @@ class TestDegradation:
             return httpx.Response(500, json={"error": {"status": "INTERNAL"}})
 
         generator = GroundedCanonGenerator(
-            api_key=API_KEY, transport=httpx.MockTransport(handler)
+            api_key=API_KEY, transport=httpx.MockTransport(handler), grounding=True
         )
 
         with pytest.raises(Exception):  # noqa: B017 — ModelUnavailable from the base connector

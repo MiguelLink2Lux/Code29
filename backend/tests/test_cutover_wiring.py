@@ -11,6 +11,7 @@ found last time — each part correct, nothing connected.
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from app.api.v1 import contact_report
 from app.core.config import Settings
@@ -79,6 +80,38 @@ class TestReportStructure:
         assert report.proposal.headline.strip()
         assert len(report.proposal.parts) == 3
         assert report.proposal.rationale.strip()
+
+
+class TestGeminiGeneratorWiring:
+    """The route must be able to build the real generator, not only the stub.
+
+    Every other test overrides the generator or selects `stub`, which is how a
+    constructor argument the generator no longer accepted turned every
+    REPORT_GENERATOR=gemini report into a 500 without one test failing.
+    """
+
+    @staticmethod
+    def _gemini_settings(**overrides):
+        return configured_settings().model_copy(
+            update={"report_generator": "gemini", "gemini_api_key": SecretStr("k"), **overrides}
+        )
+
+    def test_gemini_builds_the_grounded_generator(self) -> None:
+        from app.services.grounded_report import GroundedCanonGenerator
+
+        generator = contact_report.get_report_generator(self._gemini_settings())
+
+        assert isinstance(generator, GroundedCanonGenerator)
+
+    @pytest.mark.parametrize("enabled", [False, True])
+    def test_grounding_follows_the_setting(self, enabled: bool) -> None:
+        generator = contact_report.get_report_generator(
+            self._gemini_settings(gemini_grounding=enabled)
+        )
+
+        # Private on purpose: the flag only decides what is sent, which the
+        # generator's own tests assert over the wire.
+        assert generator._grounding is enabled
 
 
 class TestSiteAnalyserWiring:
